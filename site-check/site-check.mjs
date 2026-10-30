@@ -91,7 +91,8 @@ export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') ||
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
 // then 3 more minutes. A URL with no result line keeps its earlier read, so it stays drifted.
-export const retry = async (base, now, bad, refetch, sleep, waits = [60000, 180000]) => {
+export const retry = async (base, now, urls, refetch, sleep, waits = [60000, 180000]) => {
+  let bad = urls.filter(u => drifted(base[u], now[u]));
   for (const wait of waits) {
     if (!bad.length) break;
     await sleep(wait);
@@ -117,7 +118,7 @@ if (process.argv.includes('--update')) {
 const base = JSON.parse(readFileSync(BASE, 'utf8'));
 const first = run(URLS);
 // broke is reset so each retry is judged on its own fetch.
-const { now, bad } = await retry(base, first, URLS.filter(u => drifted(base[u], first[u])),
+const { now, bad } = await retry(base, first, URLS,
   urls => { broke = ''; return run(urls); }, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
   ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``])].join('\n')
