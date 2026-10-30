@@ -86,6 +86,7 @@ test('a saved Help article whose sidecar holds no article links is drift, and ne
   assert.deepEqual([navOnly.links, drifted(page, navOnly), unfit(navOnly, u)], [0, true, true]);
   assert.equal(parse([u], line, join(out, 'missing'))[u].links, 0); // no sidecar at all
   assert.equal(parse([u], line)[u].links, undefined); // no out dir: the parse tests above are unchanged
+  rmSync(out, { recursive: true, force: true });
 });
 
 test('an async refetch is merged by its result, not its Promise', async () => {
