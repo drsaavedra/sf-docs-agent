@@ -1,0 +1,36 @@
+{
+  "name": "sf-docs-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Claude Code subagent that answers from official Salesforce docs (developer, architect, help, admin, lightningdesignsystem.com) with grep-checked quotes",
+  "devDependencies": {
+    "playwright-core": "1.56.1"
+  },
+  "bin": {
+    "sf-docs-agent": "bin/install.mjs"
+  },
+  "files": [
+    "bin",
+    "agents",
+    "fetch-docs.mjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drsaavedra/sf-docs-agent.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "keywords": [
+    "claude-code",
+    "subagent",
+    "salesforce",
+    "documentation",
+    "llms.txt",
+    "playwright"
+  ],
+  "scripts": {
+    "test": "node --test --test-reporter=spec"
+  }
+}

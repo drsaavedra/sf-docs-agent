@@ -1,0 +1,50 @@
+name: Site check
+
+# Daily, and on any push that changes the script or the site check. Only the daily run opens an issue.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - fetch-docs.mjs
+      - site-check/**
+      - .github/workflows/site-check.yml
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  site-check:
+    runs-on: ubuntu-latest
+    # Worst case: two 900 s fetch budgets, the 60 s retry wait, a page in flight at each deadline, and setup.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright-core install --with-deps --only-shell chromium
+      - name: Run the site check
+        shell: bash
+        run: |
+          set +e
+          node site-check/site-check.mjs > report.md
+          code=$?
+          tee -a "$GITHUB_STEP_SUMMARY" < report.md
+          exit $code
+      - name: Open or update the issue
+        if: (failure() || cancelled()) && github.event_name == 'schedule'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title='Site check failed'
+          # Setup can fail before the site check writes a report: then the issue links the run instead.
+          [ -s report.md ] || echo "The site check did not finish: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" > report.md
+          open=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')
+          if [ -n "$open" ]; then gh issue comment "$open" --body-file report.md
+          else gh issue create --title "$title" --body-file report.md; fi

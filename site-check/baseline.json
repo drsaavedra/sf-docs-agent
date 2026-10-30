@@ -1,0 +1,134 @@
+{
+  "https://developer.salesforce.com/docs/llms.txt": {
+    "status": 200,
+    "chars": 16755,
+    "kinds": "",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/platform/lwc/guide/create-light-dom.md": {
+    "status": 200,
+    "chars": 41997,
+    "kinds": "",
+    "saved": true
+  },
+  "https://architect.salesforce.com/docs/architect/well-architected/guide/trust.md": {
+    "status": 200,
+    "chars": 94469,
+    "kinds": "",
+    "saved": true
+  },
+  "https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai": {
+    "status": 200,
+    "chars": 3137,
+    "kinds": "",
+    "saved": true
+  },
+  "https://admin.salesforce.com/sitemap_index.xml": {
+    "status": 200,
+    "chars": 1873,
+    "kinds": "",
+    "saved": true
+  },
+  "https://www.lightningdesignsystem.com/2e1ef8501/p/216f79-toast.md": {
+    "status": 200,
+    "chars": 10547,
+    "kinds": "",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket": {
+    "status": 200,
+    "chars": 14820,
+    "kinds": "doc-amf-reference",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm": {
+    "status": 200,
+    "chars": 24513,
+    "kinds": "div.body",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_string.htm": {
+    "status": 200,
+    "chars": 88011,
+    "kinds": "div.nested0",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/atlas.en-us.life_sciences_dev_guide.meta/life_sciences_dev_guide/sforce_api_objects_mergerequest.htm": {
+    "status": 200,
+    "chars": 5836,
+    "kinds": "twin redirected",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_rparobotmaintwindow.htm": {
+    "status": 200,
+    "chars": 139,
+    "kinds": "doc-content",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/atlas.en-us.mobile_sdk.meta/mobile_sdk/android_unauthenticated_rest_requests.htm": {
+    "status": 200,
+    "chars": 1684,
+    "kinds": "twin redirected",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm": {
+    "status": 200,
+    "chars": 504,
+    "kinds": "div.body redirected",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/apis": {
+    "status": 200,
+    "chars": 412,
+    "kinds": "body",
+    "saved": false
+  },
+  "https://help.salesforce.com/s/articleView?id=platform.flow_ref_elements_transform.htm&type=5": {
+    "status": 200,
+    "chars": 7027,
+    "kinds": ".slds-text-longform",
+    "saved": true
+  },
+  "https://help.salesforce.com/s/articleView?id=001096524&type=1": {
+    "status": 200,
+    "chars": 2876,
+    "kinds": "div.container:has(.article-content)",
+    "saved": true
+  },
+  "https://help.salesforce.com/s/articleView?id=sf.ev_relay_intro.htm&type=5": {
+    "status": 200,
+    "chars": 1142,
+    "kinds": ".slds-text-longform redirected",
+    "saved": true
+  },
+  "https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5": {
+    "status": 200,
+    "chars": 1253,
+    "kinds": "body",
+    "saved": false
+  },
+  "https://admin.salesforce.com/blog/2025/get-ready-for-changes-to-connected-app-usage-restrictions": {
+    "status": 200,
+    "chars": 4800,
+    "kinds": ".post.entry",
+    "saved": true
+  },
+  "https://www.lightningdesignsystem.com/": {
+    "status": 200,
+    "chars": 3639,
+    "kinds": "twin redirected",
+    "saved": true
+  },
+  "https://v1.lightningdesignsystem.com/components/toast/": {
+    "status": 200,
+    "chars": 5779,
+    "kinds": "main",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets": {
+    "status": 200,
+    "chars": 8634,
+    "kinds": "doc-amf-reference",
+    "saved": true
+  }
+}
