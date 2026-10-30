@@ -47,7 +47,7 @@ const ask = async q => {
   return /^y(es)?$/i.test(a.trim());
 };
 if (present) console.log('Headless Chromium is already installed.');
-else if (process.argv.includes('--yes') || await ask('Download headless Chromium (about 180 MB)? [y/N] ')) {
+else if (process.argv.includes('--yes') || await ask('Download headless Chromium (about 200 MB)? [y/N] ')) {
   try { execFileSync(process.execPath, [cli, 'install', '--only-shell', 'chromium'], { stdio: 'inherit' }); }
   catch { console.error(`\nBrowser download failed (see above). Retry later with:\n  node "${cli}" install --only-shell chromium`); }
 } else console.log(`Skipped the browser download. Before first use, run:\n  node "${cli}" install --only-shell chromium`);

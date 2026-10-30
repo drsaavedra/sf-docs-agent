@@ -1,7 +1,10 @@
 // The site check's drift rule, offline: importing the module fetches nothing.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { drifted, parse, unfit } from '../site-check/site-check.mjs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { drifted, parse, retry, unfit } from '../site-check/site-check.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
 
@@ -53,4 +56,49 @@ test('a raw line is matched back to its URL, including the .md copy fetched in i
   assert.deepEqual(Object.keys(got).sort(), [...urls].sort());
   assert.equal(got[urls[2]].chars, 9000); // the bare page's .md copy, not its ?meta= sibling
   assert.equal(got[urls[3]].kinds, 'main');
+});
+
+test('a page still on the outage page after 1 minute is fetched again 3 minutes later', async () => {
+  const outage = { status: 200, chars: 249, kinds: 'body', saved: false }, waits = [], reads = [outage, page];
+  const { bad } = await retry({ a: page }, { a: outage }, ['a'], () => ({ a: reads.shift() }), ms => waits.push(ms));
+  assert.deepEqual(waits, [60000, 180000]);
+  assert.deepEqual(bad, []);
+});
+
+test('a retry stops once nothing drifts, and a URL with no result line stays drifted', async () => {
+  const outage = { status: 200, chars: 249, kinds: 'body', saved: false }, waits = [];
+  const fixed = await retry({ a: page }, { a: outage }, ['a'], () => ({ a: page }), ms => waits.push(ms));
+  assert.deepEqual([waits, fixed.bad], [[60000], []]);
+  const lost = await retry({ a: page }, { a: outage }, ['a'], () => ({}), () => {});
+  assert.deepEqual(lost.bad, ['a']);
+});
+
+test('a saved Help article whose sidecar holds no article links is drift, and never a baseline', () => {
+  const out = mkdtempSync(join(tmpdir(), 'site-check-test-')), u = 'https://help.salesforce.com/s/articleView?id=a.htm&type=5';
+  mkdirSync(join(out, 'help.salesforce.com/s'), { recursive: true });
+  const line = '200 5000 https://help.salesforce.com/s/articleView?id=a.htm&type=5 [.slds-text-longform] -> help.salesforce.com/s/a.txt';
+  writeFileSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), '/s/articleView?id=b.htm&language=en_US&type=5 B\n/s/articleView?language=en_US&id=c.htm&type=5 C\n/s/login Log in\n');
+  const good = parse([u], line, out)[u];
+  assert.equal(good.links, 2); // the id first or after language
+  assert.equal(drifted(page, good), false);
+  writeFileSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), '/s/login Log in\n/s/products Products\n');
+  const navOnly = parse([u], line, out)[u];
+  assert.deepEqual([navOnly.links, drifted(page, navOnly), unfit(navOnly, u)], [0, true, true]);
+  assert.equal(parse([u], line, join(out, 'missing'))[u].links, 0); // no sidecar at all
+  assert.equal(parse([u], line)[u].links, undefined); // no out dir: the parse tests above are unchanged
+  rmSync(out, { recursive: true, force: true });
+});
+
+test('an async refetch is merged by its result, not its Promise', async () => {
+  const outage = { status: 200, chars: 249, kinds: 'body', saved: false };
+  const { bad } = await retry({ a: page }, { a: outage }, ['a'], async () => ({ a: page }), () => {});
+  assert.deepEqual(bad, []);
+});
+
+test('a sidecar that cannot be read is an error, not 0 article links', () => {
+  const out = mkdtempSync(join(tmpdir(), 'site-check-test-')), u = 'https://help.salesforce.com/s/articleView?id=a.htm&type=5';
+  mkdirSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), { recursive: true }); // a directory: EISDIR on read
+  const line = '200 5000 https://help.salesforce.com/s/articleView?id=a.htm&type=5 [.slds-text-longform] -> help.salesforce.com/s/a.txt';
+  try { assert.throws(() => parse([u], line, out), { code: 'EISDIR' }); }
+  finally { rmSync(out, { recursive: true, force: true }); }
 });

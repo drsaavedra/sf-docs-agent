@@ -266,9 +266,10 @@ npx sf-docs-agent            # for all your projects
 npx sf-docs-agent --project  # for the project in the current folder only
 ```
 
-The installer adds `playwright-core` (8.5 MB) and asks before it downloads headless Chromium (about 180 MB). Pass
+The installer adds `playwright-core` (13 MB) and asks before it downloads headless Chromium (about 200 MB). Pass
 `--yes` to skip the question in scripts. If you say no, it prints the command to run before first use. On Linux, also
-run `npx playwright-core@1.56.1 install-deps chromium` once for the system libraries. It asks for your password itself.
+run `node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/node_modules/playwright-core/cli.js" install-deps chromium` once
+for the system libraries. It asks for your password itself.
 
 Then start a new Claude Code session. The agent is listed as `sf-docs`.
 

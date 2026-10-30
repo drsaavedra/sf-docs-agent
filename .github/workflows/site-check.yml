@@ -18,13 +18,13 @@ permissions:
 jobs:
   site-check:
     runs-on: ubuntu-latest
-    # Worst case: two 900 s fetch budgets, the 60 s retry wait, a page in flight at each deadline, and setup.
-    timeout-minutes: 45
+    # Worst case: three fetch runs at their 1100 s kill and the 60 s and 180 s retry waits (59 min), plus setup.
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
       - run: npm ci
       - run: npx playwright-core install --with-deps --only-shell chromium

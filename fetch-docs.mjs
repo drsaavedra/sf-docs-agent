@@ -215,8 +215,11 @@ function extract([sels, fallback]) {
   for (let i = 0; i < roots.length; i++) for (const el of roots[i].querySelectorAll('*')) if (el.shadowRoot) roots.push(el.shadowRoot);
   // Same-site links (nav and TOC included) so pages without an llms.txt index can still be discovered.
   const links = new Set();
+  // Path and query: every Help article sits at /s/articleView and differs only by ?id=, and it links itself with
+  // &language= added, so a link is the page itself when its id matches.
+  const self = u => u.pathname + (new URLSearchParams(u.search).get('id') ?? u.search), here = self(location);
   for (const r of roots) for (const a of r.querySelectorAll('a[href]')) {
-    if (a.host === location.host && a.pathname !== location.pathname) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
+    if (a.host === location.host && self(a) !== here) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
   }
   const page = t => `# ${document.title}\n\n${t}\n`;
   const list = [...links].join('\n');
@@ -367,7 +370,7 @@ if (!urls.every(isFresh) && Date.now() < deadline) { // a spent budget skips eve
     // The exact command, not "reinstall": a reinstall without a terminal skips the browser again.
     const cli = slash(join(dirname(fileURLToPath(import.meta.url)), 'node_modules/playwright-core/cli.js'));
     console.error(`Install the browser with: node "${cli}" install --only-shell chromium`);
-    console.error('On Linux, also run once: npx playwright-core install-deps chromium');
+    console.error(`On Linux, also run once: node "${cli}" install-deps chromium`);
     process.exit(3);
   }
 }
