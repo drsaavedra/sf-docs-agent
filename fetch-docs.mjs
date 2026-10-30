@@ -84,7 +84,8 @@ const slash = p => p.split(sep).join('/');
 // page order. Caps set on a clean 20-question sample (looser caps printed twice the old grep's 2k chars a call).
 const MAX_HITS = 20, MAX_LINKS = 10, SHORT_LINES = 40, SHORT_CHARS = 4000, PER_FILE = 3;
 const matches = (name, text, t) => text.split('\n').flatMap((line, i, ls) => {
-  const low = i || !ls[0].startsWith('Source: ') ? line.toLowerCase() : '', hit = t.filter(s => low.includes(s)); // a page's line 1 is its Source line; a sidecar has none
+  // plain(): a sidecar and a page cached before quotes were saved straight still hold curly ones.
+  const low = i || !ls[0].startsWith('Source: ') ? plain(line).toLowerCase() : '', hit = t.filter(s => low.includes(s)); // a page's line 1 is its Source line; a sidecar has none
   return hit.length ? [{ name, n: i + 1, line, hit, at: Math.min(...hit.map(s => low.indexOf(s))) }] : [];
 });
 const rank = (ms, max = MAX_HITS) => {
