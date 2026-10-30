@@ -217,9 +217,9 @@ function extract([sels, fallback]) {
   const links = new Set();
   // Path and query: every Help article sits at /s/articleView and differs only by ?id=, and it links itself with
   // &language= added, so a link is the page itself when its id matches.
-  const self = u => u.pathname + (new URLSearchParams(u.search).get('id') ?? u.search);
+  const self = u => u.pathname + (new URLSearchParams(u.search).get('id') ?? u.search), here = self(location);
   for (const r of roots) for (const a of r.querySelectorAll('a[href]')) {
-    if (a.host === location.host && self(a) !== self(location)) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
+    if (a.host === location.host && self(a) !== here) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
   }
   const page = t => `# ${document.title}\n\n${t}\n`;
   const list = [...links].join('\n');
