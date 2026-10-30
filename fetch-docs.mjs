@@ -215,9 +215,11 @@ function extract([sels, fallback]) {
   for (let i = 0; i < roots.length; i++) for (const el of roots[i].querySelectorAll('*')) if (el.shadowRoot) roots.push(el.shadowRoot);
   // Same-site links (nav and TOC included) so pages without an llms.txt index can still be discovered.
   const links = new Set();
+  // Path and query: every Help article sits at /s/articleView and differs only by ?id=, and it links itself with
+  // &language= added, so a link is the page itself when its id matches.
+  const self = u => u.pathname + (new URLSearchParams(u.search).get('id') ?? u.search);
   for (const r of roots) for (const a of r.querySelectorAll('a[href]')) {
-    // Path and query: every Help article sits at /s/articleView and differs only by ?id=.
-    if (a.host === location.host && a.pathname + a.search !== location.pathname + location.search) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
+    if (a.host === location.host && self(a) !== self(location)) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
   }
   const page = t => `# ${document.title}\n\n${t}\n`;
   const list = [...links].join('\n');
