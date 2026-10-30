@@ -95,7 +95,8 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 5. **Quote.** Pick the line numbers that carry the answer, from the matches or the Read. Then let the script copy them:
    `node "/path/to/sf-docs-agent/fetch-docs.mjs" --quote <cache file>:<line>,<line> [<cache file>:<line> ...]`
    (cache file relative to the cache dir or absolute). It prints the Evidence and Sources blocks verbatim, with the
-   official URL from each file's first line. Never type a quote yourself.
+   official URL from each file's first line. Never type a quote yourself, and paste the script's output unchanged:
+   not one character, apostrophes included.
 
 ## Hard limits
 
