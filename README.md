@@ -258,7 +258,7 @@ official URLs, and the session turned them into the answer.
 
 ## Install
 
-Needs Node 18.17+ and Claude Code. The installer is on npm as
+Needs Node 22+ and Claude Code. The installer is on npm as
 [`sf-docs-agent`](https://www.npmjs.com/package/sf-docs-agent).
 
 ```
