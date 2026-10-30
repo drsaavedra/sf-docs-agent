@@ -1,6 +1,9 @@
 // The site check's drift rule, offline: importing the module fetches nothing.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { drifted, parse, retry, unfit } from '../site-check/site-check.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -68,4 +71,19 @@ test('a retry stops once nothing drifts, and a URL with no result line stays dri
   assert.deepEqual([waits, fixed.bad], [[60000], []]);
   const lost = await retry({ a: page }, { a: outage }, ['a'], () => ({}), () => {});
   assert.deepEqual(lost.bad, ['a']);
+});
+
+test('a saved Help article whose sidecar holds no article links is drift, and never a baseline', () => {
+  const out = mkdtempSync(join(tmpdir(), 'site-check-test-')), u = 'https://help.salesforce.com/s/articleView?id=a.htm&type=5';
+  mkdirSync(join(out, 'help.salesforce.com/s'), { recursive: true });
+  const line = '200 5000 https://help.salesforce.com/s/articleView?id=a.htm&type=5 [.slds-text-longform] -> help.salesforce.com/s/a.txt';
+  writeFileSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), '/s/articleView?id=b.htm&language=en_US&type=5 B\n/s/login Log in\n');
+  const good = parse([u], line, out)[u];
+  assert.equal(good.links, 1);
+  assert.equal(drifted(page, good), false);
+  writeFileSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), '/s/login Log in\n/s/products Products\n');
+  const navOnly = parse([u], line, out)[u];
+  assert.deepEqual([navOnly.links, drifted(page, navOnly), unfit(navOnly, u)], [0, true, true]);
+  assert.equal(parse([u], line, join(out, 'missing'))[u].links, 0); // no sidecar at all
+  assert.equal(parse([u], line)[u].links, undefined); // no out dir: the parse tests above are unchanged
 });

@@ -55,29 +55,39 @@ const run = urls => {
     // Name the cause: a BLOCKED or Error line, else the last line, since warnings can come before a crash.
     const errs = (r.error?.message || r.stderr || '').trim().split('\n');
     if (r.error || r.status !== 0) broke ||= `fetch-docs exit ${r.status ?? r.signal}: ${errs.find(l => /^(BLOCKED|\w*Error)/.test(l)) ?? errs.at(-1)}`;
-    return parse(urls, r.stdout ?? '');
+    return parse(urls, r.stdout ?? '', out);
   } finally { rmSync(out, { recursive: true, force: true }); }
 };
 // A raw line names the path it fetched: the URL's own, or the .md copy fetched in its place (never for a ?query URL,
 // as in fetch-docs' twinOf).
 const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.search || (!x.search && p === `${x.pathname.replace(/\.html$|\/$/, '')}.md`); };
-export const parse = (urls, stdout) => {
+// With the run's out dir, a saved Help article also counts the article links in its sidecar: 0 is how a broken link
+// filter showed before 0.1.1, when every Help sidecar held only nav links.
+const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
+export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
     const m = /^(\d+) (\d+) (\S+)(.*)$/.exec(line);
     const url = m && (urls.find(u => u === m[3]) || (m[3].startsWith('/') && urls.find(u => rawOf(u, m[3]))));
     if (!url) continue;
     const kinds = [...m[4].matchAll(/\[([^\]\s]+(?: failed:)?)/g)].map(k => k[1]).join(' ');
-    got[url] = { status: +m[1], chars: +m[2], kinds, saved: / -> /.test(m[4]) };
+    const file = / -> (\S+)/.exec(m[4])?.[1];
+    got[url] = { status: +m[1], chars: +m[2], kinds, saved: !!file };
+    if (out && file && HELP_ARTICLE.test(url)) {
+      let links = '';
+      try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); } catch { /* no sidecar: no links */ }
+      got[url].links = links.split('\n').filter(l => l.startsWith('/s/articleView?id=')).length;
+    }
   }
   return got;
 };
-const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}` : none;
+const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}` : none;
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
-  || now.kinds.includes('fallback') || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
+  || now.kinds.includes('fallback') || now.links === 0
+  || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
-export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || (!r.saved && !SHELLS.has(u));
+export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || (!r.saved && !SHELLS.has(u));
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
 // then 3 more minutes. A URL with no result line keeps its earlier read, so it stays drifted.
