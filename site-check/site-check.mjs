@@ -62,7 +62,7 @@ const run = urls => {
 // as in fetch-docs' twinOf).
 const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.search || (!x.search && p === `${x.pathname.replace(/\.html$|\/$/, '')}.md`); };
 // With the run's out dir, a saved Help article also counts the article links in its sidecar: 0 is how a broken link
-// filter showed before 0.1.1, when every Help sidecar held only nav links.
+// filter showed before this check existed, when every Help sidecar held only nav links.
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 export const parse = (urls, stdout, out) => {
   const got = {};
