@@ -317,6 +317,8 @@ const lean = text => {
     return /^\s*\|/.test(l) ? l.replace(/ {2,}/g, ' ') : l;
   }).join('\n');
 };
+// Curly quotes are saved straight: a model that retypes a quote writes ' and ", and the grep check must still match.
+const plain = text => text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
 // Each page is saved and printed as it lands, so a call stopped part way keeps every page before the stop.
 const emit = r => {
   results.push(r);
@@ -324,7 +326,7 @@ const emit = r => {
   // Markdown only (a .md URL, or a twin read as r.md): rendered text has no code fences, so lean could reach a code
   // sample. Cached pages are lean already.
   const md = r.md || /\.md$/.test(new URL(key).pathname);
-  const body = status === 200 && !cached && md ? lean(r.body) : r.body;
+  const body = status === 200 && !cached ? plain(md ? lean(r.body) : r.body) : r.body;
   const h = createHash('sha1').update(body).digest('hex').slice(0, 12);
   const u = new URL(key);
   const file = fileFor(u);
