@@ -102,7 +102,7 @@ export const retry = async (base, now, urls, refetch, sleep, waits = [60000, 180
   return { now, bad };
 };
 
-// Run only as a script: the tests import drifted without fetching anything. import.meta.url has symlinks resolved.
+// Run only as a script: the tests import its functions without fetching anything. import.meta.url has symlinks resolved.
 const entry = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return ''; } })(); // no file: imported
 if (import.meta.url === entry) {
 if (process.argv.includes('--update')) {
