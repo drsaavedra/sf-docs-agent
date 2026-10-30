@@ -24,8 +24,10 @@ if (oi >= 0) out = args.splice(oi, 2)[1];
 // No page starts after the budget: each one left is printed 'not fetched (time limit)', so the caller can rerun it.
 const bi = args.indexOf('--budget');
 const deadline = bi >= 0 ? Date.now() + Number(args.splice(bi, 2)[1]) * 1000 : Infinity;
+// Curly quotes are saved straight: a model that retypes a quote writes ' and ", and the grep check must still match.
+const plain = text => text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
 // --terms a,b: after the fetch, print each saved page's lines that hold a term, so the caller needs no grep.
-const termsOf = v => (v ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+const termsOf = v => plain(v ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); // the cache holds straight quotes
 const ti = args.indexOf('--terms');
 const terms = ti >= 0 ? termsOf(args.splice(ti, 2)[1]) : [];
 if (!args.length || !out || Number.isNaN(deadline) || (ti >= 0 && !terms.length)) { console.error('usage: node fetch-docs.mjs [--out dir] [--budget seconds] [--terms a,b] <url | /docs/path.md> ...\n       node fetch-docs.mjs [--out dir] --search a,b [--site <host>]\n       node fetch-docs.mjs [--out dir] --quote <cache file>:<line>[,<line>...] ...\n       node fetch-docs.mjs [--out dir] --section <cache file>:<line> ...'); process.exit(2); }
@@ -348,8 +350,6 @@ const lean = text => {
     return /^\s*\|/.test(l) ? l.replace(/ {2,}/g, ' ') : l;
   }).join('\n');
 };
-// Curly quotes are saved straight: a model that retypes a quote writes ' and ", and the grep check must still match.
-const plain = text => text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
 // Each page is saved and printed as it lands, so a call stopped part way keeps every page before the stop.
 const emit = r => {
   results.push(r);
