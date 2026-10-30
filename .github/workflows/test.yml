@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   test:
+    name: offline tests (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
