@@ -95,7 +95,7 @@ export const retry = async (base, now, bad, refetch, sleep, waits = [60000, 1800
   for (const wait of waits) {
     if (!bad.length) break;
     await sleep(wait);
-    now = { ...now, ...refetch(bad) };
+    now = { ...now, ...(await refetch(bad)) }; // awaited, so an async refetch is merged, not its Promise
     bad = bad.filter(u => drifted(base[u], now[u]));
   }
   return { now, bad };
