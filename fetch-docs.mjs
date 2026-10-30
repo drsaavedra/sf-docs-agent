@@ -5,7 +5,6 @@
 // Usage: node fetch-docs.mjs [--out <dir>] [--budget <s>] [--terms a,b] <url | /docs/path.md> ...   (default out: ./cache here)
 //        node fetch-docs.mjs --search a,b [--site <host>]   (ranked matching lines across the cached pages)
 //        node fetch-docs.mjs --quote <cache file>:<line>[,<line>...] ...   (prints Evidence and Sources verbatim)
-//        node fetch-docs.mjs --section <cache file>:<line> ...   (a list or table, numbered, to the next heading)
 import { chromium } from 'playwright-core';
 import { createHash } from 'node:crypto';
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -30,7 +29,7 @@ const plain = text => text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201
 const termsOf = v => plain(v ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); // the cache holds straight quotes
 const ti = args.indexOf('--terms');
 const terms = ti >= 0 ? termsOf(args.splice(ti, 2)[1]) : [];
-if (!args.length || !out || Number.isNaN(deadline) || (ti >= 0 && !terms.length)) { console.error('usage: node fetch-docs.mjs [--out dir] [--budget seconds] [--terms a,b] <url | /docs/path.md> ...\n       node fetch-docs.mjs [--out dir] --search a,b [--site <host>]\n       node fetch-docs.mjs [--out dir] --quote <cache file>:<line>[,<line>...] ...\n       node fetch-docs.mjs [--out dir] --section <cache file>:<line> ...'); process.exit(2); }
+if (!args.length || !out || Number.isNaN(deadline) || (ti >= 0 && !terms.length)) { console.error('usage: node fetch-docs.mjs [--out dir] [--budget seconds] [--terms a,b] <url | /docs/path.md> ...\n       node fetch-docs.mjs [--out dir] --search a,b [--site <host>]\n       node fetch-docs.mjs [--out dir] --quote <cache file>:<line>[,<line>...] ...'); process.exit(2); }
 const fileFor = u => join(out, u.host, (u.pathname + u.search.replace(/[^\w.-]+/g, '_')).replace(/\/$/, '/index') + (/\.(md|txt|xml)$/.test(u.pathname) ? '' : '.txt'));
 // Cache window: SF_DOCS_CACHE_HOURS (default 24; 0 means always fetch). An empty value counts as unset.
 const hours = Number(process.env.SF_DOCS_CACHE_HOURS || 24);
@@ -115,50 +114,20 @@ const grep = (file, t) => {
   return [...top.map(show), ...more(all, top)];
 };
 
-// <cache file>:<lines> for --quote and --section: only cached official pages, inside the cache dir and starting with
-// their Source: line.
-const cached = spec => {
-  const at = spec.lastIndexOf(':');
-  const file = isAbsolute(spec.slice(0, at)) ? spec.slice(0, at) : join(out, spec.slice(0, at));
-  const inside = relative(out, file);
-  let lines;
-  try { lines = inside.startsWith('..') || isAbsolute(inside) ? [] : readFileSync(file, 'utf8').split('\n'); }
-  catch { lines = []; }
-  if (!lines[0]?.startsWith('Source: ')) { console.error(`not a cached page: ${slash(file)}`); return null; }
-  return { file, lines, nums: spec.slice(at + 1).split(',').map(Number) };
-};
-
-// --section: a list or table from a line to the next heading, so the end of a list is found by the script, not by a
-// guessed Read window. A heading in the first 5 lines is the list's own title; at most 60 lines print.
-const HEADING = /^(#{1,6} |\*\*[^*]+\*\*\s*$)/, SECTION_MAX = 60;
-if (args[0] === '--section') {
-  let shown = 0;
-  for (const spec of args.slice(1)) {
-    const c = cached(spec), n = c?.nums[0];
-    if (!c) continue;
-    if (!(n > 1 && n <= c.lines.length)) { console.error(`skipped ${slash(relative(out, c.file))}:${n}: out of range or the Source line`); continue; }
-    const rows = [];
-    let i = n;
-    for (; i <= c.lines.length && rows.length < SECTION_MAX; i++) {
-      if (i > n + 4 && HEADING.test(c.lines[i - 1])) break;
-      if (c.lines[i - 1].trim()) rows.push(`${i}: ${c.lines[i - 1]}`);
-    }
-    const tail = i <= c.lines.length && rows.length >= SECTION_MAX ? [`(more before the next heading: --section from line ${i})`] : [];
-    console.log([`== ${slash(relative(out, c.file))}`, ...rows, ...tail].join('\n'));
-    shown++;
-  }
-  process.exit(shown ? 0 : 1);
-}
-
 // --quote: the agent picks line numbers, the script copies the lines, so quotes are verbatim by construction.
 if (args[0] === '--quote') {
   const files = [], ev = [];
   for (const spec of args.slice(1)) {
-    const c = cached(spec);
-    if (!c) continue;
-    const { file, lines } = c;
+    const at = spec.lastIndexOf(':');
+    const file = isAbsolute(spec.slice(0, at)) ? spec.slice(0, at) : join(out, spec.slice(0, at));
+    // Only cached official pages: inside the cache dir and starting with their Source: line.
+    const inside = relative(out, file);
+    let lines;
+    try { lines = inside.startsWith('..') || isAbsolute(inside) ? [] : readFileSync(file, 'utf8').split('\n'); }
+    catch { lines = []; }
+    if (!lines[0]?.startsWith('Source: ')) { console.error(`not a cached page: ${slash(file)}`); continue; }
     if (!files.includes(file)) files.push(file);
-    for (const n of c.nums) {
+    for (const n of spec.slice(at + 1).split(',').map(Number)) {
       const text = (lines[n - 1] || '').trim();
       if (text && n > 1) ev.push(`- "${text}" [${files.indexOf(file) + 1}:${n}]`);
       else console.error(`skipped ${slash(relative(out, file))}:${n}: empty, out of range or the Source line`);
