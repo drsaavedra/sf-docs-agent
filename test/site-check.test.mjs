@@ -1,7 +1,7 @@
 // The site check's drift rule, offline: importing the module fetches nothing.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { drifted, parse, retry, unfit } from '../site-check/site-check.mjs';
@@ -92,4 +92,12 @@ test('an async refetch is merged by its result, not its Promise', async () => {
   const outage = { status: 200, chars: 249, kinds: 'body', saved: false };
   const { bad } = await retry({ a: page }, { a: outage }, ['a'], async () => ({ a: page }), () => {});
   assert.deepEqual(bad, []);
+});
+
+test('a sidecar that cannot be read is an error, not 0 article links', () => {
+  const out = mkdtempSync(join(tmpdir(), 'site-check-test-')), u = 'https://help.salesforce.com/s/articleView?id=a.htm&type=5';
+  mkdirSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), { recursive: true }); // a directory: EISDIR on read
+  const line = '200 5000 https://help.salesforce.com/s/articleView?id=a.htm&type=5 [.slds-text-longform] -> help.salesforce.com/s/a.txt';
+  try { assert.throws(() => parse([u], line, out), { code: 'EISDIR' }); }
+  finally { rmSync(out, { recursive: true, force: true }); }
 });

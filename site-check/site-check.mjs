@@ -75,7 +75,8 @@ export const parse = (urls, stdout, out) => {
     got[url] = { status: +m[1], chars: +m[2], kinds, saved: !!file };
     if (out && file && HELP_ARTICLE.test(url)) {
       let links = '';
-      try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); } catch { /* no sidecar: no links */ }
+      try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); }
+      catch (e) { if (e.code !== 'ENOENT') throw e; } // only a missing sidecar means no links
       got[url].links = links.split('\n').filter(l => l.startsWith('/s/articleView?id=')).length;
     }
   }
