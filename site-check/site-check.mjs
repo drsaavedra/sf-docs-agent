@@ -79,6 +79,18 @@ export const drifted = (was, now) => !was || !now || now.status !== was.status |
 // An outage page or a fallback read must never become the reference every later run is measured against.
 export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || (!r.saved && !SHELLS.has(u));
 
+// Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
+// then 3 more minutes. A URL with no result line keeps its earlier read, so it stays drifted.
+export const retry = async (base, now, bad, refetch, sleep, waits = [60000, 180000]) => {
+  for (const wait of waits) {
+    if (!bad.length) break;
+    await sleep(wait);
+    now = { ...now, ...refetch(bad) };
+    bad = bad.filter(u => drifted(base[u], now[u]));
+  }
+  return { now, bad };
+};
+
 // Run only as a script: the tests import drifted without fetching anything. import.meta.url has symlinks resolved.
 const entry = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return ''; } })(); // no file: imported
 if (import.meta.url === entry) {
@@ -93,15 +105,10 @@ if (process.argv.includes('--update')) {
 }
 
 const base = JSON.parse(readFileSync(BASE, 'utf8'));
-let now = run(URLS), bad = URLS.filter(u => drifted(base[u], now[u]));
-// Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): retry at 1 and then 3 more minutes.
-for (const wait of [60000, 180000]) {
-  if (!bad.length) break;
-  await new Promise(r => setTimeout(r, wait));
-  broke = ''; // judge each retry on its own fetch
-  now = { ...now, ...run(bad) };
-  bad = bad.filter(u => drifted(base[u], now[u]));
-}
+const first = run(URLS);
+// broke is reset so each retry is judged on its own fetch.
+const { now, bad } = await retry(base, first, URLS.filter(u => drifted(base[u], first[u])),
+  urls => { broke = ''; return run(urls); }, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
   ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``])].join('\n')
   : `All ${URLS.length} doc pages read as in the baseline.`);

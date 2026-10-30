@@ -1,7 +1,7 @@
 // The site check's drift rule, offline: importing the module fetches nothing.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { drifted, parse, unfit } from '../site-check/site-check.mjs';
+import { drifted, parse, retry, unfit } from '../site-check/site-check.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
 
@@ -53,4 +53,19 @@ test('a raw line is matched back to its URL, including the .md copy fetched in i
   assert.deepEqual(Object.keys(got).sort(), [...urls].sort());
   assert.equal(got[urls[2]].chars, 9000); // the bare page's .md copy, not its ?meta= sibling
   assert.equal(got[urls[3]].kinds, 'main');
+});
+
+test('a page still on the outage page after 1 minute is fetched again 3 minutes later', async () => {
+  const outage = { status: 200, chars: 249, kinds: 'body', saved: false }, waits = [], reads = [outage, page];
+  const { bad } = await retry({ a: page }, { a: outage }, ['a'], () => ({ a: reads.shift() }), ms => waits.push(ms));
+  assert.deepEqual(waits, [60000, 180000]);
+  assert.deepEqual(bad, []);
+});
+
+test('a retry stops once nothing drifts, and a URL with no result line stays drifted', async () => {
+  const outage = { status: 200, chars: 249, kinds: 'body', saved: false }, waits = [];
+  const fixed = await retry({ a: page }, { a: outage }, ['a'], () => ({ a: page }), ms => waits.push(ms));
+  assert.deepEqual([waits, fixed.bad], [[60000], []]);
+  const lost = await retry({ a: page }, { a: outage }, ['a'], () => ({}), () => {});
+  assert.deepEqual(lost.bad, ['a']);
 });
