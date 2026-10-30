@@ -47,8 +47,8 @@ let broke = ''; // why fetch-docs did not finish, for the report as well as the 
 const run = urls => {
   const out = mkdtempSync(join(tmpdir(), 'sf-docs-site-check-'));
   try {
-    // The budget only stops new pages starting: the kill ends a hung one (Playwright traps SIGTERM), and two runs plus
-    // the retry wait still fit the job's 45 minutes. A page started at 899 s can take about 90 s more.
+    // The budget only stops new pages starting: the kill ends a hung one (Playwright traps SIGTERM), and three runs plus
+    // the two retry waits still fit the job's 65 minutes. A page started at 899 s can take about 90 s more.
     const r = spawnSync(process.execPath, [SCRIPT, '--out', out, '--budget', '900', ...urls], { encoding: 'utf8', timeout: 1100 * 1000, killSignal: 'SIGKILL' });
     // A cold run prints nothing on stderr unless something broke, so any of it goes to the log with the exit code.
     if (r.error || r.stderr) console.error(`fetch-docs exit ${r.status ?? r.signal}${r.error ? `: ${r.error.message}` : ''}\n${r.stderr ?? ''}`);
@@ -94,10 +94,11 @@ if (process.argv.includes('--update')) {
 
 const base = JSON.parse(readFileSync(BASE, 'utf8'));
 let now = run(URLS), bad = URLS.filter(u => drifted(base[u], now[u]));
-// Help serves a short outage page for minutes at a time: one retry a minute later before anything is reported.
-if (bad.length) {
-  await new Promise(r => setTimeout(r, 60000));
-  broke = ''; // judge the retry on its own fetch
+// Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): retry at 1 and then 3 more minutes.
+for (const wait of [60000, 180000]) {
+  if (!bad.length) break;
+  await new Promise(r => setTimeout(r, wait));
+  broke = ''; // judge each retry on its own fetch
   now = { ...now, ...run(bad) };
   bad = bad.filter(u => drifted(base[u], now[u]));
 }
