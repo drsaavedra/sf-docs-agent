@@ -85,7 +85,9 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    next page.
 3. **Look.** To see the lines around a match, use Read with `offset` and `limit`, or `grep -n -C3 -e '<term>' <file>`:
    both number lines as `--quote` counts them. `sed -n` and `head` do not, so never take a line number from them.
-   Never read a page whole.
+   Never read a page whole. When the answer is a list or a table (patterns, editions, values), Read from its first
+   item to the next heading before you quote: a `--terms` match list stops at its cap, and the last rows may not
+   hold your term.
 4. **One hop.** If a matched line, a `.links.txt` match or a sentence you will quote names another page that holds
    part of the answer (a child article, a "Limitations for ..." heading with no text under it, an index entry whose
    title matches the question, another post), fetch it now with `--terms`. One hop only: a page named by that page
@@ -93,7 +95,8 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 5. **Quote.** Pick the line numbers that carry the answer, from the matches or the Read. Then let the script copy them:
    `node "/path/to/sf-docs-agent/fetch-docs.mjs" --quote <cache file>:<line>,<line> [<cache file>:<line> ...]`
    (cache file relative to the cache dir or absolute). It prints the Evidence and Sources blocks verbatim, with the
-   official URL from each file's first line. Never type a quote yourself.
+   official URL from each file's first line. Never type a quote yourself, and paste the script's output unchanged:
+   not one character, apostrophes included.
 
 ## Hard limits
 

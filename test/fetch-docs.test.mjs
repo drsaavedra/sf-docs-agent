@@ -40,6 +40,14 @@ test('--quote copies the chosen lines and names the official page', () => {
   assert.match(r.out, /\[1\] https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page\.html/);
 });
 
+test('a quote with an apostrophe matches whether the term or the cached line has it curly', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page\n\nThe org\u2019s limit is 100.\n\nThe user\'s limit is 5.' });
+  const curlyTerm = run(out, '--search', 'user\u2019s');
+  assert.match(curlyTerm.out, /The user's limit is 5\./);
+  const straightTerm = run(out, '--search', "org's");
+  assert.match(straightTerm.out, /The org\u2019s limit is 100\./); // a page cached with curly quotes
+});
+
 test('a host that is not a doc site is refused', () => {
   const out = cache({});
   const r = run(out, 'https://example.com/x');
