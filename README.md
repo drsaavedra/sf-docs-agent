@@ -1,5 +1,7 @@
 # sf-docs-agent
 
+[![npm](https://img.shields.io/npm/v/sf-docs-agent)](https://www.npmjs.com/package/sf-docs-agent)
+
 A Claude Code subagent that answers Salesforce questions from the official docs and hands back quotes, not pages.
 
 It reads developer.salesforce.com, architect.salesforce.com, help.salesforce.com, admin.salesforce.com and
@@ -255,6 +257,8 @@ official URLs, and the session turned them into the answer.
 </details>
 
 ## Install
+
+The installer is on npm as [`sf-docs-agent`](https://www.npmjs.com/package/sf-docs-agent), so there is nothing to clone.
 
 User scope:
 ```
