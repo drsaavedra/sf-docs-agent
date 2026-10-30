@@ -1,5 +1,7 @@
 # sf-docs-agent
 
+[![npm](https://img.shields.io/npm/v/sf-docs-agent)](https://www.npmjs.com/package/sf-docs-agent)
+
 A Claude Code subagent that answers Salesforce questions from the official docs and hands back quotes, not pages.
 
 It reads developer.salesforce.com, architect.salesforce.com, help.salesforce.com, admin.salesforce.com and
@@ -256,24 +258,29 @@ official URLs, and the session turned them into the answer.
 
 ## Install
 
-User scope:
+Needs Node 18.17+ and Claude Code. The installer is on npm as
+[`sf-docs-agent`](https://www.npmjs.com/package/sf-docs-agent).
+
 ```
 npx sf-docs-agent            # for all your projects
-```
-Project scope:
-```
 npx sf-docs-agent --project  # for the project in the current folder only
 ```
 
-Needs Node 18.17+ and Claude Code. The installer adds `playwright-core` (8.5 MB). It also needs a headless Chromium
-(about 180 MB). On Linux, also run `npx playwright-core install-deps chromium` once.
+The installer adds `playwright-core` (8.5 MB) and asks before it downloads headless Chromium (about 180 MB). Pass
+`--yes` to skip the question in scripts. If you say no, it prints the command to run before first use. On Linux, also
+run `npx playwright-core@1.56.1 install-deps chromium` once for the system libraries. It asks for your password itself.
 
-To update, run it again. To remove it, delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md`
-in the project) and `~/.claude/sf-docs/`. If `CLAUDE_CONFIG_DIR` is set, the installer uses that instead of
-`~/.claude`.
+Then start a new Claude Code session. The agent is listed as `sf-docs`.
 
-Pages stay cached for 24 hours, so a follow-up question does not fetch them again. To change that, set `SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json`
-(`0` fetches every time):
+**Update:** `npx sf-docs-agent@latest`. Without `@latest`, npx runs any copy already installed globally or in the
+current project.
+
+**Remove:** delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md` in the project). The script and cache
+live in `~/.claude/sf-docs/` for every scope, so delete that folder last, once no project uses the agent. If
+`CLAUDE_CONFIG_DIR` is set, the installer uses that instead of `~/.claude`.
+
+**Cache:** pages stay cached for 24 hours, so a follow-up question does not fetch them again. To change that, set
+`SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json` (`0` fetches every time):
 
 ```json
 { "env": { "SF_DOCS_CACHE_HOURS": "72" } }
