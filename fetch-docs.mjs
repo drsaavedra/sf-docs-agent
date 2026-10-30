@@ -367,7 +367,7 @@ if (!urls.every(isFresh) && Date.now() < deadline) { // a spent budget skips eve
     // The exact command, not "reinstall": a reinstall without a terminal skips the browser again.
     const cli = slash(join(dirname(fileURLToPath(import.meta.url)), 'node_modules/playwright-core/cli.js'));
     console.error(`Install the browser with: node "${cli}" install --only-shell chromium`);
-    console.error('On Linux, also run once: npx playwright-core install-deps chromium');
+    console.error(`On Linux, also run once: node "${cli}" install-deps chromium`);
     process.exit(3);
   }
 }
