@@ -35,27 +35,27 @@ The trade-off: your main session trusts the subagent. That is why the model only
 copies the lines. Every quote is copied word for word from the page, not written from the model's memory, and you can
 check it with one `grep`.
 
-## 86% less in your context, 64% fewer tokens overall
+## 84% less in your context, 63% fewer tokens overall
 
 On 10 questions against Salesforce's own platform-docs-get skill, the agent
-added 86% fewer tokens to your context and used 64% fewer tokens over the whole session, with the right answer on
+added 84% fewer tokens to your context and used 63% fewer tokens over the whole session, with the right answer on
 10 of 10.
 
 Below are the measurements, each read as platform-docs-get → sf-docs.
 
 | Question | Site | Tokens added to context | Saved | Session token usage | Saved |
 |---|---|---|---|---|---|
-| 1. Scratch org editions | developer | 906 → **242** | **73.3%** | 236,882 → **86,172** | **63.6%** |
-| 2. Platform event allocation | developer | 3,120 → **471** | **84.9%** | 387,764 → **126,998** | **67.2%** |
-| 3. QueryLocator batch limits | developer | 692 → **458** | **33.8%** | 287,129 → **105,756** | **63.2%** |
-| 4. Integration patterns | architect | 1,223 → **528** | **56.8%** | 154,149 → **102,635** | **33.4%** |
-| 5. Salesforce Connect editions | help | 5,591 → **649** | **88.4%** | 477,647 → **311,396** | **34.8%** |
-| 6. Flow version limits | help | 5,940 → **293** | **95.1%** | 354,017 → **171,752** | **51.5%** |
-| 7. Headless 360 | admin | 4,247 → **341** | **92.0%** | 675,859 → **121,840** | **82.0%** |
-| 8. SLDS tooltips | lightningdesignsystem | 5,983 → **463** | **92.3%** | 360,244 → **112,618** | **68.7%** |
-| 9. Bulk API batch size | developer | 2,328 → **476** | **79.6%** | 454,224 → **91,811** | **79.8%** |
-| 10. Pub/Sub fetch limit | developer | 2,212 → **625** | **71.7%** | 448,205 → **141,343** | **68.5%** |
-| **All** | | 32,242 → **4,546** | **85.9%** | 3,836,120 → **1,372,321** | **64.2%** |
+| 1. Scratch org editions | developer | 2,178 → **289** | **86.7%** | 338,852 → **119,355** | **64.8%** |
+| 2. Platform event allocation | developer | 4,107 → **490** | **88.1%** | 387,598 → **120,396** | **68.9%** |
+| 3. QueryLocator batch limits | developer | 2,568 → **581** | **77.4%** | 406,878 → **113,611** | **72.1%** |
+| 4. Integration patterns | architect | 1,104 → **484** | **56.2%** | 154,068 → **125,540** | **18.5%** |
+| 5. Salesforce Connect editions | help | 1,948 → **322** | **83.5%** | 382,751 → **157,746** | **58.8%** |
+| 6. Flow version limits | help | 4,578 → **290** | **93.7%** | 339,464 → **164,888** | **51.4%** |
+| 7. Headless 360 | admin | 3,772 → **380** | **89.9%** | 427,542 → **117,258** | **72.6%** |
+| 8. SLDS tooltips | lightningdesignsystem | 3,876 → **414** | **89.3%** | 340,914 → **112,252** | **67.1%** |
+| 9. Bulk API batch size | developer | 2,134 → **411** | **80.7%** | 506,340 → **125,870** | **75.1%** |
+| 10. Pub/Sub fetch limit | developer | 1,199 → **716** | **40.3%** | 236,766 → **130,110** | **45.0%** |
+| **All** | | 28,379 → **4,556** | **83.9%** | 3,473,702 → **1,298,680** | **62.6%** |
 
 <details>
 <summary>The 10 questions</summary>
