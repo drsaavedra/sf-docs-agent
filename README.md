@@ -299,8 +299,7 @@ live in `~/.claude/sf-docs/` for every scope, so delete that folder last, once n
 - It reads the current docs, which don't always name their release.
 - It follows at most one link from a page it read. An answer that sits further away comes back as a gap.
 - On a long list or table, the agent now and then stops a row early, for example five of six integration patterns.
-  Every quote it gives is still right; the missing row is the problem. The script can print a list to its end
-  (`--section`), but the model does not always use it.
+  Every quote it gives is still right; the missing row is the problem.
 - If a site starts blocking headless browsers, the agent stops and reports it. It does not try to get around the block.
 - What leaves your machine: the pages the agent fetches from those sites (and each site's `robots.txt`, which raw
   fetches load first). No telemetry. Installing downloads `playwright-core` from npm and, if you agree, Chromium from
