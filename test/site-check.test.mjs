@@ -77,9 +77,9 @@ test('a saved Help article whose sidecar holds no article links is drift, and ne
   const out = mkdtempSync(join(tmpdir(), 'site-check-test-')), u = 'https://help.salesforce.com/s/articleView?id=a.htm&type=5';
   mkdirSync(join(out, 'help.salesforce.com/s'), { recursive: true });
   const line = '200 5000 https://help.salesforce.com/s/articleView?id=a.htm&type=5 [.slds-text-longform] -> help.salesforce.com/s/a.txt';
-  writeFileSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), '/s/articleView?id=b.htm&language=en_US&type=5 B\n/s/login Log in\n');
+  writeFileSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), '/s/articleView?id=b.htm&language=en_US&type=5 B\n/s/articleView?language=en_US&id=c.htm&type=5 C\n/s/login Log in\n');
   const good = parse([u], line, out)[u];
-  assert.equal(good.links, 1);
+  assert.equal(good.links, 2); // the id first or after language
   assert.equal(drifted(page, good), false);
   writeFileSync(join(out, 'help.salesforce.com/s/a.txt.links.txt'), '/s/login Log in\n/s/products Products\n');
   const navOnly = parse([u], line, out)[u];

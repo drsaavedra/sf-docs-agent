@@ -77,7 +77,9 @@ export const parse = (urls, stdout, out) => {
       let links = '';
       try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); }
       catch (e) { if (e.code !== 'ENOENT') throw e; } // only a missing sidecar means no links
-      got[url].links = links.split('\n').filter(l => l.startsWith('/s/articleView?id=')).length;
+      // An article link has an id anywhere in its query, as fetch-docs matches it, not only first.
+      got[url].links = links.split('\n').filter(l => { const [path, q = ''] = l.split(' ')[0].split('?');
+        return path === '/s/articleView' && new URLSearchParams(q).has('id'); }).length;
     }
   }
   return got;
