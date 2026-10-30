@@ -55,7 +55,7 @@ Below are the measurements, each read as platform-docs-get → sf-docs.
 | 8. SLDS tooltips | lightningdesignsystem | 3,876 → **414** | **89.3%** | 340,914 → **112,252** | **67.1%** |
 | 9. Bulk API batch size | developer | 2,134 → **411** | **80.7%** | 506,340 → **125,870** | **75.1%** |
 | 10. Pub/Sub fetch limit | developer | 1,199 → **716** | **40.3%** | 236,766 → **130,110** | **45.0%** |
-| **All** | | 28,379 → **4,556** | **83.9%** | 3,473,702 → **1,298,680** | **62.6%** |
+| **All** | | 27,464 → **4,377** | **84.1%** | 3,521,173 → **1,287,026** | **63.4%** |
 
 <details>
 <summary>The 10 questions</summary>
