@@ -85,9 +85,10 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    next page.
 3. **Look.** To see the lines around a match, use Read with `offset` and `limit`, or `grep -n -C3 -e '<term>' <file>`:
    both number lines as `--quote` counts them. `sed -n` and `head` do not, so never take a line number from them.
-   Never read a page whole. When the answer is a list or a table (patterns, editions, values), Read from its first
-   item to the next heading before you quote: a `--terms` match list stops at its cap, and the last rows may not
-   hold your term.
+   Never read a page whole. When the answer is a list or a table (patterns, editions, values), print it whole before
+   you quote, with `node "/path/to/sf-docs-agent/fetch-docs.mjs" --section <cache file>:<line of its title or first
+   item>`: it stops at the next heading, so no row is left out. A `--terms` match list stops at its cap, and a Read
+   window you choose can end one row short.
 4. **One hop.** If a matched line, a `.links.txt` match or a sentence you will quote names another page that holds
    part of the answer (a child article, a "Limitations for ..." heading with no text under it, an index entry whose
    title matches the question, another post), fetch it now with `--terms`. One hop only: a page named by that page
