@@ -216,7 +216,8 @@ function extract([sels, fallback]) {
   // Same-site links (nav and TOC included) so pages without an llms.txt index can still be discovered.
   const links = new Set();
   for (const r of roots) for (const a of r.querySelectorAll('a[href]')) {
-    if (a.host === location.host && a.pathname !== location.pathname) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
+    // Path and query: every Help article sits at /s/articleView and differs only by ?id=.
+    if (a.host === location.host && a.pathname + a.search !== location.pathname + location.search) links.add(`${a.pathname}${a.search} ${(a.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 80)}`);
   }
   const page = t => `# ${document.title}\n\n${t}\n`;
   const list = [...links].join('\n');
