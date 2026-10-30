@@ -40,6 +40,23 @@ test('--quote copies the chosen lines and names the official page', () => {
   assert.match(r.out, /\[1\] https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page\.html/);
 });
 
+test('--section prints a list to the next heading, past a title just under its first line', () => {
+  const body = ['# Page', '', 'The table lists the patterns.', '', '**List of Patterns**', '', 'Row one', '', 'Row two', '',
+    'Row three', '', '**Pattern Approach**', '', 'Not part of the list.'].join('\n');
+  const out = cache({ 'architect.salesforce.com/docs/a/page.md': body });
+  const r = run(out, '--section', 'architect.salesforce.com/docs/a/page.md:4');
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /^12: Row three$/m); // the last row, past the bold title on line 6
+  assert.doesNotMatch(r.out, /Pattern Approach|Not part/); // stops at the next heading
+});
+
+test('--section stops at its cap and says where to go on', () => {
+  const out = cache({ 'architect.salesforce.com/docs/a/page.md': '# Page\n\n' + lines(80, i => `Row ${i}`) });
+  const r = run(out, '--section', 'architect.salesforce.com/docs/a/page.md:4');
+  assert.equal(r.out.split('\n').filter(l => /^\d+: Row/.test(l)).length, 60);
+  assert.match(r.out, /\(more before the next heading: --section from line 64\)/);
+});
+
 test('a host that is not a doc site is refused', () => {
   const out = cache({});
   const r = run(out, 'https://example.com/x');
