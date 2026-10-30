@@ -33,7 +33,7 @@ Here is how the two compare:
 
 The trade-off: your main session trusts the subagent. That is why the model only picks line numbers and the script
 copies the lines. Every quote is copied word for word from the page, not written from the model's memory, and you can
-check it with one `grep`.
+check it with one `grep`. The only change: curly quotes and apostrophes are saved as straight ones.
 
 ## 84% less in your context, 63% fewer tokens overall
 
