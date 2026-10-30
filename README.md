@@ -32,7 +32,8 @@ Here is how the two compare:
 | Checking an answer | re-read the page | `grep` one line |
 
 The trade-off: your main session trusts the subagent. That is why the model only picks line numbers and the script
-copies the lines. Every quote is the page's own text, never the model's memory, and you can check it with one `grep`.
+copies the lines. Every quote is copied word for word from the page, not written from the model's memory, and you can
+check it with one `grep`.
 
 ## 86% less in your context, 64% fewer tokens overall
 
