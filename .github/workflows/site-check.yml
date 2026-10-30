@@ -18,8 +18,8 @@ permissions:
 jobs:
   site-check:
     runs-on: ubuntu-latest
-    # Worst case: three 900 s fetch budgets, the 60 s and 180 s retry waits, a page in flight at each deadline, and setup.
-    timeout-minutes: 65
+    # Worst case: three fetch runs at their 1100 s kill and the 60 s and 180 s retry waits (59 min), plus setup.
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

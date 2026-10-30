@@ -48,7 +48,7 @@ const run = urls => {
   const out = mkdtempSync(join(tmpdir(), 'sf-docs-site-check-'));
   try {
     // The budget only stops new pages starting: the kill ends a hung one (Playwright traps SIGTERM), and three runs plus
-    // the two retry waits still fit the job's 65 minutes. A page started at 899 s can take about 90 s more.
+    // the two retry waits still fit the job's 70 minutes. A page started at 899 s can take about 90 s more.
     const r = spawnSync(process.execPath, [SCRIPT, '--out', out, '--budget', '900', ...urls], { encoding: 'utf8', timeout: 1100 * 1000, killSignal: 'SIGKILL' });
     // A cold run prints nothing on stderr unless something broke, so any of it goes to the log with the exit code.
     if (r.error || r.stderr) console.error(`fetch-docs exit ${r.status ?? r.signal}${r.error ? `: ${r.error.message}` : ''}\n${r.stderr ?? ''}`);
