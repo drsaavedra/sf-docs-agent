@@ -97,7 +97,7 @@ const rank = (ms, max = MAX_HITS) => {
     .sort((a, b) => a[1] - b[1]).map(x => x[2]);
 };
 const show = m => `${m.n}: ${m.line.length > 300 ? `...${m.line.slice(Math.max(0, m.at - 100), m.at + 200)}...` : m.line}`;
-const more = (all, top) => all.length > top.length ? [`(${all.length - top.length} more lower-ranked lines: add a term to narrow. For a list or table, print it whole with --section <file>:<line>)`] : [];
+const more = (all, top) => all.length > top.length ? [`(${all.length - top.length} more lower-ranked lines: add a term to narrow)`] : [];
 // A page this short is printed whole: its answer can sit on a line no term matches (a Help page's "95%" line).
 // Index files by shape (Help's /apex/Help_*SiteMap* pages, *sitemap*.xml), on the path under the cache dir: a doc
 // page about sitemaps, or an --out dir named for them, is neither.
