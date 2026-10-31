@@ -125,8 +125,9 @@ at some point. Because the index is closed, you can't see what it holds or when 
 
 Most of the speed gap is page rendering. Of sf-docs-agent's 30 runs, the 18 that read at least one `.md` page took a
 median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and rounds. Help, admin and the atlas
-guides have no `.md` copy yet, so sf-docs-agent renders them in a headless browser, and the 12 runs that rendered
-every page took a median 68.5 seconds, against 20 for the MCP subagent.
+guides had no `.md` copy, so sf-docs-agent rendered them in a headless browser, and the 12 runs that rendered every
+page took a median 68.5 seconds, against 20 for the MCP subagent. The Apex Developer Guide and Apex Reference gained
+`.md` copies on 2026-10-31, after these runs; Help, admin, Metadata API and Object Reference still have none.
 
 <details>
 <summary>Per question, sf-docs-agent / a. MCP in main session / b. MCP in a subagent</summary>
@@ -158,7 +159,7 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 | Site | How | Where it finds pages |
 |---|---|---|
 | developer.salesforce.com, new docs | the `.md` copy Salesforce publishes | `/docs/llms.txt` and one index per product |
-| developer.salesforce.com, atlas docs (Apex, Apex Reference, Metadata API, Object Reference) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, atlas docs (Apex, Apex Reference, Metadata API, Object Reference) | renders the page, code samples included; since 2026-10-31 Apex and Apex Reference redirect to the new docs and come as the `.md` copy | `/docs/llms-product-docs.txt` |
 | developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
 | architect.salesforce.com | the `.md` copy | `/llms.txt` |
 | help.salesforce.com, articles and knowledge articles | renders the page | links in other docs and articles, and Help's product sitemaps |
