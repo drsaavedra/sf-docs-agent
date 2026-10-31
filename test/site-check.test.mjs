@@ -40,6 +40,9 @@ test('a fallback read, a failed fetch or an unsaved article is no baseline; a pa
   const shell = { status: 200, chars: 600, kinds: 'body', saved: false };
   assert.equal(unfit(shell, u), true); // Help's outage page in place of a real article
   assert.equal(unfit(shell, 'https://developer.salesforce.com/docs/apis'), false);
+  // a missing atlas topic now answers 404 and is not saved, which is the result it must keep giving
+  const missing = { status: 404, chars: 38, kinds: 'body redirected twin failed:', saved: false };
+  assert.equal(unfit(missing, 'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm'), false);
 });
 
 test('a raw line is matched back to its URL, including the .md copy fetched in its place', () => {
