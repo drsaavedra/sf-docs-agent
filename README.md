@@ -124,9 +124,11 @@ at some point. Because the index is closed, you can't see what it holds or when 
   and every quote can be checked with one `grep`.
 
 Most of the speed gap is page rendering. Of sf-docs-agent's 30 runs, the 18 that read at least one `.md` page took a
-median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and rounds. Help, admin and the atlas
-guides have no `.md` copy yet, so sf-docs-agent renders them in a headless browser, and the 12 runs that rendered
-every page took a median 68.5 seconds, against 20 for the MCP subagent.
+median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and rounds. Help, admin and the
+Apex Developer Guide had no `.md` copy, so sf-docs-agent rendered them in a headless browser, and the 12 runs that
+rendered every page took a median 68.5 seconds, against 20 for the MCP subagent. The Apex Developer Guide and Apex
+Reference had `.md` copies by 2026-10-31, after these runs; Help, admin, Metadata API and Object Reference still have
+none.
 
 <details>
 <summary>Per question, sf-docs-agent / a. MCP in main session / b. MCP in a subagent</summary>
@@ -158,7 +160,8 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 | Site | How | Where it finds pages |
 |---|---|---|
 | developer.salesforce.com, new docs | the `.md` copy Salesforce publishes | `/docs/llms.txt` and one index per product |
-| developer.salesforce.com, atlas docs (Apex, Apex Reference, Metadata API, Object Reference) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, Apex Developer Guide and Apex Reference | the `.md` copy (atlas URLs redirect to the new docs, by 2026-10-31) | `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, atlas docs (Metadata API, Object Reference) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
 | developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
 | architect.salesforce.com | the `.md` copy | `/llms.txt` |
 | help.salesforce.com, articles and knowledge articles | renders the page | links in other docs and articles, and Help's product sitemaps |
@@ -363,9 +366,10 @@ live in `~/.claude/sf-docs/` for every scope, so delete that folder last, once n
 
 ## Limitations
 
-- On help, admin, SLDS 1, API reference pages and the atlas guides, the agent finds the article text by where it sits on
-  the page. If Salesforce changes a layout, it reads the largest block of text instead, which can be one section of the
-  article, and an article under 1,500 characters can't be read. A daily check in this repo flags the change.
+- On help, admin, SLDS 1, API reference pages and the atlas guides that still render (Metadata API, Object Reference and
+  more), the agent finds the article text by where it sits on the page. If Salesforce changes a layout, it reads the
+  largest block of text instead, which can be one section of the article, and an article under 1,500 characters can't
+  be read. A daily check in this repo flags the change.
 - A rendered page can take up to 80 seconds before the agent gives up on it (45 s to load, 20 s for content, 15 s for the
   `.md` copy of a page it redirected to).
 - No Help search. Help's `robots.txt` disallows it. Help's sitemaps list article ids but not titles.

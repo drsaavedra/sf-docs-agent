@@ -43,8 +43,8 @@ that, the printed output is the limit, not time.
   `duplicate-of <url>` means the body matches an earlier URL: read only the first copy. `same <url> as <url>` means
   two arguments are one page, fetched once. `(cached)` means it came from disk. Status `0` carries the error.
   `[redirected <url>]` means the page moved and the Source line names where: check that it is the page you asked for,
-  since a mistyped atlas topic redirects to its guide's landing page, which is not evidence. That rule also decides a
-  line that adds `[twin <path>]` (the redirected page read as its `.md`) or `[twin failed: <reason>]` (its rendered
+  since a mistyped atlas topic redirects to its guide's landing page, which is not evidence; in the Apex Developer
+  Guide, which moved to the new docs, it answers 404 and nothing is saved. That rule also decides a line that adds `[twin <path>]` (the redirected page read as its `.md`) or `[twin failed: <reason>]` (its rendered
   text kept); a cached run shows `(cached) [redirected <url>]` and no `[twin]`. `not saved` means a shell, login wall or missing page (Help
   answers 200 for a missing article), or `[api docs did not load]` on an API reference page: not evidence, but a rerun
   may work. `not saved: <code>` means the page loaded but the cache write failed: rerun. `not saved: left the doc

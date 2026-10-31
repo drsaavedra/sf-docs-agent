@@ -36,6 +36,7 @@ const URLS = [
 ];
 // The pages that must keep being refused: any other unsaved result is an outage, not a reference.
 const SHELLS = new Set(['https://developer.salesforce.com/docs/apis',
+  'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm',
   'https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5']);
 // Interim band until two sweeps a day apart measure real wording churn: a lost article or a nav-only read moves chars
 // past it, an edited paragraph does not. A refused shell's length varies by visitor, so only saved pages are banded.
