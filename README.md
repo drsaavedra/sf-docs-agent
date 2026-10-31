@@ -127,7 +127,7 @@ The speed gap is page rendering. Of sf-docs-agent's 30 runs, the 18 that read at
 sf-docs-agent renders them in a headless browser, and the 12 runs that rendered every page took a median 68.5 seconds.
 
 <details>
-<summary>Per question, sf-docs-agent / a. MCP in main / b. MCP in subagent</summary>
+<summary>Per question, sf-docs-agent / a. MCP in main session / b. MCP in a subagent</summary>
 
 | Question | Tokens added to context | Seconds | Right answers, of 3 |
 |---|---|---|---|
