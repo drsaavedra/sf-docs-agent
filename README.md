@@ -127,7 +127,8 @@ Most of the speed gap is page rendering. Of sf-docs-agent's 30 runs, the 18 that
 median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and rounds. Help, admin and the
 Apex Developer Guide had no `.md` copy, so sf-docs-agent rendered them in a headless browser, and the 12 runs that
 rendered every page took a median 68.5 seconds, against 20 for the MCP subagent. The Apex Developer Guide and Apex
-Reference had `.md` copies by 2026-10-31, after these runs; Help and admin still have none.
+Reference had `.md` copies by 2026-10-31, after these runs; Help, admin, Metadata API and Object Reference still have
+none.
 
 <details>
 <summary>Per question, sf-docs-agent / a. MCP in main session / b. MCP in a subagent</summary>
