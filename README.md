@@ -160,7 +160,8 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 | Site | How | Where it finds pages |
 |---|---|---|
 | developer.salesforce.com, new docs | the `.md` copy Salesforce publishes | `/docs/llms.txt` and one index per product |
-| developer.salesforce.com, atlas docs (Apex, Apex Reference, Metadata API, Object Reference) | renders the page, code samples included; by 2026-10-31 Apex and Apex Reference redirect to the new docs and come as the `.md` copy | `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, Apex Developer Guide and Apex Reference | the `.md` copy (atlas URLs redirect to the new docs, by 2026-10-31) | `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, atlas docs (Metadata API, Object Reference) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
 | developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
 | architect.salesforce.com | the `.md` copy | `/llms.txt` |
 | help.salesforce.com, articles and knowledge articles | renders the page | links in other docs and articles, and Help's product sitemaps |
