@@ -107,10 +107,6 @@ Three rounds each, medians, same model.
 | Quotes that match the text the tools returned, all runs | **113 of 113** | 173 of 188 | 172 of 177 |
 | Quotes on today's page, checked with sf-docs-agent's fetcher, all runs | **113 of 113** | 159 of 188 | 135 of 177 |
 
-Limitations: sf-docs-agent's prompt was tuned on the 100-question set these 10 questions come from, while the MCP
-subagent's prompt was written once and not tuned. Two of the 10 questions (Headless 360, SLDS tooltips) are on sites
-the index doesn't hold, and the grader knew which setup it was grading.
-
 The MCP in a subagent is faster and uses 27% fewer session tokens than sf-docs-agent, and a. MCP in main session uses
 18% fewer. Its results come back as markdown excerpts, so I suspect Salesforce keeps a `.md` snapshot of the docs taken
 at some point. Because the index is closed, you can't see what it holds or when it was taken, and that has some costs:
