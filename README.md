@@ -54,7 +54,7 @@ added 84% fewer tokens to your context and used 38% fewer tokens over the whole 
 39 of 40 runs for each. In the second of four rounds, platform-docs-get missed question 5 and sf-docs-agent missed
 question 4.
 
-Below are the medians of those four rounds (the All row sums them), each read as platform-docs-get → sf-docs-agent.
+Below are the medians of those four rounds, each read as platform-docs-get → sf-docs-agent.
 
 | Question | Site | Tokens added to context | Saved | Session token usage | Saved |
 |---|---|---|---|---|---|
