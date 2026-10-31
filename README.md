@@ -366,9 +366,10 @@ live in `~/.claude/sf-docs/` for every scope, so delete that folder last, once n
 
 ## Limitations
 
-- On help, admin, SLDS 1, API reference pages and the atlas guides, the agent finds the article text by where it sits on
-  the page. If Salesforce changes a layout, it reads the largest block of text instead, which can be one section of the
-  article, and an article under 1,500 characters can't be read. A daily check in this repo flags the change.
+- On help, admin, SLDS 1, API reference pages and the atlas guides that still render (Metadata API, Object Reference and
+  more), the agent finds the article text by where it sits on the page. If Salesforce changes a layout, it reads the
+  largest block of text instead, which can be one section of the article, and an article under 1,500 characters can't
+  be read. A daily check in this repo flags the change.
 - A rendered page can take up to 80 seconds before the agent gives up on it (45 s to load, 20 s for content, 15 s for the
   `.md` copy of a page it redirected to).
 - No Help search. Help's `robots.txt` disallows it. Help's sitemaps list article ids but not titles.
