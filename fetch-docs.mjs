@@ -451,8 +451,8 @@ try {
     if (got.sel === 'body') got = await page.evaluate(extract, [CONTENT, true])
       .catch(e => { console.error(`fallback failed on ${u.href}: ${e.message.split('\n')[0]}`); return got; });
     const { sel, text, links, hold } = got;
-    // A redirect is shown and cited: a mistyped atlas topic lands on its guide's landing page (404 once the guide moved
-    // to the new docs), and a Help article can move to another ?id= on the same path.
+    // A redirect is shown and cited: a mistyped atlas topic lands on its guide's landing page with status 200 (a 404 in
+    // a guide that moved to the new docs), and a Help article can move to another ?id= on the same path.
     const to = new URL(page.url()), hop = sameDoc(to, u) ? '' : ` [redirected ${to.href}]`;
     // Old atlas URLs (and the LDS home) redirect to pages that have a .md twin: keep the rendered links, read the twin.
     const moved = hop && twinOf(to);
