@@ -122,9 +122,9 @@ at some point. Because the index is closed, you can't see what it holds or when 
 - **Open vs closed.** The index has no published source or refresh schedule. sf-docs-agent reads the live page every time,
   and every quote can be checked with one `grep`.
 
-The speed gap is page rendering. On questions where sf-docs-agent read at least one `.md` page, it took a median 26 to 32
-seconds, close to the MCP subagent. Help, admin and the atlas guides have no `.md` copy yet, so sf-docs-agent renders
-them in a headless browser, which took a median 68 seconds.
+The speed gap is page rendering. Of sf-docs-agent's 30 runs, the 18 that read at least one `.md` page took a median
+26.5 seconds, against 20 for the MCP subagent. Help, admin and the atlas guides have no `.md` copy yet, so
+sf-docs-agent renders them in a headless browser, and the 12 runs that rendered every page took a median 68.5 seconds.
 
 <details>
 <summary>Per question, sf-docs-agent / a. MCP in main / b. MCP in subagent</summary>
