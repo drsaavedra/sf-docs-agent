@@ -36,13 +36,24 @@ copies the lines. Every quote is copied word for word from the page, not written
 check it with one `grep` against the cached copy, which saves curly quotes as straight ones and drops image links and
 the padding in table rows.
 
-## 84% less in your context, 63% fewer tokens overall
+## Why not use Salesforce Docs MCP
+
+Salesforce's [salesforce-docs-mcp](https://labs.agentforce.com/docs/salesforce-docs-mcp) works, and behind a
+subagent it was faster and cheaper than sf-docs-agent in my tests. But it searches a closed index you can't see into, with
+no date on its results.
+
+I wanted an alternative I control and can validate against the live sites. sf-docs-agent is open source, reads the page
+Salesforce publishes today, and every quote can be checked against that page with one `grep`. If you're fine
+trusting the index, the MCP in a subagent is a good choice. [The comparison](#compared-with-salesforce-docs-mcp) has
+the numbers and the trade-offs.
+
+## 84% less in your context, 63% fewer tokens than platform-docs-get
 
 On 10 questions against Salesforce's own platform-docs-get skill, the agent
 added 84% fewer tokens to your context and used 63% fewer tokens over the whole session, with the right answer on
 10 of 10.
 
-Below are the measurements, each read as platform-docs-get → sf-docs.
+Below are the measurements, each read as platform-docs-get → sf-docs-agent.
 
 | Question | Site | Tokens added to context | Saved | Session token usage | Saved |
 |---|---|---|---|---|---|
@@ -74,12 +85,18 @@ Below are the measurements, each read as platform-docs-get → sf-docs.
 
 </details>
 
-### Compared with Salesforce Docs MCP
+## Compared with Salesforce Docs MCP
 
-Salesforce also runs a [Docs MCP server](https://labs.agentforce.com/docs/salesforce-docs-mcp) that searches an
-index of Help articles, developer guides and release notes. I ran the same 10 questions through it in two setups:
-a. its tools in the main session, and b. a subagent whose only tools are the MCP's, with the same report format as
-sf-docs. Three rounds each, medians, same model.
+Aside from the platform-docs-get skill, Salesforce also has
+[salesforce-docs-mcp](https://labs.agentforce.com/docs/salesforce-docs-mcp), a closed-source public MCP server that
+searches an index of Help articles, developer guides and release notes. I ran the same 10 questions through it in two
+setups:
+
+a. MCP in the main session: the main agent calls the MCP tools directly
+
+b. MCP in a subagent: a subagent whose only tools are the MCP's, with the same report format as sf-docs-agent
+
+Three rounds each, medians, same model.
 
 | | sf-docs-agent | a. MCP in main session | b. MCP in a subagent |
 |---|---|---|---|
@@ -87,24 +104,26 @@ sf-docs. Three rounds each, medians, same model.
 | Session token usage | 1,323,252 | 1,640,182 | **1,008,812** |
 | Seconds, all 10 | 433 | 239 | **218** |
 | Right answers, of 30 | **30** | 28 | 23 |
-| Quotes found word for word on today's page | **113 of 113** | 159 of 188 | 135 of 177 |
+| Quotes found word for word on today's page, all runs | **113 of 113** | 159 of 188 | 135 of 177 |
 
-The MCP in a subagent is faster and uses 24% fewer tokens. Here is what that costs:
+The MCP in a subagent is faster and uses 24% fewer session tokens. Its results come back as markdown excerpts, so I
+suspect Salesforce keeps a `.md` snapshot of the docs taken at some point. Because the index is closed, you can't see
+what it holds or when it was taken, and that has some costs:
 
 - **Coverage.** Across 91 searches it returned no admin.salesforce.com page and no SLDS 2 content page. The
   subagent answered "not found" or wrong on Headless 360 and SLDS tooltips in all three rounds. In the main session,
   the model also reached for web search or fetch on 27 of 30 runs, and skipped the MCP on 4.
 - **Freshness.** Results carry no date, and some come from the old atlas copy of a page. On question 2 the quotes were
   exact, but the source URL now opens a page without them.
-- **Open vs closed.** The index has no published source or refresh schedule. sf-docs reads the live page every time,
+- **Open vs closed.** The index has no published source or refresh schedule. sf-docs-agent reads the live page every time,
   and every quote can be checked with one `grep`.
 
-The speed gap is page rendering. Where a site publishes a `.md` copy, sf-docs takes about the same time as the MCP
-subagent. Help, admin and the atlas guides have no `.md` copy yet, so the agent renders them in a headless browser,
-which took a median 68 seconds against 26 to 32 seconds for a run that read a `.md` page.
+The speed gap is page rendering. On questions where sf-docs-agent read at least one `.md` page, it took a median 26 to 32
+seconds, close to the MCP subagent. Help, admin and the atlas guides have no `.md` copy yet, so sf-docs-agent renders
+them in a headless browser, which took a median 68 seconds.
 
 <details>
-<summary>Per question, sf-docs / a. MCP in main / b. MCP in subagent</summary>
+<summary>Per question, sf-docs-agent / a. MCP in main / b. MCP in subagent</summary>
 
 | Question | Tokens added to context | Seconds | Right answers, of 3 |
 |---|---|---|---|
@@ -118,9 +137,6 @@ which took a median 68 seconds against 26 to 32 seconds for a run that read a `.
 | 8. SLDS tooltips | 403 / 1,230 / 617 | 32 / 40 / 33 | 3 / 1 / 0 |
 | 9. Bulk API batch size | 488 / 6,284 / 528 | 27 / 22 / 20 | 3 / 3 / 3 |
 | 10. Pub/Sub fetch limit | 632 / 3,161 / 283 | 26 / 20 / 16 | 3 / 3 / 3 |
-
-A quote counts as found when it is on today's page after markup (table pipes, line breaks, punctuation) is removed,
-so an MCP quote is not marked down for its table format.
 
 </details>
 
@@ -157,7 +173,7 @@ Name the site or product if you know it, and say what you want to know.
 
 The sample prompt is broad on purpose: I wanted to see the agent decide what "governors and limits" covers, and whether it could find everything in a broad question.
 
-Here are the results of that prompt, one run each on Opus 5.5 and Sonnet 5.5 at effort high. Each session called the sf-docs agent, which returned quotes with their
+Here are the results of that prompt, one run each on Opus 5.5 and Sonnet 5.5 at effort high. Each session called sf-docs-agent, which returned quotes with their
 official URLs, and the session turned them into the answer.
 
 <details>
