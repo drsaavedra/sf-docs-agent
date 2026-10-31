@@ -43,14 +43,14 @@
   },
   "https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm": {
     "status": 200,
-    "chars": 24513,
-    "kinds": "div.body",
+    "chars": 28007,
+    "kinds": "twin redirected",
     "saved": true
   },
   "https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_string.htm": {
     "status": 200,
-    "chars": 88011,
-    "kinds": "div.nested0",
+    "chars": 113099,
+    "kinds": "twin redirected",
     "saved": true
   },
   "https://developer.salesforce.com/docs/atlas.en-us.life_sciences_dev_guide.meta/life_sciences_dev_guide/sforce_api_objects_mergerequest.htm": {
@@ -72,10 +72,10 @@
     "saved": true
   },
   "https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm": {
-    "status": 200,
-    "chars": 504,
-    "kinds": "div.body redirected",
-    "saved": true
+    "status": 404,
+    "chars": 38,
+    "kinds": "body redirected twin failed:",
+    "saved": false
   },
   "https://developer.salesforce.com/docs/apis": {
     "status": 200,
@@ -87,23 +87,26 @@
     "status": 200,
     "chars": 7027,
     "kinds": ".slds-text-longform",
-    "saved": true
+    "saved": true,
+    "links": 1403
   },
   "https://help.salesforce.com/s/articleView?id=001096524&type=1": {
     "status": 200,
     "chars": 2876,
     "kinds": "div.container:has(.article-content)",
-    "saved": true
+    "saved": true,
+    "links": 10
   },
   "https://help.salesforce.com/s/articleView?id=sf.ev_relay_intro.htm&type=5": {
     "status": 200,
     "chars": 1142,
     "kinds": ".slds-text-longform redirected",
-    "saved": true
+    "saved": true,
+    "links": 1140
   },
   "https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5": {
     "status": 200,
-    "chars": 1253,
+    "chars": 1197,
     "kinds": "body",
     "saved": false
   },
