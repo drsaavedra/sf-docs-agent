@@ -53,7 +53,7 @@ On 10 questions against Salesforce's own platform-docs-get skill, the agent
 added 84% fewer tokens to your context and used 38% fewer tokens over the whole session, with the right answer on
 39 of 40 runs for each. Each tool missed one answer in the second of four rounds.
 
-Below are the medians of those four rounds, each read as platform-docs-get → sf-docs-agent.
+Below are the medians of those four rounds (the All row sums them), each read as platform-docs-get → sf-docs-agent.
 
 | Question | Site | Tokens added to context | Saved | Session token usage | Saved |
 |---|---|---|---|---|---|
