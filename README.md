@@ -119,7 +119,7 @@ at some point. Because the index is closed, you can't see what it holds or when 
   the index.
 - **Freshness.** Results carry no date, and some come from the old atlas copy of a page. On question 2 the quotes were
   exact, but the source URL now opens a page without them. On question 1 the wording is older than today's page, with
-  the same values. On both questions the values matched the answer key in every run.
+  the same values. On both questions the values matched the answer key in every MCP run.
 - **Open vs closed.** The index has no published source or refresh schedule. sf-docs-agent reads the live page every time,
   and every quote can be checked with one `grep`.
 
