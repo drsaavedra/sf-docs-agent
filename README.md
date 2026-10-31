@@ -74,6 +74,56 @@ Below are the measurements, each read as platform-docs-get → sf-docs.
 
 </details>
 
+### Compared with Salesforce Docs MCP
+
+Salesforce also runs a [Docs MCP server](https://labs.agentforce.com/docs/salesforce-docs-mcp) that searches an
+index of Help articles, developer guides and release notes. I ran the same 10 questions through it in two setups:
+a. its tools in the main session, and b. a subagent whose only tools are the MCP's, with the same report format as
+sf-docs. Three rounds each, medians, same model.
+
+| | sf-docs-agent | a. MCP in main session | b. MCP in a subagent |
+|---|---|---|---|
+| Tokens added to context | **4,456** | 45,633 | 5,323 |
+| Session token usage | 1,323,252 | 1,640,182 | **1,008,812** |
+| Seconds, all 10 | 433 | 239 | **218** |
+| Right answers, of 30 | **30** | 28 | 23 |
+| Quotes found word for word on today's page | **113 of 113** | 159 of 188 | 135 of 177 |
+
+The MCP in a subagent is faster and uses 24% fewer tokens. Here is what that costs:
+
+- **Coverage.** Across 91 searches it returned no admin.salesforce.com page and no SLDS 2 content page. The
+  subagent answered "not found" or wrong on Headless 360 and SLDS tooltips in all three rounds. In the main session,
+  the model also reached for web search or fetch on 27 of 30 runs, and skipped the MCP on 4.
+- **Freshness.** Results carry no date, and some come from the old atlas copy of a page. On question 2 the quotes were
+  exact, but the source URL now opens a page without them.
+- **Open vs closed.** The index has no published source or refresh schedule. sf-docs reads the live page every time,
+  and every quote can be checked with one `grep`.
+
+The speed gap is page rendering. Where a site publishes a `.md` copy, sf-docs takes about the same time as the MCP
+subagent. Help, admin and the atlas guides have no `.md` copy yet, so the agent renders them in a headless browser,
+which took a median 68 seconds against 26 to 32 seconds for a run that read a `.md` page.
+
+<details>
+<summary>Per question, sf-docs / a. MCP in main / b. MCP in subagent</summary>
+
+| Question | Tokens added to context | Seconds | Right answers, of 3 |
+|---|---|---|---|
+| 1. Scratch org editions | 247 / 5,011 / 421 | 23 / 22 / 18 | 3 / 3 / 3 |
+| 2. Platform event allocation | 525 / 6,177 / 713 | 29 / 28 / 21 | 3 / 3 / 3 |
+| 3. QueryLocator batch limits | 728 / 8,303 / 531 | 68 / 18 / 20 | 3 / 3 / 3 |
+| 4. Integration patterns | 462 / 4,863 / 787 | 25 / 21 / 22 | 3 / 3 / 3 |
+| 5. Salesforce Connect editions | 299 / 3,555 / 381 | 84 / 17 / 18 | 3 / 3 / 3 |
+| 6. Flow version limits | 299 / 2,817 / 290 | 59 / 20 / 19 | 3 / 3 / 2 |
+| 7. Headless 360 | 373 / 4,232 / 772 | 60 / 31 / 31 | 3 / 3 / 0 |
+| 8. SLDS tooltips | 403 / 1,230 / 617 | 32 / 40 / 33 | 3 / 1 / 0 |
+| 9. Bulk API batch size | 488 / 6,284 / 528 | 27 / 22 / 20 | 3 / 3 / 3 |
+| 10. Pub/Sub fetch limit | 632 / 3,161 / 283 | 26 / 20 / 16 | 3 / 3 / 3 |
+
+A quote counts as found when it is on today's page after markup (table pipes, line breaks, punctuation) is removed,
+so an MCP quote is not marked down for its table format.
+
+</details>
+
 ## How sf-docs-agent reads each site
 
 The agent reads the `.md` copy of a page where the site publishes one. Not every Salesforce docs site does yet.
