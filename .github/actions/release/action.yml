@@ -25,6 +25,8 @@ runs:
         v=$(node -p "require('./package.json').version")
         latest=$(npm view sf-docs-agent version)
         echo "package.json $v, npm latest $latest, dry run $DRY"
+        # Plain x.y.z only: a prerelease would publish as npm's latest, and the comparison below cannot order one.
+        [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::$v is not a plain x.y.z version"; exit 1; }
         if [ "$DRY" = true ]; then echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$latest" >> "$GITHUB_OUTPUT"; exit 0; fi
         # Already on npm: a rerun of this commit's release skips the publish but still tags and checks; a tag on another
         # commit means an earlier release (a package.json change with no bump), so there is nothing to do.
