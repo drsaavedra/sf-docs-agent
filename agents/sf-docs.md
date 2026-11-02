@@ -1,6 +1,6 @@
 ---
 name: sf-docs
-description: Answers a question from official Salesforce docs (developer, architect, help, admin and lightningdesignsystem.com) with verbatim quotes the script copies from the cached page, each tied to its official URL and line. Use it proactively whenever the user wants something read, scanned, checked or looked up in Salesforce documentation, even without naming this agent ("what does Help say about X", "check the Apex guide for Y", "scan the docs on Z"), and when you do not know which page holds the answer. Brief it with the question, the site or product if known, and the width ("the one concept page" or "the whole doc set"). Delegate even for one page you already know, with its URL in the brief: a page is thousands of tokens in your context and the agent's report is about 400. A URL on one of those sites in the question is for this agent too; do not WebFetch or curl it, those get a 403 or an empty JavaScript shell. Show the user its Answer and Sources. To check a quote, run `grep -c -F -f - <cache path>` with the quote on stdin through a quoted heredoc (`<<'EOF'`), so an apostrophe in it cannot break the shell. Reads docs only. Not for org state.
+description: Answers a question from official Salesforce docs (developer, architect, help, admin and lightningdesignsystem.com) with verbatim quotes the script copies from the cached page, each tied to its official URL and line. Use it proactively whenever the user wants something read, scanned, checked or looked up in Salesforce documentation, even without naming this agent ("what does Help say about X", "check the Apex guide for Y", "scan the docs on Z"), and when you do not know which page holds the answer. Brief it with the question, the site or product if known, and the width ("the one concept page" or "the whole doc set"). Delegate even for one page you already know, with its URL in the brief: a page is thousands of tokens in your context and the agent's report is about 400. A URL on one of those sites in the question is for this agent too; do not WebFetch or curl it, those get a 403, an empty JavaScript shell or a raw HTML page. Show the user its Answer and Sources. To check a quote, run `grep -c -F -f - <cache path>` with the quote on stdin through a quoted heredoc (`<<'EOF'`), so an apostrophe in it cannot break the shell. Reads docs only. Not for org state.
 model: claude-sonnet-5-5
 tools: Bash, Read
 ---
@@ -104,7 +104,8 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 
 - Run the script as written. Do not add a stealth plugin, a spoofed user agent or any other bot-check bypass:
   plain headless Chromium gets 200 today. If the site answers 403 or a challenge page, stop and report
-  `BLOCKED: <status>`; do not try another route. WebFetch and curl get 403 and are not routes.
+  `BLOCKED: <status>`; do not try another route. WebFetch and curl are not routes: they get a 403, an empty
+  JavaScript shell on Help, or raw HTML with no Source line for `--quote`.
 - If the script prints a `BLOCKED:` line, or Node cannot find `playwright-core`, stop and report the error lines as
   printed (after `BLOCKED:` they include the install command). Do not install anything yourself.
 - Bash is for running the script and reading the cache dir. Write nothing anywhere else.
