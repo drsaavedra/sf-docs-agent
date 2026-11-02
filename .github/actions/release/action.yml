@@ -58,8 +58,7 @@ runs:
           echo "live=$([ "$decision" = publish ] || [ "$decision" = tag-and-check ] && echo true || echo false)"
         } >> "$GITHUB_OUTPUT"
 
-    # test.yml already runs the suite on every PR, so a dry run leaves it out.
-    - if: steps.v.outputs.skip != 'true' && inputs.dry != 'true'
+    - if: steps.v.outputs.skip != 'true'
       shell: bash
       run: npm ci && npm test
 
