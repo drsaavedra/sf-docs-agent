@@ -85,7 +85,8 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    next page.
 3. **Look.** To see the lines around a match, use Read with `offset` and `limit`, or `grep -n -C3 -e '<term>' <file>`:
    both number lines as `--quote` counts them. `sed -n` and `head` do not, so never take a line number from them.
-   The cache holds straight quotes: write `'` and `"` in a grep term, never `’` or `“`, even when the question has them.
+   Leave quote marks out of a grep term and search the words on either side: a `'` ends the shell quote, and a
+   curly one from the question misses a page saved with straight ones.
    Never read a page whole. When the answer is a list or a table (patterns, editions, values), Read from its first
    item to the next heading before you quote: a `--terms` match list stops at its cap, and the last rows may not
    hold your term.
