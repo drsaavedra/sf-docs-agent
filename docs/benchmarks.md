@@ -2,9 +2,9 @@
 
 [Back to the README](../README.md)
 
-The sf-docs-agent numbers below come from a rerun on 2026-11-02 with the agent that follows up to two links. The
-platform-docs-get and Salesforce Docs MCP numbers are from their runs on 2026-10-30 and 2026-10-31, which were not
-repeated, and the docs changed in between: the Apex guides gained `.md` copies on 2026-10-31.
+The sf-docs-agent numbers below come from a rerun on 2 November 2026 with the agent that follows up to two links. The
+platform-docs-get and Salesforce Docs MCP numbers are from their runs on 30 and 31 October 2026, which were not
+repeated, and the docs changed in between: the Apex guides gained `.md` copies on 31 October 2026.
 [One link against two](#one-link-against-two) compares the agent before and after the change.
 
 ## 84% less in your context, 34% fewer tokens than platform-docs-get
@@ -85,11 +85,11 @@ at some point. Because the index is closed, you can't see what it holds or when 
 - **Open vs closed.** The index has no published source or refresh schedule. sf-docs-agent reads the live page every time,
   and every quote can be checked with one `grep`.
 
-In the 2026-10-31 runs, most of the speed gap was page rendering. Of sf-docs-agent's 30 runs then, the 18 that read at least one `.md` page took a
+In the 31 October 2026 runs, most of the speed gap was page rendering. Of sf-docs-agent's 30 runs then, the 18 that read at least one `.md` page took a
 median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and rounds. Help, admin and the
 Apex Developer Guide had no `.md` copy, so sf-docs-agent rendered them in a headless browser, and the 12 runs that
 rendered every page took a median 68.5 seconds, against 20 for the MCP subagent. The Apex Developer Guide and Apex
-Reference had `.md` copies by 2026-10-31, and in the 2026-11-02 rerun sf-docs-agent's total for all 10 fell from 433
+Reference had `.md` copies by 31 October 2026, and in the 2 November 2026 rerun sf-docs-agent's total for all 10 fell from 433
 to 346 seconds. Help, admin, Metadata API and Object Reference still have none.
 
 <details>
@@ -112,7 +112,7 @@ to 346 seconds. Help, admin, Metadata API and Object Reference still have none.
 
 ## One link against two
 
-On 2026-11-02 the agent that follows at most one link from the page it found (0.1.2) ran against the agent that
+On 2 November 2026 the agent that follows at most one link from the page it found (0.1.2) ran against the agent that
 follows up to two, on the same fetcher, in a clean Claude Code config with a Sonnet caller, a cold cache before each
 round, and the same grader as above. Two question sets came from the project's 100-question set: 20 regression
 questions (every fifth), one round, and 6 link-following questions (five that start from one page and need another,
