@@ -6,7 +6,7 @@
 
 **84% less** added to your session than Salesforce's own docs skill · **113 of 113** quotes still on today's page · **every quote** checkable with one `grep`
 
-[Install](#install) · [Use](#use) · [How it compares](#how-it-compares) · [Limitations](#limitations) · [Benchmarks](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
+[Install](#install) · [Use](#use) · [How it works](#how-it-works) · [How it compares](#how-it-compares) · [Limitations](#limitations) · [Benchmarks](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
 ---
 
@@ -65,6 +65,17 @@ Part of what came back (Opus 5.5, 89 seconds):
 It tells you what it did not read. A gap you can see beats a guess you can't.
 
 It covers developer.salesforce.com, architect.salesforce.com, help.salesforce.com, admin.salesforce.com and lightningdesignsystem.com. Full outputs on Opus and Sonnet: [docs/examples.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/examples.md)
+
+## How it works
+
+1. **Finds the page.** It searches the site's `llms.txt` index or sitemaps, or starts from the link you give it.
+2. **Reads the cleanest copy.** Where Salesforce publishes a `.md` copy of a page (the new developer docs, architect, SLDS 2), it reads that. Help, admin and some older guides have none, so it renders them in a headless browser. No fake user agent, no stealth plugin.
+3. **Picks lines, not prose.** The model reads the cached page in the agent's own context and picks line numbers. A script copies those lines, each with its official URL.
+4. **Names what it missed.** A page it did not read, or a link it did not follow, comes back as a gap.
+
+To check any quote: `grep -c -F '<quote>' <cache path>`. The cache saves curly quotes as straight ones, so a quote you retype still matches.
+
+Every site, and how it reads each one: [docs/how-it-works.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/how-it-works.md)
 
 ## How it compares
 
