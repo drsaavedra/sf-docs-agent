@@ -26,8 +26,14 @@ runs:
         latest=$(npm view sf-docs-agent version)
         echo "package.json $v, npm latest $latest, dry run $DRY"
         if [ "$DRY" = true ]; then echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$latest" >> "$GITHUB_OUTPUT"; exit 0; fi
+        # Already on npm: a rerun of this commit's release skips the publish but still tags and checks; a tag on another
+        # commit means an earlier release (a package.json change with no bump), so there is nothing to do.
         if npm view "sf-docs-agent@$v" version >/dev/null 2>&1; then
-          echo "$v is already on npm: nothing to release"; echo "publish=false" >> "$GITHUB_OUTPUT"; exit 0
+          tagged=$(git ls-remote origin "refs/tags/v$v" "refs/tags/v$v^{}" | tail -1 | cut -f1)
+          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then
+            echo "$v was released from $tagged: nothing to do"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "$v is already on npm: tag and check only"; echo "publish=false" >> "$GITHUB_OUTPUT"; echo "check=$v" >> "$GITHUB_OUTPUT"; exit 0
         fi
         # A lower version would become npm's latest, so refuse anything not above it.
         node -e 'const [a,b]=process.argv.slice(1).map(s=>s.split(".").map(Number));process.exit(((a[0]-b[0])||(a[1]-b[1])||(a[2]-b[2]))>0?0:1)' "$v" "$latest" \
@@ -55,15 +61,18 @@ runs:
           npm publish
         fi
 
-    - if: steps.v.outputs.publish == 'true' && inputs.dry != 'true'
+    - if: inputs.dry != 'true' && steps.v.outputs.skip != 'true'
       name: Tag and GitHub Release
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.gh-token }}
-      run: gh release create "v${{ steps.v.outputs.check }}" --target "$GITHUB_SHA" --title "v${{ steps.v.outputs.check }}" --generate-notes
+      run: |
+        t="v${{ steps.v.outputs.check }}"
+        if gh release view "$t" >/dev/null 2>&1; then echo "$t already released"; exit 0; fi
+        gh release create "$t" --target "$GITHUB_SHA" --title "$t" --generate-notes
 
     # The registry copy must match what this commit packs, and a fresh install must wire the agent to its script.
-    - if: steps.v.outputs.publish == 'true'
+    - if: steps.v.outputs.skip != 'true'
       name: Check the registry copy
       shell: bash
       env:
