@@ -213,3 +213,10 @@ test('--quote with no :line names the missing line, not a chopped file name', ()
   assert.equal(r.code, 1);
   assert.match(r.err, /no line number: developer\.salesforce\.com\/docs\/a\/b\/c\/page\.md /, r.err);
 });
+
+test('an http:// URL for a cached page is served without a [redirected] note', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page\n\nhello' });
+  const r = run(out, 'http://developer.salesforce.com/docs/a/b/c/page.md');
+  assert.match(r.out, /\(cached\)/, r.out);
+  assert.doesNotMatch(r.out, /redirected/, r.out);
+});
