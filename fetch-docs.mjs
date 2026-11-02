@@ -119,8 +119,8 @@ const grep = (file, t) => {
 if (args[0] === '--quote') {
   const files = [], ev = [];
   for (const spec of args.slice(1)) {
-    const m = spec.match(/^(.+):([\d,]+)$/); // a bare path (or Windows C:\...) has no :line to split off
-    if (!m) { console.error(`no line number: ${spec} (use <cache file>:<line>)`); continue; }
+    const m = spec.match(/^(.+):(\d+(?:,\d+)*)$/); // greedy: a Windows C:\... colon stays in the path
+    if (!m) { console.error(`not <cache file>:<line>[,<line>...]: ${spec}`); continue; }
     const file = isAbsolute(m[1]) ? m[1] : join(out, m[1]);
     // Only cached official pages: inside the cache dir and starting with their Source: line.
     const inside = relative(out, file);
