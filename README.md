@@ -99,7 +99,7 @@ Every number, per question, with the method: [docs/benchmarks.md](https://github
 
 - Help, admin and some older developer guides have no `.md` copy, so those pages are slower. If Salesforce changes their layout, the agent may read only part of an article. A daily check in this repo flags it.
 - No Help search, because Help's `robots.txt` disallows it.
-- It follows links at most two pages deep from the page it found, and only toward a missing part of the answer. Anything further comes back as a gap.
+- It follows at most two links in a row, and only toward a missing part of the answer. Anything further comes back as a gap.
 - On a long list it sometimes stops a row early. The quotes it gives are still right.
 - If a site blocks headless browsers, it stops and tells you. It does not try to get around the block.
 - The agent has Bash. Its instructions limit it to its script and cache, but that is an instruction to the model, not a sandbox.
