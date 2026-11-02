@@ -28,7 +28,11 @@ runs:
         if [ "$DRY" = true ]; then echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$latest" >> "$GITHUB_OUTPUT"; exit 0; fi
         # Already on npm: a rerun of this commit's release skips the publish but still tags and checks; a tag on another
         # commit means an earlier release (a package.json change with no bump), so there is nothing to do.
-        if npm view "sf-docs-agent@$v" version >/dev/null 2>&1; then
+        # Only E404 means "not on npm"; any other failure (network, registry) stops the run rather than publishing.
+        if out=$(npm view "sf-docs-agent@$v" version 2>&1); then on_npm=true
+        elif grep -q E404 <<< "$out"; then on_npm=false
+        else echo "::error::npm view failed: $out"; exit 1; fi
+        if [ "$on_npm" = true ]; then
           tagged=$(git ls-remote origin "refs/tags/v$v" "refs/tags/v$v^{}" | tail -1 | cut -f1)
           if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then
             echo "$v was released from $tagged: nothing to do"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
