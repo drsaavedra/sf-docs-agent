@@ -29,6 +29,7 @@ jobs:
       - uses: ./.github/actions/release
         with:
           dry: 'true'
+          gh-token: ${{ github.token }} # read-only here: the dry run only views a release
 
   # Only a push to main reaches the npm environment, which the npm trusted publisher names.
   release:
