@@ -107,5 +107,7 @@ runs:
         GH_TOKEN: ${{ inputs.gh-token }}
       run: |
         t="v${{ steps.v.outputs.check }}"
-        if gh release view "$t" >/dev/null 2>&1; then echo "$t already released"; exit 0; fi
+        # Only "release not found" means create it; an auth or API error stops the run.
+        if out=$(gh release view "$t" 2>&1); then echo "$t already released"; exit 0; fi
+        grep -q 'release not found' <<< "$out" || { echo "::error::gh release view failed: $out"; exit 1; }
         gh release create "$t" --target "$GITHUB_SHA" --title "$t" --generate-notes
