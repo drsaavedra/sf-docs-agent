@@ -206,3 +206,40 @@ test('a same line names the URL the time-limit line printed, not an internal .md
   assert.match(r, /^not fetched \(time limit\) https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page\.html$/m);
   assert.match(r, /^same https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page as https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page\.html$/m);
 });
+
+test('--quote with no :line, or a line part it cannot read, names the form, not a chopped file name', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page\n\nThe limit is 100.' });
+  const f = 'developer.salesforce.com/docs/a/b/c/page.md';
+  for (const spec of [f, `${f}:4-5`, `${f}:4,`, 'C:\\cache\\page.md']) {
+    const r = run(out, '--quote', spec);
+    assert.equal(r.code, 1, spec);
+    assert.ok(r.err.includes(`not <cache file>:<line>[,<line>...]: ${spec}\n`), `${spec}:\n${r.err}`);
+  }
+});
+
+test('an http:// URL for a cached page is served without a [redirected] note', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page\n\nhello' });
+  const r = run(out, 'http://developer.salesforce.com/docs/a/b/c/page.md');
+  assert.match(r.out, /\(cached\)/, r.out);
+  assert.doesNotMatch(r.out, /redirected/, r.out);
+});
+
+test('http:// and https:// for one page in one call are fetched once', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page\n\nhello' });
+  const r = run(out, 'https://developer.salesforce.com/docs/a/b/c/page.md', 'http://developer.salesforce.com/docs/a/b/c/page.md').out;
+  assert.equal(r.split('\n').filter(l => l.includes('(cached)')).length, 1, r);
+  assert.doesNotMatch(r, /duplicate-of|redirected/, r);
+});
+
+test('a page 0.1.2 cached with an http:// Source line is not reported as redirected', () => {
+  const out = cache({});
+  mkdirSync(join(out, 'developer.salesforce.com/docs/a/b/c'), { recursive: true });
+  writeFileSync(join(out, 'developer.salesforce.com/docs/a/b/c/page.md'), 'Source: http://developer.salesforce.com/docs/a/b/c/page.html\n# Page\n\nhello');
+  const r = run(out, 'https://developer.salesforce.com/docs/a/b/c/page.html').out;
+  assert.match(r, /\(cached\)/, r);
+  assert.doesNotMatch(r, /redirected/, r);
+});
+
+test('a refused http:// URL is echoed as given', () => {
+  assert.match(run(cache({}), 'http://example.com/x').out, /^refused http:\/\/example\.com\/x: not an official doc site$/m);
+});

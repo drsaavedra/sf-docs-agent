@@ -74,8 +74,9 @@ const SOURCE = /^Source: [^\n]*\n/;
 const isShell = b => /^\s*<(!doctype|html)/i.test(b);
 // A twin is missing (render instead, and remember it) on a 404, or a 200 whose body is an HTML shell or empty.
 const missingTwin = (status, body) => status === 404 || (status === 200 && (isShell(body) || !body.trim()));
-// One page, whatever the #anchor or trailing slash; a Help article is told apart by its ?id=.
-const sameDoc = (a, b) => a.origin === b.origin && a.pathname.replace(/\/$/, '') === b.pathname.replace(/\/$/, '')
+// One page, whatever the scheme (0.1.2 saved http:// Source lines), #anchor or trailing slash; a Help article is
+// told apart by its ?id=.
+const sameDoc = (a, b) => a.host === b.host && a.pathname.replace(/\/$/, '') === b.pathname.replace(/\/$/, '')
   && a.searchParams.get('id') === b.searchParams.get('id');
 // Paths the agent will paste into Git Bash on Windows: forward slashes, which Node accepts too.
 const slash = p => p.split(sep).join('/');
@@ -119,8 +120,9 @@ const grep = (file, t) => {
 if (args[0] === '--quote') {
   const files = [], ev = [];
   for (const spec of args.slice(1)) {
-    const at = spec.lastIndexOf(':');
-    const file = isAbsolute(spec.slice(0, at)) ? spec.slice(0, at) : join(out, spec.slice(0, at));
+    const m = spec.match(/^(.+):(\d+(?:,\d+)*)$/); // greedy: a Windows C:\... colon stays in the path
+    if (!m) { console.error(`not <cache file>:<line>[,<line>...]: ${spec}`); continue; }
+    const file = isAbsolute(m[1]) ? m[1] : join(out, m[1]);
     // Only cached official pages: inside the cache dir and starting with their Source: line.
     const inside = relative(out, file);
     let lines;
@@ -128,7 +130,7 @@ if (args[0] === '--quote') {
     catch { lines = []; }
     if (!lines[0]?.startsWith('Source: ')) { console.error(`not a cached page: ${slash(file)}`); continue; }
     if (!files.includes(file)) files.push(file);
-    for (const n of spec.slice(at + 1).split(',').map(Number)) {
+    for (const n of m[2].split(',').map(Number)) {
       const text = (lines[n - 1] || '').trim();
       if (text && n > 1) ev.push(`- "${text}" [${files.indexOf(file) + 1}:${n}]`);
       else console.error(`skipped ${slash(relative(out, file))}:${n}: empty, out of range or the Source line`);
@@ -186,7 +188,7 @@ const parse = a => {
 const given = [], refused = [];
 for (const a of args) {
   const u = parse(a);
-  if (u && SITES.includes(u.host)) given.push(u);
+  if (u && SITES.includes(u.host)) { u.protocol = 'https:'; given.push(u); } // all https: one key, one Source line
   else refused.push(u ? `${u.href}: not an official doc site` : `${a}: not a URL`);
 }
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.

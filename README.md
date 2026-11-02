@@ -73,7 +73,7 @@ It covers developer.salesforce.com, architect.salesforce.com, help.salesforce.co
 3. **Picks lines, not prose.** The model reads the cached page in the agent's own context and picks line numbers. A script copies those lines, each with its official URL.
 4. **Names what it missed.** A page it did not read, or a link it did not follow, comes back as a gap.
 
-To check a line, replace `<cache path>` (the agent's Sources name it) and `<quote>` below. Apostrophes are safe, and the cache saves curly quotes as straight ones, so a quote you retype still matches. Any count above 0 means the line is on the page.
+To check a line, replace `<cache path>` (the agent's Sources name it) and `<quote>` below. Apostrophes are safe, and the cache saves curly quotes as straight ones, so a quote you retype still matches. Keep one quote on one line with no blank line around it, since grep counts a blank line as matching every line. Any count above 0 means the line is on the page.
 
 ```
 grep -c -F -f - <cache path> <<'EOF'
