@@ -16,6 +16,10 @@ runs:
         registry-url: https://registry.npmjs.org
         cache: npm
 
+    # Trusted publishing needs npm 11.5.1 or later (docs.npmjs.com/trusted-publishers). One pinned npm for every step.
+    - shell: bash
+      run: npm install -g npm@11.19.0 && npm --version
+
     - name: Decide what to publish
       id: v
       shell: bash
@@ -69,15 +73,13 @@ runs:
         node -e "require('assert').ok(require('fs').statSync('$cfg/sf-docs/node_modules/playwright-core/package.json'))"
         echo "installed $tgz: agent wired, playwright-core present"
 
-    # Trusted publishing needs npm 11.5.1 or later (docs.npmjs.com/trusted-publishers); provenance comes with it.
+    # Provenance comes with trusted publishing, so there is no --provenance flag.
     - if: steps.v.outputs.publish == 'true'
       name: Publish
       shell: bash
       env:
         DRY: ${{ inputs.dry }}
       run: |
-        npm install -g npm@11
-        npm --version
         if [ "$DRY" = true ]; then
           # A dry run still refuses a version already on npm, so stamp a throwaway prerelease in this copy only.
           npm version --no-git-tag-version "${{ steps.v.outputs.check }}-dryrun.$GITHUB_RUN_ID"
