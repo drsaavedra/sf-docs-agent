@@ -59,7 +59,8 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   `.md` copy of a page it redirected to).
 - No Help search. Help's `robots.txt` disallows it. Help's sitemaps list article ids but not titles.
 - It reads the current docs, which don't always name their release.
-- It follows at most one link from a page it read. An answer that sits further away comes back as a gap.
+- It follows links at most two pages deep from the page it found, and only toward a missing part of the answer, never to
+  browse a sidebar. An answer that sits further away comes back as a gap.
 - On a long list or table, the agent now and then stops a row early, for example five of six integration patterns.
   Every quote it gives is still right; the missing row is the problem.
 - If a site starts blocking headless browsers, the agent stops and reports it. It does not try to get around the block.
