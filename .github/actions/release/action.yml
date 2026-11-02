@@ -1,0 +1,85 @@
+name: Release steps
+description: Decide, test, publish, tag and check one version; `dry` runs every step with `npm publish --dry-run`.
+inputs:
+  dry:
+    description: "'true' for a dry run: no publish, no tag; checks the version already on npm"
+    required: true
+  gh-token:
+    description: Token for the tag and GitHub Release (unused in a dry run)
+    required: false
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        registry-url: https://registry.npmjs.org
+        cache: npm
+
+    - name: Decide what to publish
+      id: v
+      shell: bash
+      env:
+        DRY: ${{ inputs.dry }}
+      run: |
+        v=$(node -p "require('./package.json').version")
+        latest=$(npm view sf-docs-agent version)
+        echo "package.json $v, npm latest $latest, dry run $DRY"
+        if [ "$DRY" = true ]; then echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$latest" >> "$GITHUB_OUTPUT"; exit 0; fi
+        if npm view "sf-docs-agent@$v" version >/dev/null 2>&1; then
+          echo "$v is already on npm: nothing to release"; echo "publish=false" >> "$GITHUB_OUTPUT"; exit 0
+        fi
+        # A lower version would become npm's latest, so refuse anything not above it.
+        node -e 'const [a,b]=process.argv.slice(1).map(s=>s.split(".").map(Number));process.exit(((a[0]-b[0])||(a[1]-b[1])||(a[2]-b[2]))>0?0:1)' "$v" "$latest" \
+          || { echo "::error::$v is not above npm latest $latest"; exit 1; }
+        echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$v" >> "$GITHUB_OUTPUT"
+
+    - if: steps.v.outputs.publish == 'true'
+      shell: bash
+      run: npm ci && npm test
+
+    # Trusted publishing needs npm 11.5.1 or later (docs.npmjs.com/trusted-publishers); provenance comes with it.
+    - if: steps.v.outputs.publish == 'true'
+      name: Publish
+      shell: bash
+      env:
+        DRY: ${{ inputs.dry }}
+      run: |
+        npm install -g npm@11
+        npm --version
+        if [ "$DRY" = true ]; then
+          # A dry run still refuses a version already on npm, so stamp a throwaway prerelease in this copy only.
+          npm version --no-git-tag-version "${{ steps.v.outputs.check }}-dryrun.$GITHUB_RUN_ID"
+          npm publish --dry-run --tag dryrun
+        else
+          npm publish
+        fi
+
+    - if: steps.v.outputs.publish == 'true' && inputs.dry != 'true'
+      name: Tag and GitHub Release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh-token }}
+      run: gh release create "v${{ steps.v.outputs.check }}" --target "$GITHUB_SHA" --title "v${{ steps.v.outputs.check }}" --generate-notes
+
+    # The registry copy must match what this commit packs, and a fresh install must wire the agent to its script.
+    - if: steps.v.outputs.publish == 'true'
+      name: Check the registry copy
+      shell: bash
+      env:
+        DRY: ${{ inputs.dry }}
+      run: |
+        v=${{ steps.v.outputs.check }}
+        for i in 1 2 3 4 5 6; do npm view "sf-docs-agent@$v" dist.shasum >/dev/null 2>&1 && break; sleep 20; done
+        remote=$(npm view "sf-docs-agent@$v" dist.shasum)
+        local=$(npm pack --dry-run --json | node -p "JSON.parse(require('fs').readFileSync(0,'utf8'))[0].shasum")
+        echo "registry $remote, this commit $local"
+        if [ "$DRY" != true ] && [ "$remote" != "$local" ]; then echo "::error::registry tarball differs from this commit"; exit 1; fi
+        cfg="$RUNNER_TEMP/cfg"
+        # Outside the checkout: inside it, npx resolves sf-docs-agent to this package and finds no command.
+        (cd "$RUNNER_TEMP" && CLAUDE_CONFIG_DIR="$cfg" npx --yes "sf-docs-agent@$v" < /dev/null)
+        agent="$cfg/agents/sf-docs.md"
+        grep -c "$cfg/sf-docs/fetch-docs.mjs" "$agent"
+        if grep -q '/path/to/sf-docs-agent' "$agent"; then echo "::error::placeholder path left in the agent"; exit 1; fi
+        node -e "require('assert').ok(require('fs').statSync('$cfg/sf-docs/node_modules/playwright-core/package.json'))"
+        echo "installed $v: agent wired, playwright-core present"
