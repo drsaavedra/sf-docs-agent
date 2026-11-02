@@ -230,3 +230,12 @@ test('http:// and https:// for one page in one call are fetched once', () => {
   assert.equal(r.split('\n').filter(l => l.includes('(cached)')).length, 1, r);
   assert.doesNotMatch(r, /duplicate-of|redirected/, r);
 });
+
+test('a page 0.1.2 cached with an http:// Source line is not reported as redirected', () => {
+  const out = cache({});
+  mkdirSync(join(out, 'developer.salesforce.com/docs/a/b/c'), { recursive: true });
+  writeFileSync(join(out, 'developer.salesforce.com/docs/a/b/c/page.md'), 'Source: http://developer.salesforce.com/docs/a/b/c/page.html\n# Page\n\nhello');
+  const r = run(out, 'https://developer.salesforce.com/docs/a/b/c/page.html').out;
+  assert.match(r, /\(cached\)/, r);
+  assert.doesNotMatch(r, /redirected/, r);
+});
