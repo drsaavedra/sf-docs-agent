@@ -88,17 +88,7 @@ runs:
           npm publish
         fi
 
-    - if: inputs.dry != 'true' && steps.v.outputs.skip != 'true'
-      name: Tag and GitHub Release
-      shell: bash
-      env:
-        GH_TOKEN: ${{ inputs.gh-token }}
-      run: |
-        t="v${{ steps.v.outputs.check }}"
-        if gh release view "$t" >/dev/null 2>&1; then echo "$t already released"; exit 0; fi
-        gh release create "$t" --target "$GITHUB_SHA" --title "$t" --generate-notes
-
-    # The registry must hold the tarball that was installed and checked above.
+    # Before the tag: npm must hold the tarball installed and checked above, or the tag would name the wrong commit.
     - if: inputs.dry != 'true' && steps.v.outputs.skip != 'true'
       name: Check the registry copy
       shell: bash
@@ -109,3 +99,13 @@ runs:
         tested=${{ steps.pack.outputs.shasum }}
         echo "registry $remote, tested $tested"
         [ "$remote" = "$tested" ] || { echo "::error::the registry tarball is not the one this run tested"; exit 1; }
+
+    - if: inputs.dry != 'true' && steps.v.outputs.skip != 'true'
+      name: Tag and GitHub Release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh-token }}
+      run: |
+        t="v${{ steps.v.outputs.check }}"
+        if gh release view "$t" >/dev/null 2>&1; then echo "$t already released"; exit 0; fi
+        gh release create "$t" --target "$GITHUB_SHA" --title "$t" --generate-notes
