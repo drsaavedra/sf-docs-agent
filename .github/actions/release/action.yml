@@ -1,8 +1,8 @@
 name: Release steps
-description: Decide, test, publish, tag and check one version; `dry` runs every step with `npm publish --dry-run`.
+description: Decide, test, pack and install, publish, check the registry and tag one version.
 inputs:
   dry:
-    description: "'true' for a dry run: no publish, no tag; checks the version already on npm"
+    description: "'true' for a dry run: prints the decision, installs this commit, npm publish --dry-run; no tag or registry check"
     required: true
   gh-token:
     description: Token for the tag and GitHub Release (unused in a dry run)
