@@ -36,7 +36,7 @@ Then start a new Claude Code session. The agent is listed as `sf-docs`. Add `--p
 - **Headless browser:** some sites have no plain-text copy of their pages, so the agent opens them in a headless browser. The installer asks before it downloads Chromium (about 200 MB). Pass `--yes` to skip the question.
 - **Linux:** also run `node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/node_modules/playwright-core/cli.js" install-deps chromium` once.
 - **Update:** `npx sf-docs-agent@latest`
-- **Remove:** delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md` in the project), then `~/.claude/sf-docs/` once no project uses it.- **Cache:** pages stay cached for 24 hours. Set `SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json` to change it (`0` fetches every time).
+- **Remove:** delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md` in the project), then `~/.claude/sf-docs/` once no project uses it. Chromium stays in Playwright's cache (`~/Library/Caches/ms-playwright` on macOS, `~/.cache/ms-playwright` on Linux); delete that too if nothing else uses Playwright.- **Cache:** pages stay cached for 24 hours. Set `SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json` to change it (`0` fetches every time).
 
 </details>
 
