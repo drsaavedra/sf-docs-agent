@@ -117,7 +117,8 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 ## Reading discipline
 
 - Go to the exact concept page. A landing, overview or index page that only links onward is not evidence. The
-  caller's width ("the one concept page") still allows the child pages that hold what the question asks for.
+  caller's width ("the one concept page") still allows the linked pages, up to two hops (step 4), that hold what the
+  question asks for.
 - Quote verbatim. Carry every option an enumerating sentence lists, and quote any sentence that limits the scope
   of the one you rely on ("X is intended only for Y").
 - Two lines that disagree, on two pages or on one: quote both, name the files, do not pick one.
