@@ -1,388 +1,94 @@
 # sf-docs-agent
 
+**Quotes, not pages.** A Claude Code agent that answers Salesforce questions from the official docs, with the link to every quote.
+
 [![npm](https://img.shields.io/npm/v/sf-docs-agent)](https://www.npmjs.com/package/sf-docs-agent)
 
-A Claude Code subagent that answers Salesforce questions from the official docs and hands back quotes, not pages.
+**84% less** added to your session than Salesforce's own docs skill · **113 of 113** quotes still on today's page · **every quote** checkable with one `grep`
 
-It reads developer.salesforce.com, architect.salesforce.com, help.salesforce.com, admin.salesforce.com and
-lightningdesignsystem.com. The model picks the lines and a script copies them from the cached page,
-each with the official URL it came from, so you can check any quote with one grep.
+[Install](#install) · [Use](#use) · [How it compares](#how-it-compares) · [Limitations](#limitations) · [Benchmarks](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
-I built this because every docs lookup was dumping whole pages into my session. I only wanted the lines that answer my question.
+---
 
-## Why an agent, not a skill
+| Salesforce's platform-docs-get skill · 4,578 tokens | sf-docs-agent · 290 tokens |
+|---|---|
+| Every page it read lands in your session | Only the lines that answer, each with its official URL |
 
-A skill pulls every page it reads into your main session. The agent reads them in its own context and returns only
-the lines you asked for.
+*"How many versions can a flow have?"* Same right answer. 4,578 tokens become 290.
 
-Salesforce's own [sf-skills](https://github.com/forcedotcom/sf-skills) library already has a skill for the same job,
-[`platform-docs-get`](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get). In its own words,
-it is an "official Salesforce documentation retrieval skill" for the same five sites, "especially when pages are
-JS-heavy, shell-rendered, or hard to extract with naive fetching."
+The agent reads the pages in its own context. The model picks the lines and a script copies them word for word from the cached page, so no quote is written from the model's memory.
 
-Here is how the two compare:
+I built this because every docs lookup was dumping whole pages into my Claude Code session. I only wanted the lines that answer my question.
 
-| | platform-docs-get | sf-docs-agent |
-|---|---|---|
-| Runtime | Python, `playwright`, `playwright-stealth` | Node, `playwright-core` |
-| Bot checks | spoofs a desktop user agent, optional stealth | neither |
-| developer, architect and LDS pages | renders and scrapes the HTML | reads the `.md` copy where one exists |
-| Finding pages | you give the URL | `llms.txt` indexes, sitemaps and link lists |
-| What lands in your context | every page | a report of quotes |
-| Checking an answer | re-read the page | `grep` one line |
+## Install
 
-The trade-off: your main session trusts the subagent. That is why the model only picks line numbers and the script
-copies the lines. Every quote is copied word for word from the page, not written from the model's memory, and you can
-check it with one `grep` against the cached copy, which saves curly quotes as straight ones and drops image links and
-the padding in table rows.
+Needs Node 22+ and Claude Code.
 
-## Why not use Salesforce Docs MCP
+```
+npx sf-docs-agent
+```
 
-Salesforce's [salesforce-docs-mcp](https://labs.agentforce.com/docs/salesforce-docs-mcp) works, and behind a
-subagent it was faster and cheaper than sf-docs-agent in my tests. But it searches a closed index you can't see into, with
-no date on its results.
-
-I wanted an alternative I control and can validate against the live sites. sf-docs-agent is open source, reads the page
-Salesforce publishes today, and every quote can be checked against that page with one `grep`. If you're fine
-trusting the index, the MCP in a subagent is a good choice. [The comparison](#compared-with-salesforce-docs-mcp) has
-the numbers and the trade-offs.
-
-## 84% less in your context, 38% fewer tokens than platform-docs-get
-
-On 10 questions against Salesforce's own platform-docs-get skill, the agent
-added 84% fewer tokens to your context and used 38% fewer tokens over the whole session, with the right answer on
-39 of 40 runs for each. In the second of four rounds, platform-docs-get missed question 5 and sf-docs-agent missed
-question 4.
-
-Below are the medians of those four rounds, each read as platform-docs-get → sf-docs-agent.
-
-| Question | Site | Tokens added to context | Saved | Session token usage | Saved |
-|---|---|---|---|---|---|
-| 1. Scratch org editions | developer | 2,178 → **289** | **86.7%** | 186,768 → **119,355** | **36.1%** |
-| 2. Platform event allocation | developer | 4,107 → **490** | **88.1%** | 245,482 → **120,396** | **51.0%** |
-| 3. QueryLocator batch limits | developer | 2,568 → **581** | **77.4%** | 217,691 → **113,611** | **47.8%** |
-| 4. Integration patterns | architect | 1,104 → **484** | **56.2%** | 127,043 → **125,540** | **1.2%** |
-| 5. Salesforce Connect editions | help | 1,948 → **322** | **83.5%** | 201,770 → **157,746** | **21.8%** |
-| 6. Flow version limits | help | 4,578 → **290** | **93.7%** | 217,138 → **164,888** | **24.1%** |
-| 7. Headless 360 | admin | 3,772 → **380** | **89.9%** | 250,200 → **105,388** | **57.9%** |
-| 8. SLDS tooltips | lightningdesignsystem | 3,876 → **414** | **89.3%** | 201,906 → **112,252** | **44.4%** |
-| 9. Bulk API batch size | developer | 2,134 → **411** | **80.7%** | 255,340 → **125,870** | **50.7%** |
-| 10. Pub/Sub fetch limit | developer | 1,199 → **716** | **40.3%** | 141,826 → **130,110** | **8.3%** |
-| **All** | | 27,464 → **4,377** | **84.1%** | 2,045,164 → **1,275,156** | **37.7%** |
+Then start a new Claude Code session. The agent is listed as `sf-docs`. Add `--project` to install it for the current project only.
 
 <details>
-<summary>The 10 questions</summary>
+<summary>Headless browser, Linux, update, remove, cache</summary>
 
-1. What are the valid values for edition in a scratch org definition file?
-2. What is the hourly platform event publishing allocation for Enterprise Edition and for Developer Edition?
-3. With a QueryLocator start method, what is the maximum batch scope, and how many records can the QueryLocator return?
-4. Which integration patterns does the architect Integration Patterns guide list?
-5. Which editions include the Salesforce Connect cross-org adapter?
-6. How many versions can a flow have, and how many active flows per flow type in Enterprise vs Professional?
-7. What three technologies is Salesforce Headless 360 built on, and does it replace the Lightning UI?
-8. Should you put an SLDS tooltip on a non-interactive element?
-9. How many records fit in one Bulk API batch, and in one sObject Collections create request?
-10. How many events can a Pub/Sub API client request across all FetchRequests in one Subscribe call?
+- **Headless browser:** some sites have no plain-text copy of their pages, so the agent opens them in a headless browser. The installer asks before it downloads Chromium (about 200 MB). Pass `--yes` to skip the question.
+- **Linux:** also run `node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/node_modules/playwright-core/cli.js" install-deps chromium` once.
+- **Update:** `npx sf-docs-agent@latest`
+- **Remove:** delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md` in the project), then `~/.claude/sf-docs/` once no project uses it.
+- **Cache:** pages stay cached for 24 hours. Set `SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json` to change it (`0` fetches every time).
 
 </details>
-
-## Compared with Salesforce Docs MCP
-
-Aside from the platform-docs-get skill, Salesforce also has
-[salesforce-docs-mcp](https://labs.agentforce.com/docs/salesforce-docs-mcp), a closed-source public MCP server that
-searches an index of Help articles, developer guides and release notes. I ran the same 10 questions through it in two
-setups:
-
-a. MCP in main session: the main agent calls the MCP tools directly
-
-b. MCP in a subagent: a subagent whose only tools are the MCP's, with the same report format as sf-docs-agent
-
-Three rounds each, medians, same model.
-
-| | sf-docs-agent | a. MCP in main session | b. MCP in a subagent |
-|---|---|---|---|
-| Tokens added to context | **4,470** | 45,636 | 5,327 |
-| Session token usage | 1,291,504 | 1,052,673 | **937,229** |
-| Seconds, all 10 | 433 | 239 | **218** |
-| Right answers, of 30 | **30** | 28 | 24 |
-| Quotes that match the text the tools returned, all runs | **113 of 113** | 173 of 188 | 172 of 177 |
-| Quotes on today's page, checked with sf-docs-agent's fetcher, all runs | **113 of 113** | 159 of 188 | 135 of 177 |
-
-The MCP in a subagent is faster and uses 27% fewer session tokens than sf-docs-agent, and a. MCP in main session uses
-18% fewer. Its results come back as markdown excerpts, so I suspect Salesforce keeps a `.md` snapshot of the docs taken
-at some point. Because the index is closed, you can't see what it holds or when it was taken, and that has some costs:
-
-- **Coverage.** Across 91 searches it returned no admin.salesforce.com page and no SLDS 2 content page. The
-  subagent answered "not found" or wrong on Headless 360 and SLDS tooltips in all three rounds, and those two
-  questions hold all 8 wrong MCP answers. In the main session, the model also reached for web search or fetch on 27
-  of 30 runs and skipped the MCP on 4; its Headless 360 answers came from admin.salesforce.com through web fetch, not
-  the index.
-- **Freshness.** Results carry no date, and some come from the old atlas copy of a page. On question 2 the quotes were
-  exact, but the source URL now opens a page without them. On question 1 the wording is older than today's page, with
-  the same values. On both questions the values matched the answer key in every MCP run.
-- **Open vs closed.** The index has no published source or refresh schedule. sf-docs-agent reads the live page every time,
-  and every quote can be checked with one `grep`.
-
-Most of the speed gap is page rendering. Of sf-docs-agent's 30 runs, the 18 that read at least one `.md` page took a
-median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and rounds. Help, admin and the
-Apex Developer Guide had no `.md` copy, so sf-docs-agent rendered them in a headless browser, and the 12 runs that
-rendered every page took a median 68.5 seconds, against 20 for the MCP subagent. The Apex Developer Guide and Apex
-Reference had `.md` copies by 2026-10-31, after these runs; Help, admin, Metadata API and Object Reference still have
-none.
-
-<details>
-<summary>Per question, sf-docs-agent / a. MCP in main session / b. MCP in a subagent</summary>
-
-| Question | Tokens added to context | Seconds | Right answers, of 3 |
-|---|---|---|---|
-| 1. Scratch org editions | 248 / 5,011 / 421 | 23 / 22 / 18 | 3 / 3 / 3 |
-| 2. Platform event allocation | 526 / 6,177 / 713 | 29 / 28 / 21 | 3 / 3 / 3 |
-| 3. QueryLocator batch limits | 728 / 8,304 / 531 | 68 / 18 / 20 | 3 / 3 / 3 |
-| 4. Integration patterns | 463 / 4,863 / 788 | 25 / 21 / 22 | 3 / 3 / 3 |
-| 5. Salesforce Connect editions | 300 / 3,556 / 381 | 84 / 17 / 18 | 3 / 3 / 3 |
-| 6. Flow version limits | 307 / 2,817 / 291 | 59 / 20 / 19 | 3 / 3 / 3 |
-| 7. Headless 360 | 374 / 4,232 / 772 | 60 / 31 / 31 | 3 / 3 / 0 |
-| 8. SLDS tooltips | 403 / 1,231 / 617 | 32 / 40 / 33 | 3 / 1 / 0 |
-| 9. Bulk API batch size | 489 / 6,284 / 529 | 27 / 22 / 20 | 3 / 3 / 3 |
-| 10. Pub/Sub fetch limit | 632 / 3,161 / 284 | 26 / 20 / 16 | 3 / 3 / 3 |
-
-</details>
-
-## How sf-docs-agent reads each site
-
-The agent reads the `.md` copy of a page where the site publishes one. Not every Salesforce docs site does yet.
-
-Give the script an `.html` or bare URL for a new developer docs, architect or LDS page and it fetches the `.md` copy
-instead. The same goes for an atlas URL that now redirects to the new docs.
-
-The agent finds pages through the site's `llms.txt` index or its sitemaps.
-
-| Site | How | Where it finds pages |
-|---|---|---|
-| developer.salesforce.com, new docs | the `.md` copy Salesforce publishes | `/docs/llms.txt` and one index per product |
-| developer.salesforce.com, Apex Developer Guide and Apex Reference | the `.md` copy (atlas URLs redirect to the new docs, by 2026-10-31) | `/docs/llms-product-docs.txt` |
-| developer.salesforce.com, atlas docs (Metadata API, Object Reference) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
-| developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
-| architect.salesforce.com | the `.md` copy | `/llms.txt` |
-| help.salesforce.com, articles and knowledge articles | renders the page | links in other docs and articles, and Help's product sitemaps |
-| admin.salesforce.com | renders the page | `/sitemap_index.xml` and its post sitemaps |
-| lightningdesignsystem.com (SLDS 2) | the `.md` copy | the home page's link list |
-| v1.lightningdesignsystem.com (SLDS 1) | renders the page | the home page's link list |
 
 ## Use
 
-Ask Claude to read the Salesforce docs in your own words. You can name the agent in the prompt, or just give it a
-Salesforce docs link and ask. It picks up the intent either way.
+Ask in your own words. Name the site or product if you know it, or paste a Salesforce docs link and ask about it.
 
 ```
 Go scan the developer.salesforce.com docs on the current release's governors and limits
 ```
 
-Name the site or product if you know it, and say what you want to know.
-
-The sample prompt is broad on purpose: I wanted to see the agent decide what "governors and limits" covers, and whether it could find everything in a broad question.
-
-Here are the results of that prompt, one run each on Opus 5.5 and Sonnet 5.5 at effort high. Each session called sf-docs-agent, which returned quotes with their
-official URLs, and the session turned them into the answer.
-
-<details>
-<summary><b>Sonnet 5.5, effort high, through the agent</b>: 86 seconds, 34k agent tokens</summary>
-<br>
-
-> The `sf-docs` agent finished scanning the Apex governors and limits pages. All limit values below are quoted from the cached concept page, `apex_gov_limits.htm`. The release version is an inference, not a stated fact.
->
-> ## Which release
-> - The cached pages are the unversioned "current" docs, and they don't name a release.
-> - The version dropdown lists **Summer '26 (API 67.0, path `262.0`)** as the newest versioned link.
-> - The page's own sidebar links point to `264.0` paths. That is most likely **Winter '27 (API 68.0)**.
-> - The agent did not fetch the 262 or 264 versioned pages to confirm.
->
-> ## Per-transaction Apex limits
-> Limits are listed as synchronous / asynchronous.
->
-> | Limit | Sync | Async |
-> |---|---|---|
-> | SOQL queries | 100 | 200 |
-> | SOQL rows retrieved | 50,000 | 50,000 |
-> | DML statements | 150 | 150 |
-> | DML rows | 10,000 | 10,000 |
-> | Callouts | 100 | 100 |
-> | `@future` methods per invocation | 50 | 0 in batch and future contexts, 50 in queueable |
-> | `System.enqueueJob` | 50 | 1 |
-> | Heap | 10 MB | 25 MB |
-> | CPU time | 10,000 ms | 60,000 ms |
-> | Execution time | 10 minutes | 10 minutes |
->
-> - **Enforcement:** "the Apex runtime engine strictly enforces limits", and exceeding a limit raises a runtime exception "that can't be handled."
-> - **Reset and scope:** For Batch Apex, limits reset for each `execute` call. Synchronous limits apply to scheduled Apex. Bulk API transactions get the higher of the sync and async limits.
-> - **Heap:** Exceeding it gives an uncatchable `System.LimitException`. Email services get a 50 MB heap.
->
-> ## Certified managed packages
-> - Each certified namespace gets its own per-transaction limits.
-> - The cumulative limit across namespaces is 11 times the per-namespace limit. That gives 1,100 SOQL queries and 1,650 DML statements.
-> - Heap, CPU, execution time and the unique-namespace count are not counted separately per package.
->
-> ## Platform, static and size limits
-> - **Async executions per 24 hours:** 250,000, or licenses × 200, whichever is greater.
-> - **Concurrent long-running transactions (over 5 seconds):** one per 100 licenses.
-> - **Scheduled classes:** 100 (5 in Developer Edition).
-> - **Batch jobs queued or active:** 5.
-> - **Callout timeout:** 10 seconds by default.
-> - **Callout request or response size:** 6 MB synchronous, 12 MB asynchronous.
-> - **Apex code per org:** 6 MB.
-> - **Method size:** 65,535 bytecode instructions.
-> - **Single email:** 5,000 external addresses per day per org (GMT).
-> - **Push notifications:** 20,000 iOS and 10,000 Android per hour.
-> - **Governor limit email warnings:** The default threshold is 50% of allocated limits, and only per-request limits are checked.
->
-> ## Gaps
-> - **Not fetched:** The agent did not read the "Elastic Limits for Asynchronous Apex Jobs (Beta)" page or `apex_limits_tips.htm`.
-> - **Not quoted:** Several rows on the same page weren't quoted:
->   - push notification calls per transaction
->   - Apex cursor limits
->   - inbound email limits
->   - the 450,000 `MAX_DML_ROWS` limit in tests
-> - **"Lightweight limits":** This isn't a section name in the docs.
->
-> ## Sources
-> - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm
-> - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits_emails.htm
->
-> The pages are cached locally, so you can check any quote with `grep -c -F '<quote>' <cache path>`. The cache is under `~/.claude/sf-docs/cache/developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/`.
->
-> I can have the agent fetch the 262 and 264 versioned pages to pin down the release, or cover the elastic limits page.
-
-</details>
-
-<details>
-<summary><b>Opus 5.5, effort high, through the agent</b>: 89 seconds, 39k agent tokens</summary>
-<br>
+Part of what came back (Opus 5.5, 89 seconds):
 
 > I read the Apex Developer Guide page **Execution Governors and Limits**. I spot-checked several of the quotes against the cached copy of the page and they match.
 >
-> **Which release:** the page doesn't name its release. Its links point to the 264.0 doc set, and its list of older versions starts at Summer '26 (API 67.0). So this is most likely **Winter '27 (API 68.0)**, but that's my inference, not something the page says. The page also doesn't mark any limit as new or changed in this release.
->
-> ### Per-transaction Apex limits (synchronous / asynchronous)
 > | Limit | Sync | Async |
 > |---|---|---|
 > | SOQL queries | 100 | 200 |
-> | SOQL rows retrieved | 50,000 | 50,000 |
-> | `Database.getQueryLocator` rows | 10,000 | 10,000 |
-> | SOSL queries / rows per query | 20 / 2,000 | 20 / 2,000 |
 > | DML statements / rows | 150 / 10,000 | 150 / 10,000 |
-> | Trigger recursion stack depth | 16 | 16 |
-> | Callouts / cumulative callout timeout | 100 / 120 s | 100 / 120 s |
-> | `@future` calls | 50 | 0 in batch and future; 50 in queueable |
-> | `System.enqueueJob` | 50 | 1 |
-> | `sendEmail` calls | 10 | 10 |
 > | Heap | 10 MB | 25 MB |
 > | CPU time | 10,000 ms | 60,000 ms |
-> | Maximum execution time | 10 min | 10 min |
-> | `EventBus.publish` calls (publish immediately) | 150 | 150 |
-> | Apex cursor rows / `Cursor.fetch` calls | 50M / 100 | 50M / 100 |
-> | Pagination cursors: rows / instances / rows per page | 100,000 / 50 / 2,000 | same |
 >
-> **Notes that change how these apply:**
-> - **Scheduled Apex** runs under the synchronous limits.
-> - **Bulk API** transactions get the higher of the sync and async values.
-> - **Parent-child subqueries** each count as an extra query.
-> - **Custom metadata queries** don't count toward the SOQL limit.
-> - **Email services** get a 50 MB heap.
-> - **CPU time** leaves out time spent waiting on the database and on callouts.
-> - **Batch Apex** limits reset for each `execute` chunk.
->
-> ### Org-wide Platform limits
-> - **Async executions per 24 hours:** 250,000 or 200 × licenses, whichever is greater. Batch Apex checks up front that the whole job fits under this limit before it starts.
-> - **Elastic async executions (beta)** can add up to 2 million more per day.
-> - **Cursors per 24 hours:** 10,000 cursor instances, 100M cursor rows, and 200,000 pagination cursors.
-> - **Long-running synchronous transactions (over 5 s):** 1 per 100 licenses, minimum 10 and maximum 50.
-> - **Scheduled classes:** 100 (5 in Developer Edition).
-> - **Batch Apex:**
->   - Flex queue jobs in Holding status: 100
->   - Jobs queued or active: 5
->   - Concurrent `start` methods: 1
-> - **Test classes queued per 24 hours:** the greater of 500 or 10× your test classes in production (20× in sandbox and Developer Edition).
->
-> ### Static and size limits
-> - **Callouts:** 10 s default timeout; request or response up to 6 MB sync or 12 MB async, and this counts toward heap.
-> - **SOQL run time:** 120 s.
-> - **Deployments:** 7,500 code units each.
-> - **Trigger batch size:** 200, or 2,000 for platform events and Change Data Capture.
-> - **`QueryLocator`:** 50M records.
-> - **Code size:**
->   - 1M characters per class or trigger.
->   - 6 MB of Apex per org (10 MB in scratch orgs). Support can raise it, and managed-package and `@isTest` code don't count.
->   - 65,535 bytecode instructions per method.
->
-> ### Certified managed packages
-> - Each certified namespace gets its own copy of the per-transaction limits.
-> - The total across namespaces is capped at 11× the per-namespace limit: for example, 1,100 SOQL queries or 1,650 DML statements.
-> - Heap, CPU time, execution time and the number of namespaces are shared across the whole transaction.
-> - Code in non-certified packages counts against your org's own limits.
->
-> ### Other limits on the page
-> - **Single email:** 5,000 external addresses per day and 150 recipients per message.
-> - **Push notifications:** 20,000 iOS and 10,000 Android per hour per org.
-> - **Tests:** 450,000 DML rows per synchronous test run.
-> - **ConnectApi:** each write costs one DML statement.
-> - **Data.com Clean:** 200 SOQL queries and 10 future calls per batch.
->
-> **Not covered:** I didn't read the Asynchronous Callout Limits page or the Winter '27 release notes. If you need to know what changed since Summer '26, the release notes are the next place to look.
->
-> **Source:** https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm
+> **Not covered:** I didn't read the Asynchronous Callout Limits page or the Winter '27 release notes.
 
-</details>
+It tells you what it did not read. A gap you can see beats a guess you can't.
 
-## Install
+It covers developer.salesforce.com, architect.salesforce.com, help.salesforce.com, admin.salesforce.com and lightningdesignsystem.com. Full outputs on Opus and Sonnet: [docs/examples.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/examples.md)
 
-Needs Node 22+ and Claude Code. The installer is on npm as
-[`sf-docs-agent`](https://www.npmjs.com/package/sf-docs-agent).
+## How it compares
 
-```
-npx sf-docs-agent            # for all your projects
-npx sf-docs-agent --project  # for the project in the current folder only
-```
+Salesforce has two official options for the same job. I ran both on the same 10 questions.
 
-The installer adds `playwright-core` (13 MB) and asks before it downloads headless Chromium (about 200 MB). Pass
-`--yes` to skip the question in scripts. If you say no, it prints the command to run before first use. On Linux, also
-run `node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/node_modules/playwright-core/cli.js" install-deps chromium` once
-for the system libraries. It asks for your password itself.
+**[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 84% fewer tokens to your session and used 38% fewer tokens overall. Both got 39 of 40 runs right.
 
-Then start a new Claude Code session. The agent is listed as `sf-docs`.
+**[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. In my runs it returned no page from admin.salesforce.com or SLDS 2. In a subagent it got 24 of 30 right against 30 of 30, and only 135 of its 177 quotes were on today's page, against 113 of 113. Called from the main session it got 28 of 30, but added 10 times as many tokens to your session.
 
-**Update:** `npx sf-docs-agent@latest`. Without `@latest`, npx runs any copy already installed globally or in the
-current project.
+**Where sf-docs-agent loses:** the MCP in a subagent is faster and cheaper, 218 seconds against 433 for all 10 questions, and 27% fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
 
-**Remove:** delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md` in the project). The script and cache
-live in `~/.claude/sf-docs/` for every scope, so delete that folder last, once no project uses the agent. If
-`CLAUDE_CONFIG_DIR` is set, the installer uses that instead of `~/.claude`.
-
-**Cache:** pages stay cached for 24 hours, so a follow-up question does not fetch them again. To change that, set
-`SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json` (`0` fetches every time):
-
-```json
-{ "env": { "SF_DOCS_CACHE_HOURS": "72" } }
-```
+Every number, per question, with the method: [docs/benchmarks.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
 ## Limitations
 
-- On help, admin, SLDS 1, API reference pages and the atlas guides that still render (Metadata API, Object Reference and
-  more), the agent finds the article text by where it sits on the page. If Salesforce changes a layout, it reads the
-  largest block of text instead, which can be one section of the article, and an article under 1,500 characters can't
-  be read. A daily check in this repo flags the change.
-- A rendered page can take up to 80 seconds before the agent gives up on it (45 s to load, 20 s for content, 15 s for the
-  `.md` copy of a page it redirected to).
-- No Help search. Help's `robots.txt` disallows it. Help's sitemaps list article ids but not titles.
-- It reads the current docs, which don't always name their release.
-- It follows at most one link from a page it read. An answer that sits further away comes back as a gap.
-- On a long list or table, the agent now and then stops a row early, for example five of six integration patterns.
-  Every quote it gives is still right; the missing row is the problem.
-- If a site starts blocking headless browsers, the agent stops and reports it. It does not try to get around the block.
-- What leaves your machine: the pages the agent fetches from those sites (and each site's `robots.txt`, which raw
-  fetches load first). No telemetry. Installing downloads `playwright-core` from npm and, if you agree, Chromium from
-  Playwright's servers.
-- The agent has Bash. Its brief limits it to the script and the cache, but that is an instruction to the model, not a
-  sandbox.
+- Help, admin and some older developer guides have no plain-text copy, so those pages are slower. If Salesforce changes their layout, the agent may read only part of an article. A daily check in this repo flags it.
+- No Help search, because Help's `robots.txt` disallows it.
+- It follows at most one link from a page it read. Anything further comes back as a gap.
+- On a long list it sometimes stops a row early. The quotes it gives are still right.
+- If a site blocks headless browsers, it stops and tells you. It does not try to get around the block.
+- The agent has Bash. Its instructions limit it to its script and cache, but that is an instruction to the model, not a sandbox.
+- No telemetry. Only the docs pages it fetches leave your machine.
+
+How it reads each site, and the full list: [docs/how-it-works.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/how-it-works.md)
 
 ## Develop
 
@@ -393,8 +99,7 @@ sed "s|/path/to/sf-docs-agent|$PWD|g" agents/sf-docs.md > "${CLAUDE_CONFIG_DIR:-
 npm test
 ```
 
-`agents/sf-docs.md` names its script and cache as `/path/to/sf-docs-agent`. The `sed` line writes your copy with your
-clone's path; the installer does the same for everyone else. Run it again after you edit the agent.
+`agents/sf-docs.md` names its script and cache as `/path/to/sf-docs-agent`. The `sed` line writes your copy with your clone's path. Run it again after you edit the agent.
 
 ## License
 
