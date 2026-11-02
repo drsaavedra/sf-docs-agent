@@ -182,14 +182,13 @@ const parse = a => {
   const u = new URL(v, 'https://developer.salesforce.com');
   // lightningdesignsystem.com serves the same site as www., which the twin route and the cache prune expect.
   if (u.hostname === 'lightningdesignsystem.com') u.hostname = 'www.lightningdesignsystem.com';
-  if (u.protocol === 'http:') u.protocol = 'https:'; // every doc site is https: one cache key, one Source line
   return /^https?:$/.test(u.protocol) ? u : null;
 };
 // One pass over the arguments: a URL on a doc site is fetched, anything else is refused with its reason.
 const given = [], refused = [];
 for (const a of args) {
   const u = parse(a);
-  if (u && SITES.includes(u.host)) given.push(u);
+  if (u && SITES.includes(u.host)) { u.protocol = 'https:'; given.push(u); } // all https: one key, one Source line
   else refused.push(u ? `${u.href}: not an official doc site` : `${a}: not a URL`);
 }
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.

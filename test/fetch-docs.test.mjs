@@ -239,3 +239,7 @@ test('a page 0.1.2 cached with an http:// Source line is not reported as redirec
   assert.match(r, /\(cached\)/, r);
   assert.doesNotMatch(r, /redirected/, r);
 });
+
+test('a refused http:// URL is echoed as given', () => {
+  assert.match(run(cache({}), 'http://example.com/x').out, /^refused http:\/\/example\.com\/x: not an official doc site$/m);
+});
