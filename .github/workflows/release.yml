@@ -16,7 +16,8 @@ permissions:
   id-token: write # npm trusted publishing
 
 concurrency:
-  group: release
+  # One group per event and ref: a shared group lets a PR dry run replace, and so cancel, a pending release.
+  group: release-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
