@@ -74,8 +74,8 @@ const SOURCE = /^Source: [^\n]*\n/;
 const isShell = b => /^\s*<(!doctype|html)/i.test(b);
 // A twin is missing (render instead, and remember it) on a 404, or a 200 whose body is an HTML shell or empty.
 const missingTwin = (status, body) => status === 404 || (status === 200 && (isShell(body) || !body.trim()));
-// One page, whatever the scheme, #anchor or trailing slash; a Help article is told apart by its ?id=.
-const sameDoc = (a, b) => a.host === b.host && a.pathname.replace(/\/$/, '') === b.pathname.replace(/\/$/, '')
+// One page, whatever the #anchor or trailing slash; a Help article is told apart by its ?id=.
+const sameDoc = (a, b) => a.origin === b.origin && a.pathname.replace(/\/$/, '') === b.pathname.replace(/\/$/, '')
   && a.searchParams.get('id') === b.searchParams.get('id');
 // Paths the agent will paste into Git Bash on Windows: forward slashes, which Node accepts too.
 const slash = p => p.split(sep).join('/');
@@ -181,6 +181,7 @@ const parse = a => {
   const u = new URL(v, 'https://developer.salesforce.com');
   // lightningdesignsystem.com serves the same site as www., which the twin route and the cache prune expect.
   if (u.hostname === 'lightningdesignsystem.com') u.hostname = 'www.lightningdesignsystem.com';
+  if (u.protocol === 'http:') u.protocol = 'https:'; // every doc site is https: one cache key, one Source line
   return /^https?:$/.test(u.protocol) ? u : null;
 };
 // One pass over the arguments: a URL on a doc site is fetched, anything else is refused with its reason.

@@ -220,3 +220,10 @@ test('an http:// URL for a cached page is served without a [redirected] note', (
   assert.match(r.out, /\(cached\)/, r.out);
   assert.doesNotMatch(r.out, /redirected/, r.out);
 });
+
+test('http:// and https:// for one page in one call are fetched once', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page\n\nhello' });
+  const r = run(out, 'https://developer.salesforce.com/docs/a/b/c/page.md', 'http://developer.salesforce.com/docs/a/b/c/page.md').out;
+  assert.equal(r.split('\n').filter(l => l.includes('(cached)')).length, 1, r);
+  assert.doesNotMatch(r, /duplicate-of|redirected/, r);
+});
