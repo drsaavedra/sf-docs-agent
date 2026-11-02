@@ -25,30 +25,38 @@ runs:
       shell: bash
       env:
         DRY: ${{ inputs.dry }}
+        HAS_TOKEN: ${{ inputs.gh-token != '' }}
       run: |
         v=$(node -p "require('./package.json').version")
         latest=$(npm view sf-docs-agent version)
         echo "package.json $v, npm latest $latest, dry run $DRY"
+        [ "$DRY" = true ] || [ "$HAS_TOKEN" = true ] || { echo "::error::a real release needs gh-token for the tag"; exit 1; }
         # Plain x.y.z only: a prerelease would publish as npm's latest, and the comparison below cannot order one.
         [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::$v is not a plain x.y.z version"; exit 1; }
-        if [ "$DRY" = true ]; then echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$latest" >> "$GITHUB_OUTPUT"; exit 0; fi
         # Only E404 means "not on npm"; any other failure (network, registry) stops the run rather than publishing.
         if out=$(npm view "sf-docs-agent@$v" version 2>&1); then on_npm=true
         elif grep -q E404 <<< "$out"; then on_npm=false
         else echo "::error::npm view failed: $out"; exit 1; fi
-        # Already on npm: a rerun of this commit's release skips the publish but still tags and checks; a tag on another
-        # commit means an earlier release (a package.json change with no bump), so there is nothing to do.
+        # On npm with its tag on another commit: an earlier release, nothing to do. On npm with no tag or this commit's
+        # tag: a rerun, so skip only the publish. Not on npm: publish, if it is above npm's latest.
         if [ "$on_npm" = true ]; then
           tagged=$(git ls-remote origin "refs/tags/v$v" "refs/tags/v$v^{}" | tail -1 | cut -f1)
-          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then
-            echo "$v was released from $tagged: nothing to do"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          echo "$v is already on npm: tag and check only"; echo "publish=false" >> "$GITHUB_OUTPUT"; echo "check=$v" >> "$GITHUB_OUTPUT"; exit 0
+          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then decision=skip; else decision=tag-and-check; fi
+        else
+          # A lower version would become npm's latest, so refuse anything not above it.
+          node -e 'const [a,b]=process.argv.slice(1).map(s=>s.split(".").map(Number));process.exit(((a[0]-b[0])||(a[1]-b[1])||(a[2]-b[2]))>0?0:1)' "$v" "$latest" \
+            || { echo "::error::$v is not above npm latest $latest"; exit 1; }
+          decision=publish
         fi
-        # A lower version would become npm's latest, so refuse anything not above it.
-        node -e 'const [a,b]=process.argv.slice(1).map(s=>s.split(".").map(Number));process.exit(((a[0]-b[0])||(a[1]-b[1])||(a[2]-b[2]))>0?0:1)' "$v" "$latest" \
-          || { echo "::error::$v is not above npm latest $latest"; exit 1; }
-        echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$v" >> "$GITHUB_OUTPUT"
+        echo "decision for $v: $decision (on npm $on_npm, tag ${tagged:-none})"
+        # A dry run takes every step against npm's latest, with no publish, tag or registry check.
+        if [ "$DRY" = true ]; then decision=dry; v=$latest; fi
+        {
+          echo "check=$v"
+          echo "skip=$([ "$decision" = skip ] && echo true || echo false)"
+          echo "publish=$([ "$decision" = publish ] || [ "$decision" = dry ] && echo true || echo false)"
+          echo "live=$([ "$decision" = publish ] || [ "$decision" = tag-and-check ] && echo true || echo false)"
+        } >> "$GITHUB_OUTPUT"
 
     - if: steps.v.outputs.skip != 'true'
       shell: bash
@@ -89,7 +97,7 @@ runs:
         fi
 
     # Before the tag: npm must hold the tarball installed and checked above, or the tag would name the wrong commit.
-    - if: inputs.dry != 'true' && steps.v.outputs.skip != 'true'
+    - if: steps.v.outputs.live == 'true'
       name: Check the registry copy
       shell: bash
       run: |
@@ -100,7 +108,7 @@ runs:
         echo "registry $remote, tested $tested"
         [ "$remote" = "$tested" ] || { echo "::error::the registry tarball is not the one this run tested"; exit 1; }
 
-    - if: inputs.dry != 'true' && steps.v.outputs.skip != 'true'
+    - if: steps.v.outputs.live == 'true'
       name: Tag and GitHub Release
       shell: bash
       env:
