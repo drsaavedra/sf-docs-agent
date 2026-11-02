@@ -206,3 +206,10 @@ test('a same line names the URL the time-limit line printed, not an internal .md
   assert.match(r, /^not fetched \(time limit\) https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page\.html$/m);
   assert.match(r, /^same https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page as https:\/\/developer\.salesforce\.com\/docs\/a\/b\/c\/page\.html$/m);
 });
+
+test('--quote with no :line names the missing line, not a chopped file name', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page\n\nThe limit is 100.' });
+  const r = run(out, '--quote', 'developer.salesforce.com/docs/a/b/c/page.md');
+  assert.equal(r.code, 1);
+  assert.match(r.err, /no line number: developer\.salesforce\.com\/docs\/a\/b\/c\/page\.md /, r.err);
+});

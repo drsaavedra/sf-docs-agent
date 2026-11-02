@@ -119,8 +119,9 @@ const grep = (file, t) => {
 if (args[0] === '--quote') {
   const files = [], ev = [];
   for (const spec of args.slice(1)) {
-    const at = spec.lastIndexOf(':');
-    const file = isAbsolute(spec.slice(0, at)) ? spec.slice(0, at) : join(out, spec.slice(0, at));
+    const m = spec.match(/^(.+):([\d,]+)$/); // a bare path (or Windows C:\...) has no :line to split off
+    if (!m) { console.error(`no line number: ${spec} (use <cache file>:<line>)`); continue; }
+    const file = isAbsolute(m[1]) ? m[1] : join(out, m[1]);
     // Only cached official pages: inside the cache dir and starting with their Source: line.
     const inside = relative(out, file);
     let lines;
@@ -128,7 +129,7 @@ if (args[0] === '--quote') {
     catch { lines = []; }
     if (!lines[0]?.startsWith('Source: ')) { console.error(`not a cached page: ${slash(file)}`); continue; }
     if (!files.includes(file)) files.push(file);
-    for (const n of spec.slice(at + 1).split(',').map(Number)) {
+    for (const n of m[2].split(',').map(Number)) {
       const text = (lines[n - 1] || '').trim();
       if (text && n > 1) ev.push(`- "${text}" [${files.indexOf(file) + 1}:${n}]`);
       else console.error(`skipped ${slash(relative(out, file))}:${n}: empty, out of range or the Source line`);
