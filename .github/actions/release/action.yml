@@ -40,10 +40,12 @@ runs:
         else echo "::error::npm view failed: $out"; exit 1; fi
         # On npm with its tag on another commit: an earlier release, nothing to do. On npm with no tag or this commit's
         # tag: a rerun, so skip only the publish. Not on npm: publish, if it is above npm's latest.
+        tagged=$(git ls-remote origin "refs/tags/v$v" "refs/tags/v$v^{}" | tail -1 | cut -f1)
         if [ "$on_npm" = true ]; then
-          tagged=$(git ls-remote origin "refs/tags/v$v" "refs/tags/v$v^{}" | tail -1 | cut -f1)
           if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then decision=skip; else decision=tag-and-check; fi
         else
+          # gh release create would attach to an existing tag and ignore --target, naming the wrong commit.
+          [ -z "$tagged" ] || [ "$tagged" = "$GITHUB_SHA" ] || { echo "::error::tag v$v already exists on $tagged"; exit 1; }
           # A lower version would become npm's latest, so refuse anything not above it.
           node -e 'const [a,b]=process.argv.slice(1).map(s=>s.split(".").map(Number));process.exit(((a[0]-b[0])||(a[1]-b[1])||(a[2]-b[2]))>0?0:1)' "$v" "$latest" \
             || { echo "::error::$v is not above npm latest $latest"; exit 1; }
