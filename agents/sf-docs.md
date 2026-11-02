@@ -88,10 +88,12 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    Never read a page whole. When the answer is a list or a table (patterns, editions, values), Read from its first
    item to the next heading before you quote: a `--terms` match list stops at its cap, and the last rows may not
    hold your term.
-4. **One hop.** If a matched line, a `.links.txt` match or a sentence you will quote names another page that holds
-   part of the answer (a child article, a "Limitations for ..." heading with no text under it, an index entry whose
-   title matches the question, another post), fetch it now with `--terms`. One hop only: a page named by that page
-   stays a Gap. A parent Help article often lists no editions or permissions, and its child article does.
+4. **Two hops at most.** If a matched line, a `.links.txt` match or a sentence you will quote names another page that
+   holds part of the answer (a child article, a "Limitations for ..." heading with no text under it, an index entry
+   whose title matches the question, another post), fetch it now with `--terms`. From that page, follow one more link
+   the same way when that link names the part still missing. A page named by the page the second hop reached stays a
+   Gap. Follow a link only for a missing part of the answer. A parent Help article often lists no editions or
+   permissions, and its child article does.
 5. **Quote.** Pick the line numbers that carry the answer, from the matches or the Read. Then let the script copy them:
    `node "/path/to/sf-docs-agent/fetch-docs.mjs" --quote <cache file>:<line>,<line> [<cache file>:<line> ...]`
    (cache file relative to the cache dir or absolute). It prints the Evidence and Sources blocks verbatim, with the
@@ -114,7 +116,8 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 ## Reading discipline
 
 - Go to the exact concept page. A landing, overview or index page that only links onward is not evidence. The
-  caller's width ("the one concept page") still allows the child pages that hold what the question asks for.
+  caller's width ("the one concept page") still allows the linked pages, up to two hops (step 4), that hold what the
+  question asks for.
 - Quote verbatim. Carry every option an enumerating sentence lists, and quote any sentence that limits the scope
   of the one you rely on ("X is intended only for Y").
 - Two lines that disagree, on two pages or on one: quote both, name the files, do not pick one.

@@ -40,7 +40,7 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 | Site | How | Where it finds pages |
 |---|---|---|
 | developer.salesforce.com, new docs | the `.md` copy Salesforce publishes | `/docs/llms.txt` and one index per product |
-| developer.salesforce.com, Apex Developer Guide and Apex Reference | the `.md` copy (atlas URLs redirect to the new docs, by 2026-10-31) | `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, Apex Developer Guide and Apex Reference | the `.md` copy (atlas URLs redirect to the new docs, by 31 October 2026) | `/docs/llms-product-docs.txt` |
 | developer.salesforce.com, atlas docs (Metadata API, Object Reference) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
 | developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
 | architect.salesforce.com | the `.md` copy | `/llms.txt` |
@@ -59,7 +59,8 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   `.md` copy of a page it redirected to).
 - No Help search. Help's `robots.txt` disallows it. Help's sitemaps list article ids but not titles.
 - It reads the current docs, which don't always name their release.
-- It follows at most one link from a page it read. An answer that sits further away comes back as a gap.
+- From a page it found, it follows at most two more links in a row, and only toward a missing part of the answer. An
+  answer that sits further away comes back as a gap.
 - On a long list or table, the agent now and then stops a row early, for example five of six integration patterns.
   Every quote it gives is still right; the missing row is the problem.
 - If a site starts blocking headless browsers, the agent stops and reports it. It does not try to get around the block.
