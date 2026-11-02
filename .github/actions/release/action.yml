@@ -2,7 +2,7 @@ name: Release steps
 description: Decide, test, pack and install, publish, check the registry and tag one version.
 inputs:
   dry:
-    description: "'true' for a dry run: prints the decision, installs this commit, npm publish --dry-run; no tag or registry check"
+    description: "'true' for a dry run: real decision printed, tests and install run, publish --dry-run, gh probed, no registry check"
     required: true
   gh-token:
     description: Token for the tag and GitHub Release (unused in a dry run)
@@ -52,7 +52,8 @@ runs:
           decision=publish
         fi
         echo "decision for $v: $decision (on npm $on_npm, tag ${tagged:-none})"
-        # A dry run takes every step against npm's latest, with no publish, tag or registry check.
+        # A dry run runs every step against npm's latest, but publish is --dry-run, the tag step only probes gh and
+        # the registry check is skipped.
         if [ "$DRY" = true ]; then decision=dry; v=$latest; fi
         { echo "check=$v"; echo "decision=$decision"; } >> "$GITHUB_OUTPUT"
 
