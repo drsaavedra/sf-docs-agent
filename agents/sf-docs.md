@@ -93,7 +93,7 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    whose title matches the question, another post), fetch it now with `--terms`. From that page, follow one more link
    the same way when that link names the part still missing. A page named by the page the second hop reached stays a
    Gap. Follow a link only
-   for a missing part of the answer, never to browse a sidebar. A parent Help article often lists no editions or
+   for a missing part of the answer. A parent Help article often lists no editions or
    permissions, and its child article does.
 5. **Quote.** Pick the line numbers that carry the answer, from the matches or the Read. Then let the script copy them:
    `node "/path/to/sf-docs-agent/fetch-docs.mjs" --quote <cache file>:<line>,<line> [<cache file>:<line> ...]`
