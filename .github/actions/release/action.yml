@@ -1,0 +1,125 @@
+name: Release steps
+description: Decide, test, pack and install, publish, check the registry and tag one version.
+inputs:
+  dry:
+    description: "'true' for a dry run: real decision printed, tests and install run, publish --dry-run, gh probed, no registry check"
+    required: true
+  gh-token:
+    description: Token for the tag and GitHub Release (unused in a dry run)
+    required: false
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v7
+      with:
+        # Exact, so a rerun weeks later packs the same gzip bytes and still matches npm's shasum.
+        node-version: 24.21.0
+        registry-url: https://registry.npmjs.org
+        cache: npm
+
+    # Trusted publishing needs npm 11.5.1 or later (docs.npmjs.com/trusted-publishers). One pinned npm for every step.
+    - shell: bash
+      run: npm install -g npm@11.19.0 && npm --version
+
+    - name: Decide what to publish
+      id: v
+      shell: bash
+      env:
+        DRY: ${{ inputs.dry }}
+        HAS_TOKEN: ${{ inputs.gh-token != '' }}
+      run: |
+        v=$(node -p "require('./package.json').version")
+        latest=$(npm view sf-docs-agent version)
+        echo "package.json $v, npm latest $latest, dry run $DRY"
+        [ "$DRY" = true ] || [ "$HAS_TOKEN" = true ] || { echo "::error::a real release needs gh-token for the tag"; exit 1; }
+        # Plain x.y.z only: a prerelease would publish as npm's latest, and the comparison below cannot order one.
+        [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::$v is not a plain x.y.z version"; exit 1; }
+        # Only E404 means "not on npm"; any other failure (network, registry) stops the run rather than publishing.
+        if out=$(npm view "sf-docs-agent@$v" version 2>&1); then on_npm=true
+        elif grep -q E404 <<< "$out"; then on_npm=false
+        else echo "::error::npm view failed: $out"; exit 1; fi
+        # On npm with its tag on another commit: an earlier release, nothing to do. On npm with no tag or this commit's
+        # tag: a rerun, so skip only the publish. Not on npm: publish, if it is above npm's latest.
+        tagged=$(git ls-remote origin "refs/tags/v$v" "refs/tags/v$v^{}" | tail -1 | cut -f1)
+        if [ "$on_npm" = true ]; then
+          if [ -n "$tagged" ] && [ "$tagged" != "$GITHUB_SHA" ]; then decision=skip; else decision=tag-and-check; fi
+        else
+          # gh release create would attach to an existing tag and ignore --target, naming the wrong commit.
+          [ -z "$tagged" ] || [ "$tagged" = "$GITHUB_SHA" ] || { echo "::error::tag v$v already exists on $tagged"; exit 1; }
+          # A lower version would become npm's latest, so refuse anything not above it.
+          node -e 'const [a,b]=process.argv.slice(1).map(s=>s.split(".").map(Number));process.exit(((a[0]-b[0])||(a[1]-b[1])||(a[2]-b[2]))>0?0:1)' "$v" "$latest" \
+            || { echo "::error::$v is not above npm latest $latest"; exit 1; }
+          decision=publish
+        fi
+        echo "decision for $v: $decision (on npm $on_npm, tag ${tagged:-none})"
+        # A dry run runs every step against npm's latest, but publish is --dry-run, the tag step only probes gh and
+        # the registry check is skipped.
+        if [ "$DRY" = true ]; then decision=dry; v=$latest; fi
+        { echo "check=$v"; echo "decision=$decision"; } >> "$GITHUB_OUTPUT"
+
+    - if: steps.v.outputs.decision != 'skip'
+      shell: bash
+      run: npm ci && npm test
+
+    # Install this commit's tarball the way a user would, before anything is published.
+    - if: steps.v.outputs.decision != 'skip'
+      name: Pack and install this commit
+      id: pack
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/pkg"
+        info=$(npm pack --pack-destination "$RUNNER_TEMP/pkg" --json)
+        tgz="$RUNNER_TEMP/pkg/$(node -p "JSON.parse(process.argv[1])[0].filename" "$info")"
+        echo "shasum=$(node -p "JSON.parse(process.argv[1])[0].shasum" "$info")" >> "$GITHUB_OUTPUT"
+        cfg="$RUNNER_TEMP/cfg"
+        # Outside the checkout: inside it, npx resolves sf-docs-agent to this package and finds no command.
+        (cd "$RUNNER_TEMP" && CLAUDE_CONFIG_DIR="$cfg" npx --yes --package="$tgz" sf-docs-agent < /dev/null)
+        agent="$cfg/agents/sf-docs.md"
+        grep -c "$cfg/sf-docs/fetch-docs.mjs" "$agent"
+        if grep -q '/path/to/sf-docs-agent' "$agent"; then echo "::error::placeholder path left in the agent"; exit 1; fi
+        node -e "require('assert').ok(require('fs').statSync('$cfg/sf-docs/node_modules/playwright-core/package.json'))"
+        echo "installed $tgz: agent wired, playwright-core present"
+
+    # Provenance comes with trusted publishing, so there is no --provenance flag.
+    - if: steps.v.outputs.decision == 'publish' || steps.v.outputs.decision == 'dry'
+      name: Publish
+      shell: bash
+      env:
+        DRY: ${{ inputs.dry }}
+      run: |
+        if [ "$DRY" = true ]; then
+          # A dry run still refuses a version already on npm, so stamp a throwaway prerelease in this copy only.
+          npm version --no-git-tag-version "${{ steps.v.outputs.check }}-dryrun.$GITHUB_RUN_ID"
+          npm publish --dry-run --tag dryrun
+        else
+          npm publish
+        fi
+
+    # Before the tag: npm must hold the tarball installed and checked above, or the tag would name the wrong commit.
+    - if: steps.v.outputs.decision == 'publish' || steps.v.outputs.decision == 'tag-and-check'
+      name: Check the registry copy
+      shell: bash
+      run: |
+        v=${{ steps.v.outputs.check }}
+        remote=
+        for i in 1 2 3 4 5 6; do remote=$(npm view "sf-docs-agent@$v" dist.shasum 2>/dev/null) && [ -n "$remote" ] && break; sleep 20; done
+        [ -n "$remote" ] || { echo "::error::npm still shows no $v after 2 minutes"; exit 1; }
+        tested=${{ steps.pack.outputs.shasum }}
+        echo "registry $remote, tested $tested"
+        # On a later commit this means an earlier release of $v published but never tagged: rerun that release's run.
+        [ "$remote" = "$tested" ] || { echo "::error::npm's $v is not the tarball this run tested (rerun the run that published it)"; exit 1; }
+
+    - if: steps.v.outputs.decision != 'skip'
+      name: Tag and GitHub Release
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.gh-token }}
+        DRY: ${{ inputs.dry }}
+      run: |
+        t="v${{ steps.v.outputs.check }}"
+        [ "$DRY" = true ] && t=v0.0.0-dryrun # a tag that cannot exist, to prove gh still says "release not found"
+        # Only "release not found" means create it; an auth or API error stops the run.
+        if out=$(gh release view "$t" 2>&1); then echo "$t already released"; exit 0; fi
+        grep -q 'release not found' <<< "$out" || { echo "::error::gh release view failed: $out"; exit 1; }
+        [ "$DRY" = true ] && { echo "dry run: gh reports a missing release as expected"; exit 0; }
+        gh release create "$t" --target "$GITHUB_SHA" --title "$t" --generate-notes

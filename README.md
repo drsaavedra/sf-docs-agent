@@ -120,6 +120,8 @@ npm test
 
 `agents/sf-docs.md` names its script and cache as `/path/to/sf-docs-agent`. The `sed` line writes your copy with your clone's path. Run it again after you edit the agent.
 
+**Release:** open a PR that only bumps the version (`npm version patch --no-git-tag-version`, which changes `package.json` and `package-lock.json`). Merging it runs [`release.yml`](.github/workflows/release.yml): the tests, an install of the packed tarball, `npm publish` through npm trusted publishing (no token), a check that npm holds the tarball that was tested, then the `v<version>` tag and GitHub Release.
+
 ## License
 
 MIT

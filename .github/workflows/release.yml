@@ -1,0 +1,48 @@
+name: Release
+
+# A version bump merged to main is published to npm by trusted publishing, tagged and released (.github/actions/release).
+# A PR that changes the release files, or a manual run, does the same steps as a dry run with no write access.
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+  pull_request:
+    paths: [.github/workflows/release.yml, .github/actions/release/**]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # One group per event and ref: a shared group lets a PR dry run replace, and so cancel, a pending release.
+  group: release-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # No id-token and read-only contents, so nothing here can publish or tag.
+  dry-run:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/release
+        with:
+          dry: 'true'
+          gh-token: ${{ github.token }} # read-only here: the dry run only views a release
+
+  # Only a push to main reaches the npm environment, which the npm trusted publisher names.
+  release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: npm
+    permissions:
+      contents: write # the tag and the GitHub Release
+      id-token: write # npm trusted publishing
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/release
+        with:
+          dry: 'false'
+          gh-token: ${{ github.token }}
