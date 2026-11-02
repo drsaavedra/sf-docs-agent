@@ -100,11 +100,13 @@ runs:
       shell: bash
       run: |
         v=${{ steps.v.outputs.check }}
-        for i in 1 2 3 4 5 6; do npm view "sf-docs-agent@$v" dist.shasum >/dev/null 2>&1 && break; sleep 20; done
-        remote=$(npm view "sf-docs-agent@$v" dist.shasum)
+        remote=
+        for i in 1 2 3 4 5 6; do remote=$(npm view "sf-docs-agent@$v" dist.shasum 2>/dev/null) && [ -n "$remote" ] && break; sleep 20; done
+        [ -n "$remote" ] || { echo "::error::npm still shows no $v after 2 minutes"; exit 1; }
         tested=${{ steps.pack.outputs.shasum }}
         echo "registry $remote, tested $tested"
-        [ "$remote" = "$tested" ] || { echo "::error::the registry tarball is not the one this run tested"; exit 1; }
+        # On a later commit this means an earlier release of $v published but never tagged: rerun that release's run.
+        [ "$remote" = "$tested" ] || { echo "::error::npm's $v is not the tarball this run tested (rerun the run that published it)"; exit 1; }
 
     - if: steps.v.outputs.decision != 'skip'
       name: Tag and GitHub Release
