@@ -54,19 +54,14 @@ runs:
         echo "decision for $v: $decision (on npm $on_npm, tag ${tagged:-none})"
         # A dry run takes every step against npm's latest, with no publish, tag or registry check.
         if [ "$DRY" = true ]; then decision=dry; v=$latest; fi
-        {
-          echo "check=$v"
-          echo "skip=$([ "$decision" = skip ] && echo true || echo false)"
-          echo "publish=$([ "$decision" = publish ] || [ "$decision" = dry ] && echo true || echo false)"
-          echo "live=$([ "$decision" = publish ] || [ "$decision" = tag-and-check ] && echo true || echo false)"
-        } >> "$GITHUB_OUTPUT"
+        { echo "check=$v"; echo "decision=$decision"; } >> "$GITHUB_OUTPUT"
 
-    - if: steps.v.outputs.skip != 'true'
+    - if: steps.v.outputs.decision != 'skip'
       shell: bash
       run: npm ci && npm test
 
     # Install this commit's tarball the way a user would, before anything is published.
-    - if: steps.v.outputs.skip != 'true'
+    - if: steps.v.outputs.decision != 'skip'
       name: Pack and install this commit
       id: pack
       shell: bash
@@ -85,7 +80,7 @@ runs:
         echo "installed $tgz: agent wired, playwright-core present"
 
     # Provenance comes with trusted publishing, so there is no --provenance flag.
-    - if: steps.v.outputs.publish == 'true'
+    - if: steps.v.outputs.decision == 'publish' || steps.v.outputs.decision == 'dry'
       name: Publish
       shell: bash
       env:
@@ -100,7 +95,7 @@ runs:
         fi
 
     # Before the tag: npm must hold the tarball installed and checked above, or the tag would name the wrong commit.
-    - if: steps.v.outputs.live == 'true'
+    - if: steps.v.outputs.decision == 'publish' || steps.v.outputs.decision == 'tag-and-check'
       name: Check the registry copy
       shell: bash
       run: |
@@ -111,7 +106,7 @@ runs:
         echo "registry $remote, tested $tested"
         [ "$remote" = "$tested" ] || { echo "::error::the registry tarball is not the one this run tested"; exit 1; }
 
-    - if: steps.v.outputs.live == 'true'
+    - if: steps.v.outputs.decision == 'publish' || steps.v.outputs.decision == 'tag-and-check'
       name: Tag and GitHub Release
       shell: bash
       env:
