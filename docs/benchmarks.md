@@ -2,9 +2,8 @@
 
 [Back to the README](../README.md)
 
-These numbers were measured from 2026-10-30 to 2026-10-31, when the agent followed at most one link from a page. The
-two-link rule was checked against that agent on 20 questions with no change in right answers or median tokens; the
-tables below were not rerun.
+The first two tables were measured from 2026-10-30 to 2026-10-31, when the agent followed at most one link from the
+page it found, and were not rerun. [One link against two](#one-link-against-two) checks the change to two links.
 
 ## 84% less in your context, 38% fewer tokens than platform-docs-get
 
@@ -106,3 +105,25 @@ none.
 | 10. Pub/Sub fetch limit | 632 / 3,161 / 284 | 26 / 20 / 16 | 3 / 3 / 3 |
 
 </details>
+
+## One link against two
+
+On 2026-11-02 the agent that follows at most one link from the page it found (0.1.2) ran against the agent that
+follows up to two, on the same fetcher, in a clean Claude Code config with a Sonnet caller, a cold cache before each
+round, and the same grader as above. Two question sets came from the project's 100-question set: 20 regression
+questions (every fifth), one round, and 6 link-following questions (five that start from one page and need another,
+and one Help question whose answer sits on a linked article), three rounds.
+
+| | One link | Two links |
+|---|---|---|
+| Right answers, 20 regression questions | 20 of 20 | 20 of 20 |
+| Right answers, 6 link-following questions × 3 rounds | 12 of 18 | 13 of 18 |
+| Agent tokens, regression median (most) | 14,419 (22,473) | 13,928 (17,435) |
+| Tool calls, regression median (most) | 4 (14) | 4 (7) |
+| Seconds, regression median (slowest) | 26 (117) | 26 (69) |
+| Pages fetched in one run, most | 8 | 3 |
+| Quotes found on the cached page, all runs | 120 of 120 | 113 of 113 |
+
+Nothing got worse. The one extra right answer is a single run, within the noise between rounds, so two links are not
+shown to answer more questions. The question that still fails most often needs a link from a developer page to a Help
+article that the agent does not follow at all, which the link limit does not decide.
