@@ -46,9 +46,28 @@ runs:
           || { echo "::error::$v is not above npm latest $latest"; exit 1; }
         echo "publish=true" >> "$GITHUB_OUTPUT"; echo "check=$v" >> "$GITHUB_OUTPUT"
 
-    - if: steps.v.outputs.publish == 'true'
+    - if: steps.v.outputs.skip != 'true'
       shell: bash
       run: npm ci && npm test
+
+    # Install this commit's tarball the way a user would, before anything is published.
+    - if: steps.v.outputs.skip != 'true'
+      name: Pack and install this commit
+      id: pack
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/pkg"
+        info=$(npm pack --pack-destination "$RUNNER_TEMP/pkg" --json)
+        tgz="$RUNNER_TEMP/pkg/$(node -p "JSON.parse(process.argv[1])[0].filename" "$info")"
+        echo "shasum=$(node -p "JSON.parse(process.argv[1])[0].shasum" "$info")" >> "$GITHUB_OUTPUT"
+        cfg="$RUNNER_TEMP/cfg"
+        # Outside the checkout: inside it, npx resolves sf-docs-agent to this package and finds no command.
+        (cd "$RUNNER_TEMP" && CLAUDE_CONFIG_DIR="$cfg" npx --yes --package="$tgz" sf-docs-agent < /dev/null)
+        agent="$cfg/agents/sf-docs.md"
+        grep -c "$cfg/sf-docs/fetch-docs.mjs" "$agent"
+        if grep -q '/path/to/sf-docs-agent' "$agent"; then echo "::error::placeholder path left in the agent"; exit 1; fi
+        node -e "require('assert').ok(require('fs').statSync('$cfg/sf-docs/node_modules/playwright-core/package.json'))"
+        echo "installed $tgz: agent wired, playwright-core present"
 
     # Trusted publishing needs npm 11.5.1 or later (docs.npmjs.com/trusted-publishers); provenance comes with it.
     - if: steps.v.outputs.publish == 'true'
@@ -77,24 +96,14 @@ runs:
         if gh release view "$t" >/dev/null 2>&1; then echo "$t already released"; exit 0; fi
         gh release create "$t" --target "$GITHUB_SHA" --title "$t" --generate-notes
 
-    # The registry copy must match what this commit packs, and a fresh install must wire the agent to its script.
-    - if: steps.v.outputs.skip != 'true'
+    # The registry must hold the tarball that was installed and checked above.
+    - if: inputs.dry != 'true' && steps.v.outputs.skip != 'true'
       name: Check the registry copy
       shell: bash
-      env:
-        DRY: ${{ inputs.dry }}
       run: |
         v=${{ steps.v.outputs.check }}
         for i in 1 2 3 4 5 6; do npm view "sf-docs-agent@$v" dist.shasum >/dev/null 2>&1 && break; sleep 20; done
         remote=$(npm view "sf-docs-agent@$v" dist.shasum)
-        local=$(npm pack --dry-run --json | node -p "JSON.parse(require('fs').readFileSync(0,'utf8'))[0].shasum")
-        echo "registry $remote, this commit $local"
-        if [ "$DRY" != true ] && [ "$remote" != "$local" ]; then echo "::error::registry tarball differs from this commit"; exit 1; fi
-        cfg="$RUNNER_TEMP/cfg"
-        # Outside the checkout: inside it, npx resolves sf-docs-agent to this package and finds no command.
-        (cd "$RUNNER_TEMP" && CLAUDE_CONFIG_DIR="$cfg" npx --yes "sf-docs-agent@$v" < /dev/null)
-        agent="$cfg/agents/sf-docs.md"
-        grep -c "$cfg/sf-docs/fetch-docs.mjs" "$agent"
-        if grep -q '/path/to/sf-docs-agent' "$agent"; then echo "::error::placeholder path left in the agent"; exit 1; fi
-        node -e "require('assert').ok(require('fs').statSync('$cfg/sf-docs/node_modules/playwright-core/package.json'))"
-        echo "installed $v: agent wired, playwright-core present"
+        tested=${{ steps.pack.outputs.shasum }}
+        echo "registry $remote, tested $tested"
+        [ "$remote" = "$tested" ] || { echo "::error::the registry tarball is not the one this run tested"; exit 1; }
