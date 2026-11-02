@@ -2,6 +2,10 @@
 
 [Back to the README](../README.md)
 
+These numbers were measured from 2026-10-30 to 2026-10-31, when the agent followed at most one link from a page. The
+two-link rule was checked against that agent on 20 questions with no change in right answers or median tokens; the
+tables below were not rerun.
+
 ## 84% less in your context, 38% fewer tokens than platform-docs-get
 
 On 10 questions against Salesforce's own platform-docs-get skill, the agent
