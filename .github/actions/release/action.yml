@@ -12,7 +12,8 @@ runs:
   steps:
     - uses: actions/setup-node@v7
       with:
-        node-version: 24
+        # Exact, so a rerun weeks later packs the same gzip bytes and still matches npm's shasum.
+        node-version: 24.21.0
         registry-url: https://registry.npmjs.org
         cache: npm
 
