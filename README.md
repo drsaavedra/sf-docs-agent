@@ -83,7 +83,7 @@ Salesforce has two official options for the same job. I ran both on the same 10 
 
 **[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 84% fewer tokens to your session and used 38% fewer tokens overall. Both got 39 of 40 runs right.
 
-**[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. In my runs it returned no page from admin.salesforce.com or SLDS 2. In a subagent it got 24 of 30 right against 30 of 30, and only 135 of its 177 quotes were on today's page, against 113 of 113. Called from the main session it got 28 of 30, but added 10 times as many tokens to your session.
+**[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. It is the same trade-off you accept with [Context7](https://github.com/upstash/context7), whose README says its parsing and crawling engines are private: you can't see what the index holds or when it was taken. In my runs it returned no page from admin.salesforce.com or SLDS 2. In a subagent it got 24 of 30 right against 30 of 30, and only 135 of its 177 quotes were on today's page, against 113 of 113. Called from the main session it got 28 of 30, but added 10 times as many tokens to your session.
 
 **Where sf-docs-agent loses:** the MCP in a subagent is faster and cheaper, 218 seconds against 433 for all 10 questions, and 27% fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
 
