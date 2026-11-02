@@ -36,8 +36,7 @@ Then start a new Claude Code session. The agent is listed as `sf-docs`. Add `--p
 - **Headless browser:** some sites have no plain-text copy of their pages, so the agent opens them in a headless browser. The installer asks before it downloads Chromium (about 200 MB). Pass `--yes` to skip the question.
 - **Linux:** also run `node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/node_modules/playwright-core/cli.js" install-deps chromium` once.
 - **Update:** `npx sf-docs-agent@latest`
-- **Remove:** delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md` in the project), then `~/.claude/sf-docs/` once no project uses it.
-- **Cache:** pages stay cached for 24 hours. Set `SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json` to change it (`0` fetches every time).
+- **Remove:** delete `~/.claude/agents/sf-docs.md` (or `.claude/agents/sf-docs.md` in the project), then `~/.claude/sf-docs/` once no project uses it.- **Cache:** pages stay cached for 24 hours. Set `SF_DOCS_CACHE_HOURS` in your Claude Code `settings.json` to change it (`0` fetches every time).
 
 </details>
 
@@ -73,7 +72,13 @@ It covers developer.salesforce.com, architect.salesforce.com, help.salesforce.co
 3. **Picks lines, not prose.** The model reads the cached page in the agent's own context and picks line numbers. A script copies those lines, each with its official URL.
 4. **Names what it missed.** A page it did not read, or a link it did not follow, comes back as a gap.
 
-To check any quote: `grep -c -F '<quote>' <cache path>`. The cache saves curly quotes as straight ones, so a quote you retype still matches.
+To check any quote, paste it between the lines below. Apostrophes are safe, and the cache saves curly quotes as straight ones, so a quote you retype still matches. Any count above 0 means the line is on the page.
+
+```
+grep -c -F -f - <cache path> <<'EOF'
+<quote>
+EOF
+```
 
 Every site, and how it reads each one: [docs/how-it-works.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/how-it-works.md)
 
