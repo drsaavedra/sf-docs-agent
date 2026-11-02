@@ -1,10 +1,10 @@
 # sf-docs-agent
 
-**Quotes, not pages.** A Claude Code agent that answers Salesforce questions from the official docs, with the link to every quote.
+**Read the docs, keep your context.** A Claude Code agent that reads the official Salesforce docs for you and returns just the lines that answer, each with its official URL.
 
 [![npm](https://img.shields.io/npm/v/sf-docs-agent)](https://www.npmjs.com/package/sf-docs-agent)
 
-**84% less** added to your session than Salesforce's own docs skill · **113 of 113** quotes still on today's page · **every quote** checkable with one `grep`
+**84% less** added to your session than Salesforce's own docs skill · **113 of 113** cited lines still on today's page · **every line** checkable with one `grep`
 
 [Install](#install) · [Use](#use) · [How it works](#how-it-works) · [How it compares](#how-it-compares) · [Limitations](#limitations) · [Benchmarks](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
