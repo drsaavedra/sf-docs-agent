@@ -93,7 +93,9 @@ Salesforce has two official options for the same job. I ran both on the same 10 
 
 **Where sf-docs-agent loses:** the MCP in a subagent is faster and cheaper: 218 seconds against 346 for all 10 questions, and 29% fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
 
-sf-docs-agent was rerun on 2026-11-02 with two links; the other tools' runs are from 2026-10-30 and 31. Every number, per question, with the method: [docs/benchmarks.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
+My numbers are from a rerun on 2 November 2026, after the agent started following two links. The other tools ran on 30 and 31 October 2026 and were not rerun, and the docs changed in between.
+
+Every number, per question, with the method: [docs/benchmarks.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
 ## Limitations
 
