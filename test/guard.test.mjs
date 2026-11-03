@@ -37,6 +37,8 @@ const allowed = [
   ['grep with a positional pattern and a | inside it', `grep -n -i -E 'oauth|userinfo' ${A}`],
   ['grep -o -m with a quoted bracket pattern', `grep -h -o -m 40 -e 'id=[a-z_.]*' "${C}/help.salesforce.com/apex/H_1.txt"`],
   ['grep -r over a cache folder', `grep -rhoi -m5 -e 'id=[a-z_]*xorg' "${C}/help.salesforce.com/apex"`],
+  ['a no-break space inside a quoted grep term', `grep -n -e 'a\u00a0b' ${A}`],
+  ['a quoted URL that holds #', `${FD} --budget 480 'https://developer.salesforce.com/docs/x.html#sec'`],
   ['a trailing newline', `grep -c -e x ${A}\n`],
 ];
 const denied = [
@@ -84,6 +86,10 @@ const denied = [
   ['a glob that reaches a symlink in the cache', `grep -e SECRET ${C}/link*`],
   ['2>&1 then a vertical tab, which zsh reads as a redirect to a file', `${FD} --search x 2>&1\u000bfoo`],
   ['2>&1 then a no-break space', `${FD} --search x 2>&1\u00a0foo`],
+  ['2>&1 then a vertical tab at the end of the line', `${FD} --search x 2>&1\u000b`],
+  ['2>&1 then a no-break space at the end of the line', `${FD} --search x 2>&1\u00a0`],
+  ['an unquoted backslash-newline that the shell turns into ..', `grep -c -e root ${C}/.\\\n./.\\\n./.\\\n./etc/passwd`],
+  ['a C1 control character outside quotes', `grep -c -e x\u0085y ${A}`],
   ['a carriage return', `grep -c -e x ${A}\rgrep -c -e y ${A}`],
   ['a backslash-newline in double quotes that the shell turns into ..', `grep -c -e root "${C}/.\\\n./.\\\n./.\\\n./.\\\n./etc/passwd"`],
 ];

@@ -38,10 +38,11 @@ if (typeof args.command !== 'string') deny('no command');
 // them is refused, so every word the shell will see is the word checked here.
 const commands = [];
 {
-  const src = args.command.trim();
-  // The shell drops a backslash-newline even in double quotes (`.\<newline>.` is `..`), and splits words on space and tab
-  // only, where JS also splits on \v, NBSP and more: so no newline, control character or space other than ' ' and tab.
-  if (/[\0-\x08\x0a-\x1f\x7f]|[^\S \t]/u.test(src)) deny('a newline, control character or space other than space and tab');
+  // Trim space, tab and newline only: JS trim() also strips \v and NBSP, which the shell keeps as word text.
+  const src = args.command.replace(/^[ \t\n]+|[ \t\n]+$/g, '');
+  // Outside quotes the shell splits on space and tab only, so no control character or other space; a backslash-newline
+  // is dropped even in double quotes (`.\<newline>.` is `..`), so no newline there. Single quotes are literal.
+  const ODD = /[\0-\x08\x0a-\x1f\x7f-\x9f]|[^\S \t]/u, odd = 'a newline, control character or space other than space and tab';
   let cmd = [], word = null;
   const end = () => { if (word) cmd.push(word); word = null; };
   const add = c => { word ??= { text: '' }; word.text += c; };
@@ -56,13 +57,16 @@ const commands = [];
       for (i++; src[i] !== '"'; i++) {
         if (i >= src.length) deny('unclosed quote');
         if (src[i] === '$' || src[i] === '`') deny('variables and command substitution');
+        if (src[i] === '\n') deny(`${odd} inside double quotes`);
         if (src[i] === '\\' && '"\\'.includes(src[i + 1])) i++;
         word.text += src[i];
       }
     } else if (c === '\\') {
       if (i + 1 >= src.length) deny('trailing backslash');
+      if (ODD.test(src[i + 1])) deny(`${odd} after a backslash`);
       add(src[++i]);
     } else if (c === ' ' || c === '\t') end();
+    else if (ODD.test(c)) deny(`${odd} outside quotes`);
     else if (c === '&' && src[i + 1] === '&') { end(); commands.push(cmd); cmd = []; i++; }
     else if (c === '2' && !word && src.startsWith('2>&1', i)
       && ([' ', '\t', undefined].includes(src[i + 4]) || src.startsWith('&&', i + 4))) i += 3;
