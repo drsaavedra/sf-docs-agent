@@ -387,3 +387,10 @@ test('two rendered tables with a caption between them are two blocks', () => {
   assert.ok(shown(r).some(l => l.endsWith(': first4\tv4')), r);
   assert.doesNotMatch(r, /second\d/, r);
 });
+
+test('a block leads in with at most two lines above its first row', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_lead.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'Limits', 'NAME\tVALUE', lines(5, i => `row${i}\tv${i}`), lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'limits', 'https://help.salesforce.com/s/articleView?id=lead.htm&type=5').out;
+  assert.match(r, /^\(list or table, lines 31-38, shown whole\)$/m, r);
+});

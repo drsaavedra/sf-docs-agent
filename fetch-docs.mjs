@@ -147,13 +147,13 @@ const blocksOf = ls => {
     // The last row's description cell belongs to it when the rows had one each.
     if (described) for (let t = end + 1; t < j; t++) if (ls[t].trim()) end = t;
     if (rows >= 3) {
-      // Lead-in: the caption or header lines above, up to 3, ending at a heading.
+      // Lead-in: up to 2 caption or header lines above, ending at a heading (Q50 has two, then its heading).
       let a = i;
-      for (let t = i - 1, n = 0; t >= 1 && n < 3; t--) {
+      for (let t = i - 1, n = 0; t >= 1; t--) {
         if (fenced[t]) break;
         if (!ls[t].trim()) continue;
         if (HEAD.test(ls[t])) { a = t; break; } // before rowKind: a bold caption also reads as a bold-term row
-        if (rowKind(ls[t]) || ls[t].length > 200) break;
+        if (rowKind(ls[t]) || ls[t].length > 200 || n === 2) break;
         a = t; n++;
       }
       out.push([a + 1, end + 1]);
