@@ -173,8 +173,7 @@ const blocksOf = ls => {
 };
 // The block whose matches score highest (rarer terms count more), then the densest, prints whole or as its range;
 // one past BLOCK_MAX lines is left to its matching lines ("Read 1,300 lines" is no help).
-const blockLines = (ls, all) => {
-  const score = scorer(all);
+const blockLines = (ls, all, score) => {
   return blocksOf(ls).filter(([a, b]) => b - a < BLOCK_MAX)
     .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
     .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
@@ -206,8 +205,8 @@ const grep = (file, t) => {
   // An llms.txt index is one long list of pages: its matching lines are the answer, not the list.
   if (map || links || isLlms(rel)) { const top = rank(all, map ? 40 : links ? MAX_LINKS : MAX_HITS); return [...top.map(show), ...more(all, top)]; }
   // Lines a printed block shows are not repeated; the rest are ranked as before, and both print in page order.
-  const blocks = all.length ? blockLines(lines, all) : [], rest = all.filter(m => !blocks.some(x => x.fits && m.n >= x.a && m.n <= x.b));
-  const top = rank(rest, MAX_HITS, scorer(all)); // rarity over the whole page, not only the lines left
+  const score = scorer(all), blocks = all.length ? blockLines(lines, all, score) : [], rest = all.filter(m => !blocks.some(x => x.fits && m.n >= x.a && m.n <= x.b));
+  const top = rank(rest, MAX_HITS, score); // rarity over the whole page, not only the lines left
   return [...top.map(m => [m.n, [show(m)]]), ...blocks.map(x => [x.a, x.out])].sort((x, y) => x[0] - y[0])
     .flatMap(x => x[1]).concat(more(rest, top));
 };
