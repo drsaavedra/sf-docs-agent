@@ -139,8 +139,8 @@ const blocksOf = ls => {
         a = t; n++;
       }
       out.push([a + 1, end + 1]);
+      i = j - 1; // only past a block: a short run (a lone bold caption) may hold the first row of the next one
     }
-    i = j - 1;
   }
   return out;
 };

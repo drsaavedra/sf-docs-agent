@@ -301,3 +301,10 @@ test('a match on the plain caption above a rendered table prints the table', () 
   const r = run(out, '--terms', 'request parameters', 'https://help.salesforce.com/s/articleView?id=c.htm&type=5').out;
   assert.ok(shown(r).some(l => l.endsWith(': p25\tdesc 25')), r);
 });
+
+test('a bold caption on its own line does not hide the first row of the list under it', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/caption.md': page([lines(30, i => `filler ${i}`), '', '**List of Rows**', '',
+    lines(5, i => `- row ${i}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'list of rows', '/docs/a/b/c/caption.md').out;
+  assert.match(r, /^\(list or table, lines 33-39, shown whole\)$/m, r);
+});
