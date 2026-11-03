@@ -490,3 +490,22 @@ test('a rendered list right under a table is not taken as wrapped cells', () => 
     'NAME\tVALUE', lines(4, i => `row${i}\tv${i}`), 'Resume events', 'Time triggers target', 'Flow interviews', '', lines(30, i => `after ${i}`)]) });
   assert.doesNotMatch(run(out, '--terms', 'target', 'https://help.salesforce.com/s/articleView?id=under.htm&type=5').out, /list or table/);
 });
+
+test('after a stray fence line, a real code block below is still code', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/stray.md': page([lines(30, i => `filler ${i}`), '~~~', '', 'text', '',
+    '```', '/**', ' * a target', ' * b', ' * c', ' */', '```', '', lines(30, i => `after ${i}`)]) });
+  assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/stray.md').out, /list or table/);
+});
+
+test('a fence line with an info string never closes a fence', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/info.md': page([lines(30, i => `filler ${i}`), '',
+    '```', 'first sample', '```apex', '/**', ' * a target', ' * b', ' * c', ' */', '```', '', lines(30, i => `after ${i}`)]) });
+  assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/info.md').out, /list or table/);
+});
+
+test('a column-0 line inside a fence indented under a step keeps the steps together', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/heredoc.md': page([lines(30, i => `filler ${i}`), '', '## Steps', '',
+    '1. Install target one', '', '   ```bash', '   cat <<EOF', 'EOF', '   ```', '', '2. Configure two', '3. Deploy three', '4. Verify four', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'target', '/docs/a/b/c/heredoc.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': 4. Verify four')), r);
+});

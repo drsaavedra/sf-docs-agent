@@ -106,17 +106,18 @@ const more = (all, top) => all.length > top.length ? [`(${all.length - top.lengt
 // doubled the benchmark's output with short lists nobody asked about.
 const BLOCKS = 1, BLOCK_LINES = 60, BLOCK_LINE = 1000, BLOCK_CHARS = 6000, BLOCK_MAX = 200;
 const BOLD = /^\*\*[^*]+\*\*:?\s*$/, HEAD = new RegExp(`^#{1,6}\\s|${BOLD.source}`);
-// Which lines are inside a code fence (closed only by the same character, at least as long: CommonMark), and where
-// a fence still open at the end began (-1 if none).
+// Code fences, CommonMark: closed by the same character, at least as long, with nothing after it. A line that never
+// closes is stray text (rendered Help has them), not a fence. start[i]: the line that opens i's fence, or -1.
 const fences = ls => {
-  let code = '', at = -1;
-  const fenced = ls.map((l, i) => {
-    const f = /^\s*(`{3,}|~{3,})/.exec(l)?.[1];
-    if (f && !code) { code = f; at = i; return true; }
-    if (f && f[0] === code[0] && f.length >= code.length) { code = ''; return true; }
-    return !!code;
-  });
-  return { fenced, openAt: code ? at : -1 };
+  const start = ls.map(() => -1);
+  for (let i = 0; i < ls.length; i++) {
+    const f = /^\s*(`{3,}|~{3,})/.exec(ls[i])?.[1];
+    if (!f) continue;
+    let j = i + 1;
+    for (let c; j < ls.length; j++) if ((c = /^\s*(`{3,}|~{3,})\s*$/.exec(ls[j])?.[1]) && c[0] === f[0] && c.length >= f.length) break;
+    if (j < ls.length) { start.fill(i, i, j + 1); i = j; }
+  }
+  return start;
 };
 // Rows: markdown table and list lines, rendered table lines (tabs), and paragraphs that open with a link or are only
 // bold or italic text (a table or term list flattened, as on the architect pages).
@@ -135,8 +136,7 @@ const spills = (ls, j) => { for (let n = j; n < Math.min(ls.length, j + 30); n++
 // cell, which spills over up to 30 lines.
 const blocksOf = ls => {
   // Fenced lines are never rows (a doc comment's ' * ' lines read as a list).
-  const { fenced, openAt } = fences(ls);
-  if (openAt >= 0) fenced.fill(false, openAt); // a fence that never closes is a stray ~~~ in rendered text, not code
+  const start = fences(ls), fenced = start.map(x => x >= 0);
   const out = [];
   for (let i = 1; i < ls.length; i++) {
     const k = rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
@@ -145,7 +145,7 @@ const blocksOf = ls => {
     for (; j < ls.length; j++) {
       const l = ls[j];
       if (!l.trim()) continue;
-      const deeper = indent >= 0 && /^\s*/.exec(l)[0].length > indent; // under a list item: fenced code included
+      const deeper = indent >= 0 && /^\s*/.exec(fenced[j] ? ls[start[j]] : l)[0].length > indent; // a fence counts by its opener
       if (fenced[j] && !deeper) break;
       if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
       if ((open && j - open <= 30) || deeper || (k === '\t' && spills(ls, j))) { end = j; continue; }
@@ -404,9 +404,9 @@ let ok = 0;
 // A saved page drops what is not doc text: image URLs (LDS signs S3 URLs of about 450 chars; the alt text stays) and
 // the padding in markdown table rows. Code blocks and wording are untouched.
 const lean = text => {
-  const ls = text.split('\n'), { fenced } = fences(ls);
+  const ls = text.split('\n'), start = fences(ls);
   return ls.map((l, i) => {
-    if (fenced[i]) return l;
+    if (start[i] >= 0) return l;
     l = l.replace(/!\[([^\]]*)\]\(https?:\/\/[^)\s]+\)/g, '![$1]');
     return /^\s*\|/.test(l) ? l.replace(/ {2,}/g, ' ') : l;
   }).join('\n');
