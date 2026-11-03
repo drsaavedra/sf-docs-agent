@@ -41,6 +41,8 @@ if (typeof args.command !== 'string') deny('no command');
 const commands = [];
 {
   const src = args.command.trim();
+  // The shell drops a backslash-newline even inside double quotes, so `.\<newline>.` would become `..`: no newlines.
+  if (/[\r\n]/.test(src)) deny('a newline: write one command line, joining commands with &&');
   let cmd = [], word = null;
   const end = () => { if (word) cmd.push(word); word = null; };
   const add = (c, glob = false) => { word ??= { text: '', glob: false }; word.text += c; word.glob ||= glob; };
@@ -60,13 +62,13 @@ const commands = [];
       }
     } else if (c === '\\') {
       if (i + 1 >= src.length) deny('trailing backslash');
-      if (src[++i] !== '\n') add(src[i]);
+      add(src[++i]);
     } else if (c === ' ' || c === '\t') end();
     else if (c === '&' && src[i + 1] === '&') { end(); commands.push(cmd); cmd = []; i++; }
     else if (c === '2' && !word && src.startsWith('2>&1', i) && /\s|$/.test(src[i + 4] ?? '')) i += 3;
     else if ('*?['.includes(c)) add(c, true);
     else if ('$`'.includes(c)) deny('variables and command substitution');
-    else if (c === '|' || c === ';' || c === '\n') deny(`${c === '\n' ? 'a newline' : c}: join commands only with &&`);
+    else if (c === '|' || c === ';') deny(`${c}: join commands only with &&`);
     else if ('&<>(){}!#~=^'.includes(c) && (!word || !'=#'.includes(c))) deny(`shell syntax ${c}`);
     else add(c);
   }

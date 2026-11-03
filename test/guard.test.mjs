@@ -74,6 +74,7 @@ const denied = [
   ['a subshell', `(grep -e x ${A})`],
   ['brace expansion', `grep -e x "${C}"/{a,b}`],
   ['an unclosed quote', `grep -e 'x ${A}`],
+  ['a backslash-newline in double quotes that the shell turns into ..', `grep -c -e root "${C}/.\\\n./.\\\n./.\\\n./.\\\n./etc/passwd"`],
 ];
 
 for (const [name, cmd] of allowed) test(`allows ${name}`, () => {
