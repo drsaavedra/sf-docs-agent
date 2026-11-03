@@ -349,3 +349,10 @@ test('lines inside a code fence are never rows, so a doc comment cannot take the
   const r = run(out, '--terms', 'tooltip', '/docs/a/b/c/fence.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': - item 7')), r);
 });
+
+test('a table right after a list keeps its header row', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/after.md': page([lines(30, i => `filler ${i}`), '', '- one', '- two', '- three', '',
+    '| Edition | Limit |', '| --- | --- |', lines(5, i => `| Name ${i} | ${i} |`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'edition', '/docs/a/b/c/after.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': | Name 5 | 5 |')), r);
+});
