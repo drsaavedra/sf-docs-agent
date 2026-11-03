@@ -176,16 +176,16 @@ const blocksOf = ls => {
 // The block whose matches score highest (rarer terms count more), then the densest, prints whole or as its range;
 // one past BLOCK_MAX lines is left to its matching lines ("Read 1,300 lines" is no help).
 const blockLines = (ls, all, score) => blocksOf(ls).filter(([a, b]) => b - a < BLOCK_MAX)
-    .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
-    .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
-    .slice(0, BLOCKS).map(({ a, b }) => {
-      // Never cut: a block that prints is whole, so a line past BLOCK_LINE makes it too long instead.
-      const body = ls.slice(a - 1, b).map((l, i) => [a + i, l]).filter(([, l]) => l.trim());
-      const fits = body.length <= BLOCK_LINES && body.every(([, l]) => l.length <= BLOCK_LINE)
-        && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
-      return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
-        : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };
-    });
+  .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
+  .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
+  .slice(0, BLOCKS).map(({ a, b }) => {
+    // Never cut: a block that prints is whole, so a line past BLOCK_LINE makes it too long instead.
+    const body = ls.slice(a - 1, b).map((l, i) => [a + i, l]).filter(([, l]) => l.trim());
+    const fits = body.length <= BLOCK_LINES && body.every(([, l]) => l.length <= BLOCK_LINE)
+      && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
+    return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
+      : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };
+  });
 // A page this short is printed whole: its answer can sit on a line no term matches (a Help page's "95%" line).
 // Index files by shape (Help's /apex/Help_*SiteMap* pages, *sitemap*.xml), on the path under the cache dir: a doc
 // page about sitemaps, or an --out dir named for them, is neither.
