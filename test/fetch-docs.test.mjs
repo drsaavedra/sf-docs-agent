@@ -356,3 +356,34 @@ test('a table right after a list keeps its header row', () => {
   const r = run(out, '--terms', 'edition', '/docs/a/b/c/after.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': | Name 5 | 5 |')), r);
 });
+
+test('two bullet lists with a sentence between them are two blocks', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/two-lists.md': page([lines(30, i => `filler ${i}`), '', lines(3, i => `- apple ${i}`), '',
+    'Oranges are next and unrelated.', '', lines(3, i => `- orange ${i}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'apple 2', '/docs/a/b/c/two-lists.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - apple 3')), r);
+  assert.doesNotMatch(r, /orange/, r);
+});
+
+test('a flattened table with a two-paragraph cell prints every row', () => {
+  const rows = lines(6, i => `[Row ${i}](https://architect.salesforce.com/x.html#r${i})\n\nWhat row ${i} does.${i === 4 ? '\n\nA second paragraph.' : ''}\n`);
+  const out = cache({ 'architect.salesforce.com/docs/architect/x.md': page([lines(30, i => `filler ${i}`), '', '**List of Rows**', '', rows, '**Next**', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'list of rows', 'https://architect.salesforce.com/docs/architect/x.md').out;
+  assert.ok(shown(r).some(l => l.includes('[Row 6]')), r);
+});
+
+test('a rendered row whose first cell spills over lines before its tabs stays in the table', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_spill.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'PER-ORG LIMIT\tESSENTIALS\tENTERPRISE', lines(4, i => `limit ${i}\t${i}\t${i}`), '', 'Combined total of these automations.', '', 'Resume events', 'Time triggers',
+    '\t20,000\t20,000', lines(3, i => `last ${i}\t${i}\t${i}`), lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'per-org limit', 'https://help.salesforce.com/s/articleView?id=spill.htm&type=5').out;
+  assert.ok(shown(r).some(l => l.endsWith(': last 3\t3\t3')), r);
+});
+
+test('two rendered tables with a caption between them are two blocks', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_two.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'NAME\tVALUE', lines(4, i => `first${i}\tv${i}`), 'Table 2. Other', 'KEY\tVALUE', lines(4, i => `second${i}\tw${i}`), lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'first2', 'https://help.salesforce.com/s/articleView?id=two.htm&type=5').out;
+  assert.ok(shown(r).some(l => l.endsWith(': first4\tv4')), r);
+  assert.doesNotMatch(r, /second\d/, r);
+});

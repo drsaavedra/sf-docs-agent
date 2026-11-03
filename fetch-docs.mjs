@@ -116,8 +116,12 @@ const rowKind = l => {
   if (li) return `-${li[1].length}`; // a nested item is a continuation of the item above it, not a new kind
   return /^\[[^\]]+\]\(/.test(l) ? '[' : /^\*\*[^*]+\*\*:?\s*$/.test(l) ? '**' : /^_[^_]+_\s*$/.test(l) ? '_' : '';
 };
-// Blocks of 3 or more rows of one kind, as 1-based [first, last] lines. One other line may sit between rows (a
-// description cell); a rendered row ending in a tab has an open cell, whose text spills over up to 30 lines.
+// Rows flattened to paragraphs may have a description cell of up to two lines between them; other rows none.
+const PARAS = new Set(['[', '**', '_']);
+// A rendered cell can spill: lines up to the next tab row, if that row opens with a tab (its first cell came first).
+const spills = (ls, j) => { for (let n = j; n < Math.min(ls.length, j + 30); n++) if (ls[n].includes('\t')) return ls[n].startsWith('\t'); return false; };
+// Blocks of 3 or more rows of one kind, as 1-based [first, last] lines; a rendered row ending in a tab has an open
+// cell, whose text spills over up to 30 lines.
 const blocksOf = ls => {
   // Code fences (and the lines inside) are never rows: a doc comment's ' * ' lines read as a list. Same rule as lean.
   let code = '';
@@ -137,8 +141,8 @@ const blocksOf = ls => {
       if (fenced[j]) break;
       if (!l.trim()) continue;
       if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
-      if ((open && j - open <= 30) || (indent >= 0 && /^\s*/.exec(l)[0].length > indent)) { end = j; continue; }
-      if (HEAD.test(l) || ++gap > 1) break;
+      if ((open && j - open <= 30) || (indent >= 0 && /^\s*/.exec(l)[0].length > indent) || (k === '\t' && spills(ls, j))) { end = j; continue; }
+      if (HEAD.test(l) || ++gap > (PARAS.has(k) ? 2 : 0)) break;
     }
     // The last row's description cell belongs to it when the rows had one each.
     if (described) for (let t = end + 1; t < j; t++) if (ls[t].trim()) end = t;
