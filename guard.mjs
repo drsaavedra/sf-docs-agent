@@ -9,7 +9,7 @@ const ROOT = realpathSync(dirname(fileURLToPath(import.meta.url)));
 const SCRIPT = join(ROOT, 'fetch-docs.mjs');
 const deny = why => {
   console.error(`sf-docs guard: ${why}. Allowed: node "${SCRIPT.replaceAll('\\', '/')}" <args>, and grep on files under`
-    + ` "${ROOT.replaceAll('\\', '/')}" by absolute path, two commands joined only by &&. No pipes, cd, ;, variables,`
+    + ` "${ROOT.replaceAll('\\', '/')}" by absolute path, commands joined only by &&. No pipes, cd, ;, variables,`
     + ' loops, redirects other than 2>&1, or other commands.');
   process.exit(2);
 };
