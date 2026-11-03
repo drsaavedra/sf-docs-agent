@@ -77,13 +77,9 @@ const commands = [];
   commands.push(cmd);
 }
 
-// grep options allowed: short flags, then short options taking a value (attached, or the next word), and long ones.
-// grep -C is attached only (-C3): BSD grep's -C takes an optional value, so the next word would be a file.
-// -r, not -R: GNU -R follows every symlink it meets, -r only those named on the command line (checked here).
+// grep short options only: FLAGS, and VALUES that take a value. -C only attached (-C3), as BSD's -C value is optional;
+// -r, not -R, as GNU -R follows every symlink it meets and -r only those named on the line (checked here).
 const FLAGS = 'cEFhHiIlLnoqrsvwx0123456789', VALUES = 'eABmC';
-const LONG = ['--regexp', '--include', '--exclude', '--exclude-dir', '--color', '--max-count', '--context', '--ignore-case',
-  '--line-number', '--count', '--only-matching', '--no-filename', '--recursive', '--extended-regexp', '--fixed-strings',
-  '--word-regexp'];
 for (const words of commands) {
   const [cmd, ...rest] = words.map(w => w.text);
   const path = w => {
@@ -96,14 +92,10 @@ for (const words of commands) {
   }
   if (cmd !== 'grep') deny(`${cmd} is not allowed`);
   // GNU grep reorders options, so an -e anywhere makes every positional a file: then none is taken as the pattern.
-  let pattern = !words.some(w => /^-[^-]*e/.test(w.text) || w.text.startsWith('--regexp')), paths = 0;
+  let pattern = !words.some(w => /^-[^-]*e/.test(w.text)), paths = 0;
   for (let k = 1; k < words.length; k++) {
     const t = words[k].text;
-    if (t.startsWith('--')) {
-      const [name] = t.split('=');
-      if (!LONG.includes(name)) deny(`grep ${name} is not allowed`);
-      continue;
-    }
+    if (t.startsWith('--')) deny(`grep ${t.split('=')[0]}: use the short option`);
     if (t.startsWith('-') && t.length > 1) {
       for (let p = 1; p < t.length; p++) {
         const c = t[p];

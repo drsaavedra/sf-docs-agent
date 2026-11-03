@@ -70,6 +70,7 @@ const denied = [
   ['grep -f reads a pattern file', `grep -f /etc/passwd ${A}`],
   ['grep -C with its number detached', `grep -C /etc/passwd -e x ${A}`],
   ['a long option off the list', `grep --file=/etc/passwd -e x ${A}`],
+  ['any long option', `grep --regexp=x ${A}`],
   ['a file before a later -e', `grep /etc/passwd -e x ${A}`],
   ['grep with no file', `grep -r -e x`],
   ['an env prefix', `X=1 grep -e x ${A}`],
