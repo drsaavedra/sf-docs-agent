@@ -481,7 +481,7 @@ test('a fence line that never closes hides nothing below it', () => {
 
 test('a code block after a term list is not the last term\'s description', () => {
   const out = cache({ 'developer.salesforce.com/docs/a/b/c/terms-code.md': page([lines(30, i => `filler ${i}`), '',
-    lines(3, i => `**Term ${i}**\n\nDefinition ${i}.\n`), '```', 'call(target)', '```', '', lines(30, i => `after ${i}`)]) });
+    lines(3, i => `**Term ${i}**\n\nDefinition ${i}.\n`), '**Term 4**', '```', 'call(target)', '```', '', lines(30, i => `after ${i}`)]) });
   assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/terms-code.md').out, /list or table/);
 });
 

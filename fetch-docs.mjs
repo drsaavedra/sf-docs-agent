@@ -142,7 +142,7 @@ const blocksOf = ls => {
   for (const [o, c] of fences(ls, true)) { fenced.fill(true, o, c + 1); close[o] = c; }
   const out = [];
   for (let i = 1; i < ls.length; i++) {
-    const k = fenced[i] ? '' : rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
+    const k = rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
     if (!k) continue;
     let end = i, rows = 1, gap = 0, described = false, open = k === '\t' && ls[i].endsWith('\t') ? i : 0, j = i + 1;
     for (; j < ls.length; j++) {
