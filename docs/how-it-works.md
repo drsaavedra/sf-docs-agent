@@ -73,9 +73,9 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   Playwright's servers.
 - A `PreToolUse` hook (`guard.mjs`, named in the agent file) limits Read to the install folder. It limits Bash to the
   script and to `grep` on absolute paths in that folder. grep can use only short options, a command can have no
-  unquoted wildcards, and commands can join only with `&&`. The hook stops all other commands, and each command that
-  it cannot parse. It runs only for this agent and checks the command text before the command runs, so it is not an
-  operating system sandbox.
+  unquoted wildcards or `#`, and commands can join only with `&&`. The only redirect it allows is `2>&1`. The hook
+  stops all other commands, and each command that it cannot parse. It runs only for this agent and checks the command
+  text before the command runs, so it is not an operating system sandbox.
 - On the 20-question regression, the hook ran on 103 Bash and Read calls and stopped 3: a pipe, a `;` and a redirect.
-  The agent changed those 3 calls, and the result stayed at 20 of 20. The guard as shipped stops the same 3 calls
-  (2026-11-03).
+  The agent changed those 3 calls, and the result stayed at 20 of 20. The guard at commit `2bda5d7` stops the same 3
+  calls when the 103 calls are replayed through it (2026-11-03).
