@@ -77,5 +77,5 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   stops all other commands, and each command that it cannot parse. It runs only for this agent and checks the command
   text before the command runs, so it is not an operating system sandbox.
 - On the 20-question regression, the hook ran on 103 Bash and Read calls and stopped 3: a pipe, a `;` and a redirect.
-  The agent changed those 3 calls, and the result stayed at 20 of 20. The guard at commit `2bda5d7` stops the same 3
+  The agent changed those 3 calls, and the result stayed at 20 of 20. The guard at commit `8e12e06` stops the same 3
   calls when the 103 calls are replayed through it (2026-11-03).
