@@ -418,9 +418,9 @@ test('a block never cuts a line: a match deep in a long cell prints, and a very 
 });
 
 test('a doc page whose name starts with llms is a page, not an llms.txt index', () => {
-  const out = cache({ 'developer.salesforce.com/docs/a/b/c/llms-overview.html.txt': page([lines(30, i => `filler ${i}`), '', '## Steps', '',
+  const out = cache({ 'developer.salesforce.com/docs/atlas.en-us.x.meta/x/llms-overview.htm.txt': page([lines(30, i => `filler ${i}`), '', '## Steps', '',
     lines(25, i => `- step ${i}`), '', lines(30, i => `after ${i}`)]) });
-  const r = run(out, '--terms', 'steps', 'https://developer.salesforce.com/docs/a/b/c/llms-overview.html').out;
+  const r = run(out, '--terms', 'steps', 'https://developer.salesforce.com/docs/atlas.en-us.x.meta/x/llms-overview.htm').out; // atlas: no .md twin, so no fetch
   assert.ok(shown(r).some(l => l.endsWith(': - step 25')), r);
 });
 
