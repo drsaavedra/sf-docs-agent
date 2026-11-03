@@ -452,3 +452,9 @@ test('a row of another kind ends a run, so a table after link rows keeps its hea
   const r = run(out, '--terms', 'edition', 'https://architect.salesforce.com/docs/architect/y.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': | Name 5 | 5 |')), r);
 });
+
+test('a block never leads in with the code fence above it', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/code-then-list.md': page([lines(30, i => `filler ${i}`), '',
+    '```js', 'call(target)', '```', '- a', '- b', '- c', '', lines(30, i => `after ${i}`)]) });
+  assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/code-then-list.md').out, /list or table/);
+});
