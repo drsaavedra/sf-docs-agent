@@ -147,9 +147,10 @@ const blocksOf = ls => {
       if (!l.trim()) continue;
       const deeper = indent >= 0 && /^\s*/.exec(fenced[j] ? ls[start[j]] : l)[0].length > indent; // a fence counts by its opener
       if (fenced[j] && !deeper) break;
-      if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
+      const rk = rowKind(l);
+      if (rk === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
       if ((open && j - open <= 30) || deeper || (k === '\t' && spills(ls, j))) { end = j; continue; }
-      if (HEAD.test(l) || rowKind(l) || ++gap > (PARAS.has(k) ? 2 : 0)) break; // a row of another kind starts its own run
+      if (HEAD.test(l) || rk || ++gap > (PARAS.has(k) ? 2 : 0)) break; // a row of another kind starts its own run
     }
     if (described) for (let t = end + 1; t < j; t++) if (ls[t].trim()) end = t; // the last row's description
     if (rows >= 3) {
@@ -170,8 +171,7 @@ const blocksOf = ls => {
 };
 // The block whose matches score highest (rarer terms count more), then the densest, prints whole or as its range;
 // one past BLOCK_MAX lines is left to its matching lines ("Read 1,300 lines" is no help).
-const blockLines = (ls, all, score) => {
-  return blocksOf(ls).filter(([a, b]) => b - a < BLOCK_MAX)
+const blockLines = (ls, all, score) => blocksOf(ls).filter(([a, b]) => b - a < BLOCK_MAX)
     .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
     .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
     .slice(0, BLOCKS).map(({ a, b }) => {
@@ -182,7 +182,6 @@ const blockLines = (ls, all, score) => {
       return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
         : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };
     });
-};
 // A page this short is printed whole: its answer can sit on a line no term matches (a Help page's "95%" line).
 // Index files by shape (Help's /apex/Help_*SiteMap* pages, *sitemap*.xml), on the path under the cache dir: a doc
 // page about sitemaps, or an --out dir named for them, is neither.
