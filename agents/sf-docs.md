@@ -120,9 +120,9 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 - If the script prints a `BLOCKED:` line, or Node cannot find `playwright-core`, stop and report the error lines as
   printed (after `BLOCKED:` they include the install command). Do not install anything yourself.
 - A hook limits Bash to the script and to `grep` on files in the script's dir, and Read to files in that dir. Join
-  commands only with `&&`. Use absolute paths and name each file: no unquoted wildcards. grep takes short options
-  only, `-r` but not `-R`. No pipes, `cd`, `;`, shell variables, loops, `eval` or redirects other than `2>&1`: write
-  each URL out in full, up to 20 a call. A denied call says why; change the call.
+  commands only with `&&`. Use absolute paths and name each file: no unquoted wildcards or `#`. grep takes short
+  options only (no `--`), `-r` but not `-R`. No pipes, `cd`, `;`, shell variables, loops, `eval` or redirects other
+  than `2>&1`: write each URL out in full, up to 20 a call. A denied call says why; change the call.
 - Run every command in the foreground and wait for it. Never run one in the background or wait on a monitor: your
   last message is the report, so a run that ends while a fetch is still going returns no answer.
 - Only the sites above: the script refuses any other host. A third-party blog or forum is never evidence, even when a
