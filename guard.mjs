@@ -97,6 +97,7 @@ for (const words of commands) {
   let pattern = !words.some(w => /^-[^-]*e/.test(w.text)), paths = 0;
   for (let k = 1; k < words.length; k++) {
     const t = words[k].text;
+    if (t.startsWith('--')) deny(`grep ${t.split('=')[0]}: use the short option`); // the allowlist below denies it anyway
     if (t.startsWith('-') && t.length > 1) {
       for (let p = 1; p < t.length; p++) {
         const c = t[p];

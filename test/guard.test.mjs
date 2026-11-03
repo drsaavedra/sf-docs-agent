@@ -116,3 +116,7 @@ test('the agent file hook denies when guard.mjs cannot run', () => {
   assert.equal(run(RT).status, 0);
   assert.equal(run(PROJECT).status, 2);
 });
+
+test('a long option is denied with a pointer to the short one', () => {
+  assert.match(bash(`grep --ignore-case -e x ${A}`).stderr, /grep --ignore-case: use the short option/);
+});
