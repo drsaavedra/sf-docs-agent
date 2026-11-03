@@ -79,8 +79,8 @@ const commands = [];
   commands.push(cmd);
 }
 
-// grep short options only: FLAGS, and VALUES that take a value. -C only attached (-C3), as BSD's -C value is optional;
-// -r, not -R, as GNU -R follows every symlink it meets and -r only those named on the line (checked here).
+// grep short options only; VALUES take a value. -C only attached (-C3): BSD's -C value is optional. No -R: GNU -R
+// follows every symlink it meets, GNU -r only those named on the line (checked here), BSD -r none by default.
 const FLAGS = 'cEFhHiIlLnoqrsvwx0123456789', VALUES = 'eABmC';
 for (const words of commands) {
   const [cmd, ...rest] = words.map(w => w.text);
