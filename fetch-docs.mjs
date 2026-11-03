@@ -141,7 +141,7 @@ const blocksOf = ls => {
       if (!l.trim()) continue;
       if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
       if ((open && j - open <= 30) || (indent >= 0 && /^\s*/.exec(l)[0].length > indent) || (k === '\t' && spills(ls, j))) { end = j; continue; }
-      if (HEAD.test(l) || ++gap > (PARAS.has(k) ? 2 : 0)) break;
+      if (HEAD.test(l) || rowKind(l) || ++gap > (PARAS.has(k) ? 2 : 0)) break; // a row of another kind starts its own run
     }
     if (described) for (let t = end + 1; t < j; t++) if (ls[t].trim()) end = t; // the last row's description
     if (rows >= 3) {

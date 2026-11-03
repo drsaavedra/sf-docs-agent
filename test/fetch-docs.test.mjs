@@ -444,3 +444,11 @@ test('between blocks scoring the same, the denser one prints', () => {
   const r = run(out, '--terms', 'target', '/docs/a/b/c/dense.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': - small 3')), r);
 });
+
+test('a row of another kind ends a run, so a table after link rows keeps its header', () => {
+  const rows = lines(3, i => `[Row ${i}](https://architect.salesforce.com/x.html#r${i})\n\nWhat row ${i} does.\n`);
+  const out = cache({ 'architect.salesforce.com/docs/architect/y.md': page([lines(30, i => `filler ${i}`), '', rows,
+    '| Edition | Limit |', '| --- | --- |', lines(5, i => `| Name ${i} | ${i} |`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'edition', 'https://architect.salesforce.com/docs/architect/y.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': | Name 5 | 5 |')), r);
+});
