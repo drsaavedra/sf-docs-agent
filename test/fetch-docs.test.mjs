@@ -489,14 +489,6 @@ test('a fence line that never closes hides nothing below it', () => {
   assert.ok(shown(r).some(l => l.endsWith(': row6\tv6')), r);
 });
 
-test('bullets under bold terms are their descriptions, not the end of the term list', () => {
-  const out = cache({ 'developer.salesforce.com/docs/a/b/c/editions.md': page([lines(30, i => `filler ${i}`), '', '## Editions', '',
-    '**Enterprise**', '- 5 target users', '- API access', '- sandbox', '**Unlimited**', '- 10 users', '**Developer**', '- 2 users', '', '## Next', '', lines(30, i => `after ${i}`)]) });
-  const r = run(out, '--terms', 'target', '/docs/a/b/c/editions.md').out;
-  assert.ok(shown(r).some(l => l.endsWith(': - 2 users')), r);
-  assert.doesNotMatch(r, /after \d/, r);
-});
-
 test('a code block after a term list is not the last term\'s description', () => {
   const out = cache({ 'developer.salesforce.com/docs/a/b/c/terms-code.md': page([lines(30, i => `filler ${i}`), '',
     lines(3, i => `**Term ${i}**\n\nDefinition ${i}.\n`), '```', 'call(target)', '```', '', lines(30, i => `after ${i}`)]) });

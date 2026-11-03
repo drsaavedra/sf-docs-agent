@@ -149,7 +149,6 @@ const blocksOf = ls => {
       if (fenced[j] && !deeper) break;
       if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
       if ((open && j - open <= 30) || deeper || (k === '\t' && spills(ls, j))) { end = j; continue; }
-      if (PARAS.has(k) && rowKind(l)[0] === '-') { gap ||= 1; continue; } // bullets under a term are its description
       if (HEAD.test(l) || rowKind(l)) break; // a row of another kind starts its own run
       if (!PARAS.has(k) && rowKind(ls[j - 1]) === k) { end = j; continue; } // one line right under a row: a wrapped cell or item
       if (++gap > (PARAS.has(k) ? 2 : 0)) break;
