@@ -49,7 +49,7 @@ const commands = [];
     if (c === "'") {
       const j = src.indexOf("'", i + 1);
       if (j < 0) deny('unclosed quote');
-      add(''); word.text += src.slice(i + 1, j); i = j;
+      add(src.slice(i + 1, j)); i = j;
     } else if (c === '"') {
       add('');
       for (i++; src[i] !== '"'; i++) {
