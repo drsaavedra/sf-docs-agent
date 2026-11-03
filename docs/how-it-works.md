@@ -72,7 +72,7 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   fetches load first). No telemetry. Installing downloads `playwright-core` from npm and, if you agree, Chromium from
   Playwright's servers.
 - A `PreToolUse` hook (`guard.mjs`, named in the agent file) limits the agent's Bash to the script and to `grep` on
-  absolute paths in the install folder, with commands joined only by `&&`. The hook limits Read to the same
+  absolute paths in the install folder, with short options, no wildcards and commands joined only by `&&`. The hook limits Read to the same
   folder. It stops all other commands, and it stops each command that it cannot parse. The hook runs only
   for this agent, not for your main session. It checks the text of each command before the command runs, so it is
   not an operating system sandbox. On the 20-question regression, the hook ran on each of 103 Bash and Read calls,
