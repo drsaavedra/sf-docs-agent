@@ -302,6 +302,39 @@ test('a match on the plain caption above a rendered table prints the table', () 
   assert.ok(shown(r).some(l => l.endsWith(': p25\tdesc 25')), r);
 });
 
+test('an llms.txt index is never printed or named as a block', () => {
+  const out = cache({ 'developer.salesforce.com/docs/llms-x.txt': lines(200, i => `- [Topic ${i}](https://developer.salesforce.com/docs/t${i}.md)${i === 150 ? ' scratch org' : ''}`) });
+  const r = run(out, '--terms', 'scratch org', 'https://developer.salesforce.com/docs/llms-x.txt').out;
+  assert.match(r, /^151: - \[Topic 150\]/m, r);
+  assert.doesNotMatch(r, /list or table/, r);
+  const many = run(out, '--terms', 'topic', 'https://developer.salesforce.com/docs/llms-x.txt').out;
+  assert.equal(shown(many).length, 20, many); // the page cap, not the 10 of a links sidecar
+});
+
+test('a page prints only the block with the most matches', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/two.md': page([lines(30, i => `filler ${i}`), '', '## Small', '',
+    lines(4, i => `- small item ${i}${i === 1 ? ' tooltip' : ''}`), '', '## Big', '', lines(6, i => `- tooltip row ${i}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'tooltip', '/docs/a/b/c/two.md').out;
+  assert.equal(r.split('\n').filter(l => l.startsWith('(list or table')).length, 1, r);
+  assert.ok(shown(r).some(l => l.endsWith(': - tooltip row 6')), r);
+  assert.ok(shown(r).some(l => l.endsWith(': - small item 1 tooltip')), r); // still shown as a matching line
+});
+
+test('a block past 200 lines is neither printed nor named, only its matching lines', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/huge.md': page([lines(30, i => `filler ${i}`), '', '## Values', '',
+    lines(300, i => `- value ${i}${i === 250 ? ' edition' : ''}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'edition', '/docs/a/b/c/huge.md').out;
+  assert.match(r, /^284: - value 250 edition$/m, r);
+  assert.doesNotMatch(r, /list or table/, r);
+});
+
+test('a block holding a rare term outranks one holding more matches of a common term', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/rare.md': page([lines(20, i => `common words ${i}`), '', '**List of Rows**', '',
+    lines(5, i => `- row ${i}`), '', '**Approach**', '', 'The common words are classified:', '', lines(3, i => `- kind ${i}${i === 1 ? ' common words' : ''}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'common words,list of rows', '/docs/a/b/c/rare.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - row 5')), r);
+});
+
 test('a bold caption on its own line does not hide the first row of the list under it', () => {
   const out = cache({ 'developer.salesforce.com/docs/a/b/c/caption.md': page([lines(30, i => `filler ${i}`), '', '**List of Rows**', '',
     lines(5, i => `- row ${i}`), '', lines(30, i => `after ${i}`)]) });

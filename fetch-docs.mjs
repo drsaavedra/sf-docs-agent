@@ -89,11 +89,14 @@ const matches = (name, text, t) => text.split('\n').flatMap((line, i, ls) => {
   const low = i || !ls[0].startsWith('Source: ') ? plain(line).toLowerCase() : '', hit = t.filter(s => low.includes(s)); // a page's line 1 is its Source line; a sidecar has none
   return hit.length ? [{ name, n: i + 1, line, hit, at: Math.min(...hit.map(s => low.indexOf(s))) }] : [];
 });
-const rank = (ms, max = MAX_HITS) => {
-  if (ms.length <= max) return ms;
+const scorer = ms => {
   const df = Object.create(null); // a term like 'constructor' must not read Object.prototype
   for (const m of ms) for (const s of m.hit) df[s] = (df[s] || 0) + 1;
-  const score = m => m.hit.reduce((a, s) => a + 1 / df[s], 0);
+  return m => m.hit.reduce((a, s) => a + 1 / df[s], 0);
+};
+const rank = (ms, max = MAX_HITS) => {
+  if (ms.length <= max) return ms;
+  const score = scorer(ms);
   return ms.map((m, k) => [score(m), k, m]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, max)
     .sort((a, b) => a[1] - b[1]).map(x => x[2]);
 };
@@ -103,7 +106,8 @@ const more = (all, top) => all.length > top.length ? [`(${all.length - top.lengt
 // A list or table a match lands in prints whole, so the caller never picks a reading window that ends a row short.
 // Rows: markdown table and list lines, rendered table lines (tabs), and lines that open with a link or are only bold
 // or italic text (a table or term list flattened to paragraphs, as on the architect pages).
-const BLOCKS = 3, BLOCK_LINES = 60, BLOCK_CHARS = 6000;
+// One block a page: three cost 2x the output on the benchmark for short lists nobody asked about.
+const BLOCKS = 1, BLOCK_LINES = 60, BLOCK_CHARS = 6000, BLOCK_MAX = 200;
 const HEAD = /^#{1,6}\s|^\*\*[^*]+\*\*:?\s*$/;
 const rowKind = l => {
   if (/^\s*\|/.test(l)) return '|';
@@ -144,14 +148,21 @@ const blocksOf = ls => {
   }
   return out;
 };
-// The blocks holding a match, most matches first: each prints whole within its cap, or as its line range.
-const blockLines = (ls, all) => blocksOf(ls).map(([a, b]) => ({ a, b, hits: all.filter(m => m.n >= a && m.n <= b).length }))
-  .filter(x => x.hits).sort((x, y) => y.hits - x.hits || x.a - y.a).slice(0, BLOCKS).map(({ a, b }) => {
+// The block whose matches score highest (rarer terms count more, as in rank), then the densest, prints whole within
+// its cap, or as its line range. One past BLOCK_MAX lines (a reference page that is one long list) is left to the
+// matching lines: "Read 1,300 lines" is no help.
+const blockLines = (ls, all) => {
+  const score = scorer(all);
+  return blocksOf(ls).filter(([a, b]) => b - a < BLOCK_MAX)
+    .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
+    .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
+    .slice(0, BLOCKS).map(({ a, b }) => {
     const body = ls.slice(a - 1, b).map((l, i) => [a + i, l]).filter(([, l]) => l.trim());
     const fits = body.length <= BLOCK_LINES && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
     return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
       : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };
-  });
+    });
+};
 // A page this short is printed whole: its answer can sit on a line no term matches (a Help page's "95%" line).
 // Index files by shape (Help's /apex/Help_*SiteMap* pages, *sitemap*.xml), on the path under the cache dir: a doc
 // page about sitemaps, or an --out dir named for them, is neither.
@@ -165,7 +176,8 @@ const grep = (file, t) => {
   if (kind === 'index') return matches(null, text, ['<loc>']).map(show);
   // A sitemap lists each article twice (<loc> and its alternates): keep the <loc> line and show 40 articles.
   const map = kind === 'map', all = matches(null, text, t).filter(m => !map || m.line.includes('<loc>'));
-  if (map || file.endsWith('.links.txt')) { const top = rank(all, map ? 40 : MAX_LINKS); return [...top.map(show), ...more(all, top)]; }
+  // An llms.txt index is one long list of pages: its matching lines are the answer, not the list.
+  if (map || file.endsWith('.links.txt') || /(^|\/)llms[^/]*\.txt$/i.test(file)) { const top = rank(all, map ? 40 : file.endsWith('.links.txt') ? MAX_LINKS : MAX_HITS); return [...top.map(show), ...more(all, top)]; }
   // Lines a printed block shows are not repeated; the rest are ranked as before, and both print in page order.
   const blocks = blockLines(lines, all), rest = all.filter(m => !blocks.some(x => x.fits && m.n >= x.a && m.n <= x.b));
   const top = rank(rest);
