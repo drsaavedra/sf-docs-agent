@@ -75,5 +75,5 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   absolute paths in the install folder, with commands joined only by `&&`. The hook limits Read to the same
   folder. It stops all other commands, and it stops each command that it cannot parse. The hook runs only
   for this agent, not for your main session. It checks the text of each command before the command runs, so it is
-  not an operating system sandbox. On the 20-question regression, the hook stopped no command and the result stayed
-  at 20 of 20 (2026-11-03).
+  not an operating system sandbox. On the 20-question regression, the hook ran on each of 103 Bash and Read calls,
+  stopped none of them, and the result stayed at 20 of 20 (2026-11-03).
