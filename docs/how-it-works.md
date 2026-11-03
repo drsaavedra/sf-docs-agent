@@ -79,3 +79,6 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 - On the 20-question regression, the hook ran on 103 Bash and Read calls and stopped 3: a pipe, a `;` and a redirect.
   The agent changed those 3 calls, and the result stayed at 20 of 20. The guard at commit `8e12e06` stops the same 3
   calls when the 103 calls are replayed through it (2026-11-03).
+- For a `--project` install, Claude Code runs the hook only in a folder that you trust. In a folder that you did
+  not trust, for example under `claude -p`, the agent runs without the hook (measured 2026-11-03). A user install,
+  the default, runs the hook in every folder.

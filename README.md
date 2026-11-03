@@ -28,7 +28,7 @@ Needs Node 22+ and Claude Code.
 npx sf-docs-agent
 ```
 
-Then start a new Claude Code session. The agent is listed as `sf-docs`. Add `--project` to install it for the current project only.
+Then start a new Claude Code session. The agent is listed as `sf-docs`. Add `--project` to install it for the current project only. Claude Code then runs the agent's hook only in a folder you trust: in one you have not trusted, for example under `claude -p`, the agent runs without it.
 
 <details>
 <summary>Headless browser, Linux, update, remove, cache</summary>
