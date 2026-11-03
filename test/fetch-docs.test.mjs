@@ -410,3 +410,17 @@ test('a block line longer than 300 chars prints clipped, as a matching line does
   assert.ok(r.length < 2000, `${r.length} chars`);
   assert.ok(shown(r).some(l => l.endsWith(': c\tshort')), r);
 });
+
+test('a doc page whose name starts with llms is a page, not an llms.txt index', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/llms-overview.html.txt': page([lines(30, i => `filler ${i}`), '', '## Steps', '',
+    lines(25, i => `- step ${i}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'steps', 'https://developer.salesforce.com/docs/a/b/c/llms-overview.html').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - step 25')), r);
+});
+
+test('a list item holding a tab is still a list row', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/tabbed.md': page([lines(30, i => `filler ${i}`), '', '## Keys', '',
+    lines(5, i => i === 3 ? '- key 3\twith a tab' : `- key ${i}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'keys', '/docs/a/b/c/tabbed.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - key 5')), r);
+});
