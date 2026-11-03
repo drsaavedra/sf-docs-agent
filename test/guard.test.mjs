@@ -30,6 +30,7 @@ const read = file_path => hook(JSON.stringify({ tool_name: 'Read', tool_input: {
 const allowed = [
   ['a fetch with terms', `${FD} --budget 480 developer.salesforce.com/docs/llms.txt --terms 'oauth,userinfo'`],
   ['a quoted Help URL with & and ?, with 2>&1', `${FD} --budget 480 'https://help.salesforce.com/s/articleView?id=x.htm&type=5' 2>&1`],
+  ['2>&1 directly before &&', `${FD} --search x 2>&1&& ${FD} --search y`],
   ['a fetch then a search', `${FD} --budget 480 x.md --terms a && ${FD} --search 'b c'`],
   ['--quote with a cache-relative file', `${FD} --quote help.salesforce.com/s/a.txt:11,13`],
   ['grep -n -C3 on a cache file', `grep -n -C3 -e 'term' -e 'other' "${C}/developer.salesforce.com/docs/p.md"`],
