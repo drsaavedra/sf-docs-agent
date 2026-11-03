@@ -480,3 +480,10 @@ test('a line right under a row, with no blank between, continues it', () => {
   const r = run(md, '--terms', 'target', '/docs/a/b/c/lazy.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': - four')), r);
 });
+
+test('a fence line that never closes hides nothing below it', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_tilde.htm_type_5.txt': page([lines(30, i => `filler ${i}`), '~~~', '',
+    'NAME\tVALUE', lines(6, i => `row${i}\tv${i}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'name', 'https://help.salesforce.com/s/articleView?id=tilde.htm&type=5').out;
+  assert.ok(shown(r).some(l => l.endsWith(': row6\tv6')), r);
+});

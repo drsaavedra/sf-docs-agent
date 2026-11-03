@@ -123,13 +123,14 @@ const spills = (ls, j) => { for (let n = j; n < Math.min(ls.length, j + 30); n++
 // cell, which spills over up to 30 lines.
 const blocksOf = ls => {
   // Fenced lines are never rows (a doc comment's ' * ' lines read as a list): the same fence rule as lean.
-  let code = '';
-  const fenced = ls.map(l => {
+  let code = '', at = 0;
+  const fenced = ls.map((l, i) => {
     const f = /^\s*(`{3,}|~{3,})/.exec(l)?.[1];
-    if (f && !code) { code = f; return true; }
+    if (f && !code) { code = f; at = i; return true; }
     if (f && f[0] === code[0] && f.length >= code.length) { code = ''; return true; }
     return !!code;
   });
+  if (code) fenced.fill(false, at); // a fence that never closes is a stray ~~~ in rendered text, not code
   const out = [];
   for (let i = 1; i < ls.length; i++) {
     const k = rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
