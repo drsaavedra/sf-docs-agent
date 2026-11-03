@@ -458,3 +458,10 @@ test('a block never leads in with the code fence above it', () => {
     '```js', 'call(target)', '```', '- a', '- b', '- c', '', lines(30, i => `after ${i}`)]) });
   assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/code-then-list.md').out, /list or table/);
 });
+
+test('a code sample indented under a step stays inside the steps list', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/steps.md': page([lines(30, i => `filler ${i}`), '', '## Steps', '',
+    '1. Install target one', '', '   ```bash', '   sf org list', '   ```', '', '2. Configure two', '3. Deploy three', '4. Verify four', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'target', '/docs/a/b/c/steps.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': 4. Verify four')), r);
+});
