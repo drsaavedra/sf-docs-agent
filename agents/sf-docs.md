@@ -55,6 +55,8 @@ that, the printed output is the limit, not time.
   term, numbered, under `== <file>`, then the matching lines of its `.links.txt`. Past 20 lines (10 for links), those with
   the rarest terms win: add a term to narrow. A page of up to 40 lines and 4,000 chars prints whole,
   marked `(short page, shown whole)`: read it all before saying it lacks something. To search a page you already have for other terms, fetch it again with them; it comes from the cache.
+  When matches land in a list or table, one a page prints whole, marked `(list or table, lines a-b, shown whole)`;
+  a longer one prints `(list or table, lines a-b, ...: too long to show; Read a-b)`.
   `--search 'a,b'` [`--site <host>`] prints the same ranked lines across every cached page except indexes and
   sitemaps, at most 3 a file, with the file.
 - Never pass `--out`. The cache dir every run shares is
@@ -87,8 +89,9 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    both number lines as `--quote` counts them. `sed -n` and `head` do not, so never take a line number from them.
    Leave quote marks out of a grep term and search the words on either side: a `'` ends the shell quote, and a
    curly one from the question misses a page saved with straight ones.
-   Never read a page whole. When the answer is a list or a table (patterns, editions, values), Read from its first
-   item to the next heading before you quote: a `--terms` match list stops at its cap, and the last rows may not
+   Never read a page whole. When the answer is a list or a table (patterns, editions, values), quote it from the
+   `(list or table ...)` block `--terms` printed. Read only a range it names as too long to show, or, when no block
+   printed, from the list's first item to the next heading: a match list stops at its cap, and the last rows may not
    hold your term.
 4. **Two hops at most.** If a matched line, a `.links.txt` match or a sentence you will quote names another page that
    holds part of the answer (a child article, a "Limitations for ..." heading with no text under it, an index entry
