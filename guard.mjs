@@ -42,7 +42,6 @@ const commands = [];
   const src = args.command.replace(/^[ \t\n]+|[ \t\n]+$/g, '');
   // No control character but tab, quoted or not: a NUL cuts a word, and a backslash-newline is dropped even in "...".
   if (/[\0-\x08\x0a-\x1f\x7f-\x9f]/.test(src)) deny('a newline or control character');
-  const SPACE = /[^\S \t]/u; // outside quotes the shell splits on space and tab only, JS on NBSP and more as well
   let cmd = [], word = null;
   const end = () => { if (word) cmd.push(word); word = null; };
   const add = c => { word ??= { text: '' }; word.text += c; };
@@ -64,7 +63,6 @@ const commands = [];
       if (i + 1 >= src.length) deny('trailing backslash');
       add(src[++i]);
     } else if (c === ' ' || c === '\t') end();
-    else if (SPACE.test(c)) deny('a space other than space and tab, outside quotes');
     else if (c === '&' && src[i + 1] === '&') { end(); commands.push(cmd); cmd = []; i++; }
     else if (c === '2' && !word && src.startsWith('2>&1', i)
       && ([' ', '\t', undefined].includes(src[i + 4]) || src.startsWith('&&', i + 4))) i += 3;
