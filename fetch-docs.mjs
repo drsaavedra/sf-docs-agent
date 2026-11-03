@@ -158,7 +158,7 @@ const blocksOf = ls => {
     if (rows >= 3) {
       // Lead-in: up to 2 caption lines, then a heading right above them (Q50 has both).
       let a = i;
-      for (let t = i - 1, n = 0; t >= 1; t--) {
+      for (let t = i - 1, n = 0; t >= 1 && t > (out.at(-1)?.[1] ?? 0) - 1; t--) { // not into the block above
         if (fenced[t]) break;
         if (!ls[t].trim()) continue;
         if (HEAD.test(ls[t])) { a = t; break; } // before rowKind: a bold caption also reads as a bold-term row

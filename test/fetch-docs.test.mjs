@@ -456,6 +456,7 @@ test('a row of another kind ends a run, so a table after link rows keeps its hea
     '| Edition | Limit |', '| --- | --- |', lines(5, i => `| Name ${i} | ${i} |`), '', lines(30, i => `after ${i}`)]) });
   const r = run(out, '--terms', 'edition', 'https://architect.salesforce.com/docs/architect/y.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': | Name 5 | 5 |')), r);
+  assert.doesNotMatch(r, /: What row 3 does\./, r); // the link rows' last description is not the table's lead-in
 });
 
 test('a block never leads in with the code fence above it', () => {
