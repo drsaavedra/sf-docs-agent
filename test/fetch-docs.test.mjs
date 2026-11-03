@@ -424,11 +424,11 @@ test('a doc page whose name starts with llms is a page, not an llms.txt index', 
   assert.ok(shown(r).some(l => l.endsWith(': - step 25')), r);
 });
 
-test('a list item holding a tab is still a list row', () => {
-  const out = cache({ 'developer.salesforce.com/docs/a/b/c/tabbed.md': page([lines(30, i => `filler ${i}`), '', '## Keys', '',
-    lines(5, i => i === 3 ? '- key 3\twith a tab' : `- key ${i}`), '', lines(30, i => `after ${i}`)]) });
-  const r = run(out, '--terms', 'keys', '/docs/a/b/c/tabbed.md').out;
-  assert.ok(shown(r).some(l => l.endsWith(': - key 5')), r);
+test('a rendered row whose first cell starts like a list marker stays in its table', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_dash.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'NAME\tVALUE', 'one target\t1', 'two\t2', '-\tnone', '1. Step\tfirst', 'five\t5', 'six\t6', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'target', 'https://help.salesforce.com/s/articleView?id=dash.htm&type=5').out;
+  assert.ok(shown(r).some(l => l.endsWith(': six\t6')), r);
 });
 
 test('a match in a nested item prints the whole list it sits in', () => {

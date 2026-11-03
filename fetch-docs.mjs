@@ -122,9 +122,9 @@ const fences = ls => {
 // bold or italic text (a table or term list flattened, as on the architect pages).
 const rowKind = l => {
   if (/^\s*\|/.test(l)) return '|';
+  if (l.includes('\t')) return '\t'; // before list markers: a rendered cell can start with '-' or '1.'
   const li = /^(\s*)(?:[-*+]|\d+[.)])\s/.exec(l);
   if (li) return `-${li[1].length}`; // a deeper item continues the one above it
-  if (l.includes('\t')) return '\t';
   return /^\[[^\]]+\]\(/.test(l) ? '[' : BOLD.test(l) ? '**' : /^_[^_]+_\s*$/.test(l) ? '_' : '';
 };
 // Paragraph rows may have a description of up to two lines between them; other rows none.
