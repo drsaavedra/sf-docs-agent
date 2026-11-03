@@ -71,7 +71,8 @@ const commands = [];
     else if ('*?['.includes(c)) deny(`wildcard ${c}: name each file, or quote the pattern`);
     else if ('$`'.includes(c)) deny('variables and command substitution');
     else if (c === '|' || c === ';') deny(`${c}: join commands only with &&`);
-    else if ('&<>(){}!#~=^'.includes(c) && (!word || !'=#'.includes(c))) deny(`shell syntax ${c}`);
+    // # anywhere: zsh's extendedglob makes x# a wildcard. = only starts a word in zsh's =cmd expansion.
+    else if ('&<>(){}!#~=^'.includes(c) && (!word || c !== '=')) deny(`shell syntax ${c}`);
     else add(c);
   }
   end();

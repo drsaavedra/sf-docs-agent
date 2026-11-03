@@ -80,6 +80,7 @@ const denied = [
   ['an unclosed quote', `grep -e 'x ${A}`],
   ['grep -R, which follows every symlink it meets', `grep -R -e SECRET "${C}"`],
   ['a .* glob, which bash before 5.2 expands to ..', `grep -c -e root ${C}/.*/.*/.*/etc/passwd`],
+  ['a # inside a word, a wildcard under zsh extendedglob', `grep -e SECRET ${C}/link.txt#`],
   ['a glob that reaches a symlink in the cache', `grep -e SECRET ${C}/link*`],
   ['2>&1 then a vertical tab, which zsh reads as a redirect to a file', `${FD} --search x 2>&1\u000bfoo`],
   ['2>&1 then a no-break space', `${FD} --search x 2>&1\u00a0foo`],
