@@ -243,3 +243,61 @@ test('a page 0.1.2 cached with an http:// Source line is not reported as redirec
 test('a refused http:// URL is echoed as given', () => {
   assert.match(run(cache({}), 'http://example.com/x').out, /^refused http:\/\/example\.com\/x: not an official doc site$/m);
 });
+
+// A list or table a --terms match lands in is printed whole, so the caller never picks a reading window.
+const shown = r => r.split('\n').filter(l => /^\d+: /.test(l));
+const page = parts => parts.flat().join('\n');
+
+test('--terms prints a whole markdown table when a match lands in its header, past the match cap', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/table.md': page([lines(30, i => `filler ${i}`), '', '## Editions', '',
+    '| Edition | Limit |', '| --- | --- |', lines(30, i => `| Name ${i} | ${i} |`), '', '## Next', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'edition', '/docs/a/b/c/table.md').out;
+  assert.match(r, /^66: \| Name 30 \| 30 \|$/m, r);
+  assert.doesNotMatch(r, /after \d/, r);
+});
+
+test('--terms prints a whole rendered table, spilled cells included, and stops before the next table', () => {
+  const rows = lines(25, i => i === 5 ? 'format\t\n\nOptional. Values are:\n\njson\nxml\n' : `p${i}\tdesc ${i}`);
+  const out = cache({ 'help.salesforce.com/s/articleView_id_t.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'PARAMETER\tDESCRIPTION', rows, 'Other Limits', 'Intro line.', 'NAME\tVALUE', lines(5, i => `other${i}\tv${i}`)]) });
+  const r = run(out, '--terms', 'parameter', 'https://help.salesforce.com/s/articleView?id=t.htm&type=5').out;
+  assert.ok(shown(r).some(l => l.endsWith(': p25\tdesc 25')), r);
+  assert.ok(shown(r).some(l => l.endsWith(': json')), r);
+  assert.doesNotMatch(r, /other\d\tv/, r);
+});
+
+test('--terms prints a whole list of bold terms when a match lands in one definition', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/terms.md': page([lines(30, i => `filler ${i}`), '', '## Glossary', '',
+    lines(8, i => `**Term ${i}**\n\nDefinition ${i}.\n`), '## Next', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'definition 3', '/docs/a/b/c/terms.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': **Term 8**')), r);
+  assert.ok(shown(r).some(l => l.endsWith(': Definition 1.')), r);
+  assert.doesNotMatch(r, /after \d/, r);
+});
+
+test('Q50: --terms prints the sixth pattern row although the match cap falls before the table', () => {
+  const rows = ['Request and Reply', 'Fire and Forget', 'Batch Data Synchronization', 'Remote Call-In', 'UI Update Based on Data Changes', 'Data Virtualization']
+    .map((t, i) => `[${t}](https://architect.salesforce.com/docs/architect/fundamentals/guide/integration-patterns.html#p${i})\n\nWhat ${t} does.\n`);
+  const out = cache({ 'architect.salesforce.com/docs/architect/fundamentals/guide/integration-patterns.md': page([
+    lines(25, i => `pattern prose ${i}\n`), '**List of Patterns**', '', 'Patterns', '', 'Scenario', '', rows,
+    '**Pattern Approach**', '', 'Three categories follow.', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'pattern', 'https://architect.salesforce.com/docs/architect/fundamentals/guide/integration-patterns.md').out;
+  assert.ok(shown(r).some(l => l.includes('[Data Virtualization]')), r);
+  assert.ok(shown(r).some(l => l.endsWith(': What Data Virtualization does.')), r);
+  assert.match(r, /^\(list or table, lines 52-\d+, shown whole\)\n52: \*\*List of Patterns\*\*$/m, r); // its bold caption leads in
+});
+
+test('a list too long to print is named by its line range instead', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/long-list.md': page([lines(30, i => `filler ${i}`), '', '## Values', '',
+    lines(120, i => `- value ${i}`), '', '## Next', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'values', '/docs/a/b/c/long-list.md').out;
+  assert.match(r, /^\(list or table, lines 33-154, 122 lines: too long to show; Read 33-154\)$/m, r);
+  assert.doesNotMatch(r, /value 120/, r);
+});
+
+test('a match on the plain caption above a rendered table prints the table', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_c.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'Request Parameters', 'NAME\tDESCRIPTION', lines(25, i => `p${i}\tdesc ${i}`), lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'request parameters', 'https://help.salesforce.com/s/articleView?id=c.htm&type=5').out;
+  assert.ok(shown(r).some(l => l.endsWith(': p25\tdesc 25')), r);
+});

@@ -99,6 +99,59 @@ const rank = (ms, max = MAX_HITS) => {
 };
 const show = m => `${m.n}: ${m.line.length > 300 ? `...${m.line.slice(Math.max(0, m.at - 100), m.at + 200)}...` : m.line}`;
 const more = (all, top) => all.length > top.length ? [`(${all.length - top.length} more lower-ranked lines: add a term to narrow)`] : [];
+
+// A list or table a match lands in prints whole, so the caller never picks a reading window that ends a row short.
+// Rows: markdown table and list lines, rendered table lines (tabs), and lines that open with a link or are only bold
+// or italic text (a table or term list flattened to paragraphs, as on the architect pages).
+const BLOCKS = 3, BLOCK_LINES = 60, BLOCK_CHARS = 6000;
+const HEAD = /^#{1,6}\s|^\*\*[^*]+\*\*:?\s*$/;
+const rowKind = l => {
+  if (/^\s*\|/.test(l)) return '|';
+  if (l.includes('\t')) return '\t';
+  const li = /^(\s*)(?:[-*+]|\d+[.)])\s/.exec(l);
+  if (li) return `-${li[1].length}`; // a nested item is a continuation of the item above it, not a new kind
+  return /^\[[^\]]+\]\(/.test(l) ? '[' : /^\*\*[^*]+\*\*:?\s*$/.test(l) ? '**' : /^_[^_]+_\s*$/.test(l) ? '_' : '';
+};
+// Blocks of 3 or more rows of one kind, as 1-based [first, last] lines. One other line may sit between rows (a
+// description cell); a rendered row ending in a tab has an open cell, whose text spills over up to 30 lines.
+const blocksOf = ls => {
+  const out = [];
+  for (let i = 1; i < ls.length; i++) {
+    const k = rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
+    if (!k) continue;
+    let end = i, rows = 1, gap = 0, described = false, open = k === '\t' && ls[i].endsWith('\t') ? i : 0, j = i + 1;
+    for (; j < ls.length; j++) {
+      const l = ls[j];
+      if (!l.trim()) continue;
+      if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
+      if ((open && j - open <= 30) || (indent >= 0 && /^\s*/.exec(l)[0].length > indent)) { end = j; continue; }
+      if (HEAD.test(l) || ++gap > 1) break;
+    }
+    // The last row's description cell belongs to it when the rows had one each.
+    if (described) for (let t = end + 1; t < j; t++) if (ls[t].trim()) end = t;
+    if (rows >= 3) {
+      // Lead-in: the caption or header lines above, up to 3, ending at a heading.
+      let a = i;
+      for (let t = i - 1, n = 0; t >= 1 && n < 3; t--) {
+        if (!ls[t].trim()) continue;
+        if (HEAD.test(ls[t])) { a = t; break; } // before rowKind: a bold caption also reads as a bold-term row
+        if (rowKind(ls[t]) || ls[t].length > 200) break;
+        a = t; n++;
+      }
+      out.push([a + 1, end + 1]);
+    }
+    i = j - 1;
+  }
+  return out;
+};
+// The blocks holding a match, most matches first: each prints whole within its cap, or as its line range.
+const blockLines = (ls, all) => blocksOf(ls).map(([a, b]) => ({ a, b, hits: all.filter(m => m.n >= a && m.n <= b).length }))
+  .filter(x => x.hits).sort((x, y) => y.hits - x.hits || x.a - y.a).slice(0, BLOCKS).map(({ a, b }) => {
+    const body = ls.slice(a - 1, b).map((l, i) => [a + i, l]).filter(([, l]) => l.trim());
+    const fits = body.length <= BLOCK_LINES && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
+    return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
+      : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };
+  });
 // A page this short is printed whole: its answer can sit on a line no term matches (a Help page's "95%" line).
 // Index files by shape (Help's /apex/Help_*SiteMap* pages, *sitemap*.xml), on the path under the cache dir: a doc
 // page about sitemaps, or an --out dir named for them, is neither.
@@ -112,8 +165,12 @@ const grep = (file, t) => {
   if (kind === 'index') return matches(null, text, ['<loc>']).map(show);
   // A sitemap lists each article twice (<loc> and its alternates): keep the <loc> line and show 40 articles.
   const map = kind === 'map', all = matches(null, text, t).filter(m => !map || m.line.includes('<loc>'));
-  const top = rank(all, map ? 40 : file.endsWith('.links.txt') ? MAX_LINKS : MAX_HITS);
-  return [...top.map(show), ...more(all, top)];
+  if (map || file.endsWith('.links.txt')) { const top = rank(all, map ? 40 : MAX_LINKS); return [...top.map(show), ...more(all, top)]; }
+  // Lines a printed block shows are not repeated; the rest are ranked as before, and both print in page order.
+  const blocks = blockLines(lines, all), rest = all.filter(m => !blocks.some(x => x.fits && m.n >= x.a && m.n <= x.b));
+  const top = rank(rest);
+  return [...top.map(m => [m.n, [show(m)]]), ...blocks.map(x => [x.a, x.out])].sort((x, y) => x[0] - y[0])
+    .flatMap(x => x[1]).concat(more(rest, top));
 };
 
 // --quote: the agent picks line numbers, the script copies the lines, so quotes are verbatim by construction.
