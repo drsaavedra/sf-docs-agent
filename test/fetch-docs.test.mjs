@@ -404,12 +404,17 @@ test('lines outside the block rank by how rare their term is on the whole page',
   assert.doesNotMatch(r, /one more common line/, r);
 });
 
-test('a block line longer than 300 chars prints clipped, as a matching line does', () => {
+test('a block never cuts a line: a match deep in a long cell prints, and a very long cell makes the block too long', () => {
   const out = cache({ 'help.salesforce.com/s/articleView_id_long.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
-    'NAME\tDESCRIPTION', 'a\tshort', `b\t${'x'.repeat(5000)}`, 'c\tshort', lines(30, i => `after ${i}`)]) });
-  const r = run(out, '--terms', 'description', 'https://help.salesforce.com/s/articleView?id=long.htm&type=5').out;
-  assert.ok(r.length < 2000, `${r.length} chars`);
-  assert.ok(shown(r).some(l => l.endsWith(': c\tshort')), r);
+    'NAME\tDESCRIPTION', 'a\tshort', `b\t${'x '.repeat(200)}needle here`, 'c\tshort', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'needle', 'https://help.salesforce.com/s/articleView?id=long.htm&type=5').out;
+  assert.match(r, /needle here/, r);
+  assert.match(r, /shown whole/, r);
+  const huge = cache({ 'help.salesforce.com/s/articleView_id_huge.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'NAME\tDESCRIPTION', 'a\tshort', `b\t${'x'.repeat(5000)}`, 'c\tshort', '', lines(30, i => `after ${i}`)]) });
+  const h = run(huge, '--terms', 'description', 'https://help.salesforce.com/s/articleView?id=huge.htm&type=5').out;
+  assert.match(h, /too long to show/, h);
+  assert.ok(h.length < 2000, `${h.length} chars`);
 });
 
 test('a doc page whose name starts with llms is a page, not an llms.txt index', () => {

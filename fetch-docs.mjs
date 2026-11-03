@@ -104,7 +104,7 @@ const more = (all, top) => all.length > top.length ? [`(${all.length - top.lengt
 
 // A list or table a match lands in prints whole, so no reading window ends a row short. One block a page: three
 // doubled the benchmark's output with short lists nobody asked about.
-const BLOCKS = 1, BLOCK_LINES = 60, BLOCK_CHARS = 6000, BLOCK_MAX = 200;
+const BLOCKS = 1, BLOCK_LINES = 60, BLOCK_LINE = 1000, BLOCK_CHARS = 6000, BLOCK_MAX = 200;
 const BOLD = /^\*\*[^*]+\*\*:?\s*$/, HEAD = new RegExp(`^#{1,6}\\s|${BOLD.source}`);
 // Rows: markdown table and list lines, rendered table lines (tabs), and paragraphs that open with a link or are only
 // bold or italic text (a table or term list flattened, as on the architect pages).
@@ -171,9 +171,10 @@ const blockLines = (ls, all) => {
     .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
     .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
     .slice(0, BLOCKS).map(({ a, b }) => {
-      // Clipped at 300 chars, as show() clips a matching line.
-      const body = ls.slice(a - 1, b).map((l, i) => [a + i, l.length > 300 ? `${l.slice(0, 300)}...` : l]).filter(([, l]) => l.trim());
-      const fits = body.length <= BLOCK_LINES && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
+      // Never cut: a block that prints is whole, so a line past BLOCK_LINE makes it too long instead.
+      const body = ls.slice(a - 1, b).map((l, i) => [a + i, l]).filter(([, l]) => l.trim());
+      const fits = body.length <= BLOCK_LINES && body.every(([, l]) => l.length <= BLOCK_LINE)
+        && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
       return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
         : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };
     });
