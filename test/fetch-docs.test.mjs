@@ -509,3 +509,16 @@ test('a column-0 line inside a fence indented under a step keeps the steps toget
   const r = run(out, '--terms', 'target', '/docs/a/b/c/heredoc.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': 4. Verify four')), r);
 });
+
+test('list markers at column 0 inside a fence under a step are code, not rows', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/heredoc-list.md': page([lines(30, i => `filler ${i}`), '',
+    '1. Create target file', '', '   ```bash', '   cat <<EOF > x.md', '- one', '- two', 'EOF', '   ```', '', lines(30, i => `after ${i}`)]) });
+  assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/heredoc-list.md').out, /list or table/);
+});
+
+test('a line of inline code in backticks opens no fence', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/inline.md': page([lines(30, i => `filler ${i}`), '', '```x``` is inline', '',
+    '## Items', '', lines(5, i => `- item ${i}${i === 1 ? ' target' : ''}`), '', '```', 'code', '```', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'target', '/docs/a/b/c/inline.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - item 5')), r);
+});

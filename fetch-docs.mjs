@@ -106,18 +106,19 @@ const more = (all, top) => all.length > top.length ? [`(${all.length - top.lengt
 // doubled the benchmark's output with short lists nobody asked about.
 const BLOCKS = 1, BLOCK_LINES = 60, BLOCK_LINE = 1000, BLOCK_CHARS = 6000, BLOCK_MAX = 200;
 const BOLD = /^\*\*[^*]+\*\*:?\s*$/, HEAD = new RegExp(`^#{1,6}\\s|${BOLD.source}`);
-// Code fences, CommonMark: closed by the same character, at least as long, with nothing after it. A line that never
-// closes is stray text (rendered Help has them), not a fence. start[i]: the line that opens i's fence, or -1.
-const fences = ls => {
-  const start = ls.map(() => -1);
+// Code fences, CommonMark: opened by ``` (no backtick after it) or ~~~, closed by a bare line of the same character, at
+// least as long; [open, close] line pairs. An opener that never closes fences the rest of the page, or with skipStray
+// is taken as stray text (rendered Help has them) and the scan goes on after it.
+const fences = (ls, skipStray) => {
+  const out = [];
   for (let i = 0; i < ls.length; i++) {
-    const f = /^\s*(`{3,}|~{3,})/.exec(ls[i])?.[1];
+    const f = /^\s*(`{3,}(?=[^`]*$)|~{3,})/.exec(ls[i])?.[1];
     if (!f) continue;
     let j = i + 1;
     for (let c; j < ls.length; j++) if ((c = /^\s*(`{3,}|~{3,})\s*$/.exec(ls[j])?.[1]) && c[0] === f[0] && c.length >= f.length) break;
-    if (j < ls.length) { start.fill(i, i, j + 1); i = j; }
+    if (j < ls.length) { out.push([i, j]); i = j; } else if (!skipStray) { out.push([i, ls.length - 1]); break; }
   }
-  return start;
+  return out;
 };
 // Rows: markdown table and list lines, rendered table lines (tabs), and paragraphs that open with a link or are only
 // bold or italic text (a table or term list flattened, as on the architect pages).
@@ -135,18 +136,21 @@ const spills = (ls, j) => { for (let n = j; n < Math.min(ls.length, j + 30); n++
 // Blocks of 3 or more rows of one kind, as 1-based [first, last] lines; a rendered row ending in a tab has an open
 // cell, which spills over up to 30 lines.
 const blocksOf = ls => {
-  // Fenced lines are never rows (a doc comment's ' * ' lines read as a list).
-  const start = fences(ls), fenced = start.map(x => x >= 0);
+  // A fence is one unit, never rows (a doc comment's ' * ' lines read as a list). A stray opener is skipped here;
+  // lean keeps it as code to the end, which leaves the text untouched.
+  const fenced = ls.map(() => false), close = [];
+  for (const [o, c] of fences(ls, true)) { fenced.fill(true, o, c + 1); close[o] = c; }
   const out = [];
   for (let i = 1; i < ls.length; i++) {
-    const k = rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
+    const k = fenced[i] ? '' : rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
     if (!k) continue;
     let end = i, rows = 1, gap = 0, described = false, open = k === '\t' && ls[i].endsWith('\t') ? i : 0, j = i + 1;
     for (; j < ls.length; j++) {
       const l = ls[j];
       if (!l.trim()) continue;
-      const deeper = indent >= 0 && /^\s*/.exec(fenced[j] ? ls[start[j]] : l)[0].length > indent; // a fence counts by its opener
-      if (fenced[j] && !deeper) break;
+      const deeper = indent >= 0 && /^\s*/.exec(l)[0].length > indent;
+      if (close[j] !== undefined && deeper) { end = j = close[j]; continue; } // code under the item: skip it whole
+      if (fenced[j]) break;
       const rk = rowKind(l);
       if (rk === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
       if ((open && j - open <= 30) || deeper || (k === '\t' && spills(ls, j))) { end = j; continue; }
@@ -403,9 +407,10 @@ let ok = 0;
 // A saved page drops what is not doc text: image URLs (LDS signs S3 URLs of about 450 chars; the alt text stays) and
 // the padding in markdown table rows. Code blocks and wording are untouched.
 const lean = text => {
-  const ls = text.split('\n'), start = fences(ls);
+  const ls = text.split('\n'), code = ls.map(() => false);
+  for (const [o, c] of fences(ls)) code.fill(true, o, c + 1);
   return ls.map((l, i) => {
-    if (start[i] >= 0) return l;
+    if (code[i]) return l;
     l = l.replace(/!\[([^\]]*)\]\(https?:\/\/[^)\s]+\)/g, '![$1]');
     return /^\s*\|/.test(l) ? l.replace(/ {2,}/g, ' ') : l;
   }).join('\n');
