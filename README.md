@@ -28,7 +28,7 @@ Needs Node 22+ and Claude Code.
 npx sf-docs-agent
 ```
 
-Then start a new Claude Code session. The agent is listed as `sf-docs`. Add `--project` to install it for the current project only.
+Then start a new Claude Code session. The agent is listed as `sf-docs`. Add `--project` to install it for the current project only. Claude Code then runs the agent's hook only in a folder you trust: in one you have not trusted, for example under `claude -p`, the agent runs without it.
 
 <details>
 <summary>Headless browser, Linux, update, remove, cache</summary>
@@ -104,7 +104,7 @@ Every number, per question, with the method: [docs/benchmarks.md](https://github
 - From a page it found, it follows at most two more links in a row, and only toward a missing part of the answer. Anything further comes back as a gap.
 - When a search term lands in a list or table, the script prints the whole list, one a page, up to 60 lines; a longer one it names by its line range. It cannot see a list on a rendered page, which has no list markers, and there the agent can still stop a row early. The quotes it gives are still right.
 - If a site blocks headless browsers, it stops and tells you. It does not try to get around the block.
-- The agent has Bash. Its instructions limit it to its script and cache, but that is an instruction to the model, not a sandbox.
+- The agent has Bash and Read. A hook limits Bash to the agent's script and to `grep` on files in its install folder. It limits Read to that folder. The hook stops all other commands. It checks the text of each command before the command runs, so it is not an operating system sandbox.
 - No telemetry. Only the docs pages it fetches leave your machine.
 
 How it reads each site, and the full list: [docs/how-it-works.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/how-it-works.md)

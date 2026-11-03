@@ -16,6 +16,7 @@ const agents = project ? resolve('.claude', 'agents') : join(config, 'agents');
 
 mkdirSync(runtime, { recursive: true });
 cpSync(join(pkg, 'fetch-docs.mjs'), join(runtime, 'fetch-docs.mjs'));
+cpSync(join(pkg, 'guard.mjs'), join(runtime, 'guard.mjs')); // the agent's PreToolUse hook, named in its frontmatter
 // A devDependency: npx would otherwise download playwright-core once for the installer and again for the runtime.
 const version = JSON.parse(readFileSync(join(pkg, 'package.json'), 'utf8')).devDependencies['playwright-core'];
 writeFileSync(join(runtime, 'package.json'),
