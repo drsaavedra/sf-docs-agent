@@ -89,31 +89,126 @@ const matches = (name, text, t) => text.split('\n').flatMap((line, i, ls) => {
   const low = i || !ls[0].startsWith('Source: ') ? plain(line).toLowerCase() : '', hit = t.filter(s => low.includes(s)); // a page's line 1 is its Source line; a sidecar has none
   return hit.length ? [{ name, n: i + 1, line, hit, at: Math.min(...hit.map(s => low.indexOf(s))) }] : [];
 });
-const rank = (ms, max = MAX_HITS) => {
-  if (ms.length <= max) return ms;
+const scorer = ms => {
   const df = Object.create(null); // a term like 'constructor' must not read Object.prototype
   for (const m of ms) for (const s of m.hit) df[s] = (df[s] || 0) + 1;
-  const score = m => m.hit.reduce((a, s) => a + 1 / df[s], 0);
+  return m => m.hit.reduce((a, s) => a + 1 / df[s], 0);
+};
+const rank = (ms, max = MAX_HITS, score = scorer(ms)) => {
+  if (ms.length <= max) return ms;
   return ms.map((m, k) => [score(m), k, m]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, max)
     .sort((a, b) => a[1] - b[1]).map(x => x[2]);
 };
 const show = m => `${m.n}: ${m.line.length > 300 ? `...${m.line.slice(Math.max(0, m.at - 100), m.at + 200)}...` : m.line}`;
 const more = (all, top) => all.length > top.length ? [`(${all.length - top.length} more lower-ranked lines: add a term to narrow)`] : [];
+
+// A list or table a match lands in prints whole, so no reading window ends a row short. One block a page: three
+// doubled the benchmark's output with short lists nobody asked about.
+const BLOCKS = 1, BLOCK_LINES = 60, BLOCK_LINE = 1000, BLOCK_CHARS = 6000, BLOCK_MAX = 200;
+const BOLD = /^\*\*[^*]+\*\*:?\s*$/, HEAD = new RegExp(`^#{1,6}\\s|${BOLD.source}`);
+// Code fences, CommonMark: opened by ``` (no backtick after it) or ~~~, closed by a bare line of the same character, at
+// least as long; [open, close] line pairs. An opener that never closes fences the rest of the page, or with skipStray
+// is taken as stray text (rendered Help has them) and the scan goes on after it.
+const fences = (ls, skipStray) => {
+  const out = [];
+  for (let i = 0; i < ls.length; i++) {
+    const f = /^\s*(`{3,}(?=[^`]*$)|~{3,})/.exec(ls[i])?.[1];
+    if (!f) continue;
+    let j = i + 1;
+    for (let c; j < ls.length; j++) if ((c = /^\s*(`{3,}|~{3,})\s*$/.exec(ls[j])?.[1]) && c[0] === f[0] && c.length >= f.length) break;
+    if (j < ls.length) { out.push([i, j]); i = j; } else if (!skipStray) { out.push([i, ls.length - 1]); break; }
+  }
+  return out;
+};
+// Rows: markdown table and list lines, rendered table lines (tabs), and paragraphs that open with a link or are only
+// bold or italic text (a table or term list flattened, as on the architect pages).
+const rowKind = l => {
+  if (/^\s*\|/.test(l)) return '|';
+  if (l.includes('\t')) return '\t'; // before list markers: a rendered cell can start with '-' or '1.'
+  const li = /^(\s*)(?:[-*+]|\d+[.)])\s/.exec(l);
+  if (li) return `-${li[1].length}`; // a deeper item continues the one above it
+  return /^\[[^\]]+\]\(/.test(l) ? '[' : BOLD.test(l) ? '**' : /^_[^_]+_\s*$/.test(l) ? '_' : '';
+};
+// Paragraph rows may have a description of up to two lines between them; other rows none.
+const PARAS = new Set(['[', '**', '_']);
+// A rendered cell spills over lines up to the next tab row when that row opens with a tab.
+const spills = (ls, j) => { for (let n = j; n < Math.min(ls.length, j + 30); n++) if (ls[n].includes('\t')) return ls[n].startsWith('\t'); return false; };
+// Blocks of 3 or more rows of one kind, as 1-based [first, last] lines; a rendered row ending in a tab has an open
+// cell, which spills over up to 30 lines.
+const blocksOf = ls => {
+  // A fence is one unit, never rows (a doc comment's ' * ' lines read as a list). A stray opener is skipped here;
+  // lean keeps it as code to the end, which leaves the text untouched.
+  const fenced = ls.map(() => false), close = [];
+  for (const [o, c] of fences(ls, true)) { fenced.fill(true, o, c + 1); close[o] = c; }
+  const out = [];
+  for (let i = 1; i < ls.length; i++) {
+    const k = rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
+    if (!k) continue;
+    let end = i, rows = 1, gap = 0, described = false, open = k === '\t' && ls[i].endsWith('\t') ? i : 0, j = i + 1;
+    for (; j < ls.length; j++) {
+      const l = ls[j];
+      if (!l.trim()) continue;
+      const deeper = indent >= 0 && /^\s*/.exec(l)[0].length > indent;
+      if (close[j] !== undefined && deeper) { end = j = close[j]; continue; } // code under the item: skip it whole
+      if (fenced[j]) break;
+      const rk = rowKind(l);
+      if (rk === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
+      if ((open && j - open <= 30) || deeper || (k === '\t' && spills(ls, j))) { end = j; continue; }
+      if (HEAD.test(l) || rk || ++gap > (PARAS.has(k) ? 2 : 0)) break; // a row of another kind starts its own run
+    }
+    if (described) for (let t = end + 1; t < j; t++) if (ls[t].trim()) end = t; // the last row's description
+    if (rows >= 3) {
+      // Lead-in: up to 2 caption lines, then a heading right above them (Q50 has both).
+      let a = i;
+      for (let t = i - 1, n = 0; t >= 1 && t > (out.at(-1)?.[1] ?? 0) - 1; t--) { // not into the block above
+        if (fenced[t]) break;
+        if (!ls[t].trim()) continue;
+        if (HEAD.test(ls[t])) { a = t; break; } // before rowKind: a bold caption also reads as a bold-term row
+        if (rowKind(ls[t]) || ls[t].length > 200 || n === 2) break;
+        a = t; n++;
+      }
+      out.push([a + 1, end + 1]);
+      i = end; // past a block only, to its last line: the line that broke the run may open the next one
+    }
+  }
+  return out;
+};
+// The block whose matches score highest (rarer terms count more), then the densest, prints whole or as its range;
+// one past BLOCK_MAX lines is left to its matching lines ("Read 1,300 lines" is no help).
+const blockLines = (ls, all, score) => blocksOf(ls).filter(([a, b]) => b - a < BLOCK_MAX)
+  .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
+  .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
+  .slice(0, BLOCKS).map(({ a, b }) => {
+    // Never cut: a block that prints is whole, so a line past BLOCK_LINE makes it too long instead.
+    const body = ls.slice(a - 1, b).map((l, i) => [a + i, l]).filter(([, l]) => l.trim());
+    const fits = body.length <= BLOCK_LINES && body.every(([, l]) => l.length <= BLOCK_LINE)
+      && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
+    return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
+      : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };
+  });
 // A page this short is printed whole: its answer can sit on a line no term matches (a Help page's "95%" line).
 // Index files by shape (Help's /apex/Help_*SiteMap* pages, *sitemap*.xml), on the path under the cache dir: a doc
 // page about sitemaps, or an --out dir named for them, is neither.
 const indexKind = rel => /(^|\/)apex\/Help_\w*SiteMapIndex|sitemap_index[^/]*\.xml$/i.test(rel) ? 'index'
   : /(^|\/)apex\/Help_\w*SiteMap|[^/]*sitemap[^/]*\.xml$/i.test(rel) ? 'map' : '';
+// llms.txt and llms-<product>.txt, not a page whose cached name starts with llms (llms-overview.html.txt).
+const isLlms = rel => /(^|\/)llms(-[\w-]+)?\.txt$/i.test(rel);
 const grep = (file, t) => {
-  const text = readFileSync(file, 'utf8'), lines = text.split('\n'), kind = indexKind(slash(relative(out, file)));
-  if (!file.endsWith('.links.txt') && lines.length <= SHORT_LINES && text.length <= SHORT_CHARS)
+  const text = readFileSync(file, 'utf8'), lines = text.split('\n'), rel = slash(relative(out, file)), kind = indexKind(rel);
+  const links = file.endsWith('.links.txt');
+  if (!links && lines.length <= SHORT_LINES && text.length <= SHORT_CHARS)
     return ['(short page, shown whole)', ...lines.slice(1, text.endsWith('\n') ? -1 : undefined).map((l, i) => `${i + 2}: ${l}`)]; // line 1 is the Source line
   // A sitemap index names page sitemaps, not topics, so no term can pick among them: print every <loc> line.
   if (kind === 'index') return matches(null, text, ['<loc>']).map(show);
   // A sitemap lists each article twice (<loc> and its alternates): keep the <loc> line and show 40 articles.
   const map = kind === 'map', all = matches(null, text, t).filter(m => !map || m.line.includes('<loc>'));
-  const top = rank(all, map ? 40 : file.endsWith('.links.txt') ? MAX_LINKS : MAX_HITS);
-  return [...top.map(show), ...more(all, top)];
+  // An llms.txt index is one long list of pages: its matching lines are the answer, not the list.
+  if (map || links || isLlms(rel)) { const top = rank(all, map ? 40 : links ? MAX_LINKS : MAX_HITS); return [...top.map(show), ...more(all, top)]; }
+  // Lines a printed block shows are not repeated; the rest are ranked as before, and both print in page order.
+  const score = scorer(all), blocks = all.length ? blockLines(lines, all, score) : [], rest = all.filter(m => !blocks.some(x => x.fits && m.n >= x.a && m.n <= x.b));
+  const top = rank(rest, MAX_HITS, score); // rarity over the whole page, not only the lines left
+  return [...top.map(m => [m.n, [show(m)]]), ...blocks.map(x => [x.a, x.out])].sort((x, y) => x[0] - y[0])
+    .flatMap(x => x[1]).concat(more(rest, top));
 };
 
 // --quote: the agent picks line numbers, the script copies the lines, so quotes are verbatim by construction.
@@ -165,7 +260,7 @@ if (args[0] === '--search') {
     const rel = slash(relative(out, f));
     // Sidecars and markers are not pages; a file another run pruned mid-walk is skipped.
     if (/\.(links\.txt|missing|tmp|fallback)$/.test(rel) || !statSync(f, { throwIfNoEntry: false })?.isFile()) continue;
-    if (/(^|\/)llms[^/]*\.txt$/i.test(rel) || indexKind(rel)) continue; // indexes: --terms on the index already shows them
+    if (isLlms(rel) || indexKind(rel)) continue; // indexes: --terms on the index already shows them
     // At most PER_FILE lines a file, so ties across files cannot all come from the one that sorts first.
     try { const ms = matches(rel, readFileSync(f, 'utf8'), t); total += ms.length; all.push(...rank(ms, PER_FILE)); }
     catch (e) { if (e.code !== 'ENOENT') throw e; }
@@ -312,12 +407,10 @@ let ok = 0;
 // A saved page drops what is not doc text: image URLs (LDS signs S3 URLs of about 450 chars; the alt text stays) and
 // the padding in markdown table rows. Code blocks and wording are untouched.
 const lean = text => {
-  let code = ''; // the open fence: closed only by the same character, at least as long (CommonMark)
-  return text.split('\n').map(l => {
-    const f = /^\s*(`{3,}|~{3,})/.exec(l)?.[1];
-    if (f && !code) { code = f; return l; }
-    if (f && f[0] === code[0] && f.length >= code.length) { code = ''; return l; }
-    if (code) return l;
+  const ls = text.split('\n'), code = ls.map(() => false);
+  for (const [o, c] of fences(ls)) code.fill(true, o, c + 1);
+  return ls.map((l, i) => {
+    if (code[i]) return l;
     l = l.replace(/!\[([^\]]*)\]\(https?:\/\/[^)\s]+\)/g, '![$1]');
     return /^\s*\|/.test(l) ? l.replace(/ {2,}/g, ' ') : l;
   }).join('\n');
