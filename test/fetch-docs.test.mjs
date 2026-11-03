@@ -394,3 +394,11 @@ test('a block leads in with at most two lines above its first row', () => {
   const r = run(out, '--terms', 'limits', 'https://help.salesforce.com/s/articleView?id=lead.htm&type=5').out;
   assert.match(r, /^\(list or table, lines 31-38, shown whole\)$/m, r);
 });
+
+test('lines outside the block rank by how rare their term is on the whole page', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/rarity.md': page([lines(30, i => `filler ${i}`), '', '## Items', '',
+    lines(30, i => `- common item ${i}`), '', 'one more common line', '', lines(25, i => `rare line ${i}\n`), lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'common,rare', '/docs/a/b/c/rarity.md').out;
+  assert.equal(shown(r).filter(l => / rare line \d+$/.test(l)).length, 20, r); // 'common' is on 31 lines, 'rare' on 25
+  assert.doesNotMatch(r, /one more common line/, r);
+});

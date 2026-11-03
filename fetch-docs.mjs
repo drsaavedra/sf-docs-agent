@@ -94,9 +94,8 @@ const scorer = ms => {
   for (const m of ms) for (const s of m.hit) df[s] = (df[s] || 0) + 1;
   return m => m.hit.reduce((a, s) => a + 1 / df[s], 0);
 };
-const rank = (ms, max = MAX_HITS) => {
+const rank = (ms, max = MAX_HITS, score = scorer(ms)) => {
   if (ms.length <= max) return ms;
-  const score = scorer(ms);
   return ms.map((m, k) => [score(m), k, m]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, max)
     .sort((a, b) => a[1] - b[1]).map(x => x[2]);
 };
@@ -194,7 +193,7 @@ const grep = (file, t) => {
   if (map || file.endsWith('.links.txt') || /(^|\/)llms[^/]*\.txt$/i.test(file)) { const top = rank(all, map ? 40 : file.endsWith('.links.txt') ? MAX_LINKS : MAX_HITS); return [...top.map(show), ...more(all, top)]; }
   // Lines a printed block shows are not repeated; the rest are ranked as before, and both print in page order.
   const blocks = blockLines(lines, all), rest = all.filter(m => !blocks.some(x => x.fits && m.n >= x.a && m.n <= x.b));
-  const top = rank(rest);
+  const top = rank(rest, MAX_HITS, scorer(all)); // rarity over the whole page, not only the lines left
   return [...top.map(m => [m.n, [show(m)]]), ...blocks.map(x => [x.a, x.out])].sort((x, y) => x[0] - y[0])
     .flatMap(x => x[1]).concat(more(rest, top));
 };
