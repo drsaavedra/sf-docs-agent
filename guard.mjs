@@ -45,7 +45,7 @@ const commands = [];
   if (/[\r\n]/.test(src)) deny('a newline: write one command line, joining commands with &&');
   let cmd = [], word = null;
   const end = () => { if (word) cmd.push(word); word = null; };
-  const add = (c, glob = false) => { word ??= { text: '', glob: false }; word.text += c; word.glob ||= glob; };
+  const add = c => { word ??= { text: '' }; word.text += c; };
   for (let i = 0; i < src.length; i++) {
     const c = src[i];
     if (c === "'") {
@@ -66,7 +66,8 @@ const commands = [];
     } else if (c === ' ' || c === '\t') end();
     else if (c === '&' && src[i + 1] === '&') { end(); commands.push(cmd); cmd = []; i++; }
     else if (c === '2' && !word && src.startsWith('2>&1', i) && /\s|$/.test(src[i + 4] ?? '')) i += 3;
-    else if ('*?['.includes(c)) add(c, true);
+    // A wildcard is checked as text but run as the files it matches (a symlink, or .. on bash before 5.2).
+    else if ('*?['.includes(c)) deny(`wildcard ${c}: name each file, or quote the pattern`);
     else if ('$`'.includes(c)) deny('variables and command substitution');
     else if (c === '|' || c === ';') deny(`${c}: join commands only with &&`);
     else if ('&<>(){}!#~=^'.includes(c) && (!word || !'=#'.includes(c))) deny(`shell syntax ${c}`);
@@ -85,7 +86,6 @@ const LONG = ['--regexp', '--include', '--exclude', '--exclude-dir', '--color', 
 for (const words of commands) {
   const [cmd, ...rest] = words.map(w => w.text);
   const path = w => {
-    if (w.glob && /(^|\/)\.\.(\/|$)/.test(w.text)) deny(`.. in a glob: ${w.text}`);
     if (!isAbsolute(w.text) || !inside(w.text)) deny(`${cmd} ${w.text}: not an absolute path under the install dir`);
   };
   if (cmd === 'node') {
