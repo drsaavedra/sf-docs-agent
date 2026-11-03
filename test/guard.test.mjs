@@ -52,7 +52,7 @@ const denied = [
   ['a home path', 'grep -e x ~/.ssh/id_ed25519'],
   ['a relative path', 'grep -n -e SECRET .env'],
   ['a .. path out of the cache', `grep -e x "${C}/../../../etc/passwd"`],
-  ['a glob that climbs with ..', `grep -e x "${C}/help.salesforce.com/s/"*/../../../x`],
+  ['an unquoted * wildcard', `grep -e x "${C}/help.salesforce.com/s/"*/../../../x`],
   ['a symlink in the cache that leads out', `grep -e x "${C}/link.txt"`],
   ['a variable', `${FD} --quote $HOME/.ssh/id_ed25519:1`],
   ['command substitution', 'grep -e $(id) /x'],
