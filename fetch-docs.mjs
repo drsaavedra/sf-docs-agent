@@ -119,13 +119,22 @@ const rowKind = l => {
 // Blocks of 3 or more rows of one kind, as 1-based [first, last] lines. One other line may sit between rows (a
 // description cell); a rendered row ending in a tab has an open cell, whose text spills over up to 30 lines.
 const blocksOf = ls => {
+  // Code fences (and the lines inside) are never rows: a doc comment's ' * ' lines read as a list. Same rule as lean.
+  let code = '';
+  const fenced = ls.map(l => {
+    const f = /^\s*(`{3,}|~{3,})/.exec(l)?.[1];
+    if (f && !code) { code = f; return true; }
+    if (f && f[0] === code[0] && f.length >= code.length) { code = ''; return true; }
+    return !!code;
+  });
   const out = [];
   for (let i = 1; i < ls.length; i++) {
-    const k = rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
+    const k = fenced[i] ? '' : rowKind(ls[i]), indent = k[0] === '-' ? Number(k.slice(1)) : -1;
     if (!k) continue;
     let end = i, rows = 1, gap = 0, described = false, open = k === '\t' && ls[i].endsWith('\t') ? i : 0, j = i + 1;
     for (; j < ls.length; j++) {
       const l = ls[j];
+      if (fenced[j]) break;
       if (!l.trim()) continue;
       if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
       if ((open && j - open <= 30) || (indent >= 0 && /^\s*/.exec(l)[0].length > indent)) { end = j; continue; }
@@ -137,6 +146,7 @@ const blocksOf = ls => {
       // Lead-in: the caption or header lines above, up to 3, ending at a heading.
       let a = i;
       for (let t = i - 1, n = 0; t >= 1 && n < 3; t--) {
+        if (fenced[t]) break;
         if (!ls[t].trim()) continue;
         if (HEAD.test(ls[t])) { a = t; break; } // before rowKind: a bold caption also reads as a bold-term row
         if (rowKind(ls[t]) || ls[t].length > 200) break;

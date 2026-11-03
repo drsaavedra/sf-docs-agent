@@ -341,3 +341,11 @@ test('a bold caption on its own line does not hide the first row of the list und
   const r = run(out, '--terms', 'list of rows', '/docs/a/b/c/caption.md').out;
   assert.match(r, /^\(list or table, lines 33-39, shown whole\)$/m, r);
 });
+
+test('lines inside a code fence are never rows, so a doc comment cannot take the list\'s block', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/fence.md': page([lines(30, i => `filler ${i}`), '', '## Items', '',
+    lines(7, i => `- item ${i}${i === 1 ? ' tooltip' : ''}`), '', '```apex', '/**', ' * Sets the tooltip text.', ' * @param tooltip the text',
+    ' * @return the tooltip', ' */', '```', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'tooltip', '/docs/a/b/c/fence.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - item 7')), r);
+});
