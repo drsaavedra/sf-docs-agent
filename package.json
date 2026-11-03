@@ -12,7 +12,8 @@
   "files": [
     "bin",
     "agents",
-    "fetch-docs.mjs"
+    "fetch-docs.mjs",
+    "guard.mjs"
   ],
   "repository": {
     "type": "git",
