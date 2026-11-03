@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -99,4 +99,13 @@ test('allows a Read in the cache and denies one outside it', () => {
 
 test('denies input it cannot parse', () => {
   assert.equal(hook('not json').status, 2);
+});
+
+// The hook line in the agent file, run as Claude Code runs it: a missing guard must deny, not exit 1 (which runs the call).
+test('the agent file hook denies when guard.mjs cannot run', () => {
+  const line = readFileSync(join(dirname(GUARD), 'agents', 'sf-docs.md'), 'utf8').match(/command: '(.+guard\.mjs.*)'/)[1];
+  const run = dir => spawnSync('sh', ['-c', line.replaceAll('/path/to/sf-docs-agent', dir)],
+    { input: JSON.stringify({ tool_name: 'Read', tool_input: { file_path: `${C}/help.salesforce.com/s/a.txt` } }) });
+  assert.equal(run(RT).status, 0);
+  assert.equal(run(PROJECT).status, 2);
 });

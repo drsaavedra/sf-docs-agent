@@ -8,7 +8,7 @@ hooks:
     - matcher: "Bash|Read"
       hooks:
         - type: command
-          command: 'node "/path/to/sf-docs-agent/guard.mjs"'
+          command: 'node "/path/to/sf-docs-agent/guard.mjs" || exit 2'
 ---
 
 ## Role
