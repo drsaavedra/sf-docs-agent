@@ -92,7 +92,7 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 2. **Fetch and locate.** Fetch the pages you picked with `--terms`. On Help or LDS, the `.links.txt` matches name the
    next page.
 3. **Look.** To see the lines around a match, use Read with `offset` and `limit`, or `grep -n -C3 -e '<term>' <file>`:
-   both number lines as `--quote` counts them. `sed -n` and `head` do not, so never take a line number from them.
+   both number lines as `--quote` counts them.
    Leave quote marks out of a grep term and search the words on either side: a `'` ends the shell quote, and a
    curly one from the question misses a page saved with straight ones.
    Never read a page whole. When the answer is a list or a table (patterns, editions, values), quote it from the
