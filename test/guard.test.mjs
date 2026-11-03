@@ -90,6 +90,10 @@ const denied = [
   ['2>&1 then a no-break space at the end of the line', `${FD} --search x 2>&1\u00a0`],
   ['an unquoted backslash-newline that the shell turns into ..', `grep -c -e root ${C}/.\\\n./.\\\n./.\\\n./etc/passwd`],
   ['a C1 control character outside quotes', `grep -c -e x\u0085y ${A}`],
+  ['a NUL inside single quotes', `grep -c -e root '/etc/passwd\u0000/../../..${C}/a'`],
+  ['a NUL inside double quotes', `grep -c -e root "/etc/passwd\u0000/../../..${C}/a"`],
+  ['a newline inside single quotes', `grep -c -e 'x\ny' ${A}`],
+  ['a carriage return inside double quotes', `grep -c -e x "${C}/a\r.txt"`],
   ['a carriage return', `grep -c -e x ${A}\rgrep -c -e y ${A}`],
   ['a backslash-newline in double quotes that the shell turns into ..', `grep -c -e root "${C}/.\\\n./.\\\n./.\\\n./.\\\n./etc/passwd"`],
 ];
