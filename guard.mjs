@@ -1,8 +1,6 @@
 #!/usr/bin/env node
-// PreToolUse hook for the sf-docs agent (declared in its frontmatter, so it runs only for that agent's calls).
-// Bash may run fetch-docs.mjs and grep on files in this install dir, joined only by &&; Read may open files in it.
-// It only denies (exit 2, reason on stderr); an allowed call falls through to the user's own permission settings.
-// The parser is not a shell: anything it does not recognise is denied, so a gap in it costs a call, never a hole.
+// PreToolUse hook for the sf-docs agent: Bash may run fetch-docs.mjs and grep on files in this dir; Read may open them.
+// It only denies (exit 2, reason on stderr), and denies anything its parser does not recognise; the rest falls through.
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
