@@ -41,8 +41,7 @@ const commands = [];
   const src = args.command.trim();
   // The shell drops a backslash-newline even in double quotes (`.\<newline>.` is `..`), and splits words on space and tab
   // only, where JS also splits on \v, NBSP and more: so no newline, control character or space other than ' ' and tab.
-  if (/[\r\n]/.test(src)) deny('a newline: write one command line, joining commands with &&');
-  if (/[\0-\x08\x0b-\x1f\x7f]|[^\S \t]/u.test(src)) deny('a control character or a space other than space and tab');
+  if (/[\0-\x08\x0a-\x1f\x7f]|[^\S \t]/u.test(src)) deny('a newline, control character or space other than space and tab');
   let cmd = [], word = null;
   const end = () => { if (word) cmd.push(word); word = null; };
   const add = c => { word ??= { text: '' }; word.text += c; };
