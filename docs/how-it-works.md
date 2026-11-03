@@ -61,8 +61,11 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 - It reads the current docs, which don't always name their release.
 - From a page it found, it follows at most two more links in a row, and only toward a missing part of the answer. An
   answer that sits further away comes back as a gap.
-- On a long list or table, the agent now and then stops a row early, for example five of six integration patterns.
-  Every quote it gives is still right; the missing row is the problem.
+- When a `--terms` match lands in a list or table, the script prints the whole block: markdown tables and lists,
+  rendered table rows, and tables flattened to one paragraph a cell. It prints one block a page, the one whose matches
+  hold the rarest terms, and none past 200 lines. A list on a rendered page has no markers, so the script cannot see
+  it, and there the agent can still stop a row early. On the five-of-six integration patterns case, all six came back
+  in 16 of 16 runs.
 - If a site starts blocking headless browsers, the agent stops and reports it. It does not try to get around the block.
 - What leaves your machine: the pages the agent fetches from those sites (and each site's `robots.txt`, which raw
   fetches load first). No telemetry. Installing downloads `playwright-core` from npm and, if you agree, Chromium from
