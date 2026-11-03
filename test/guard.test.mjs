@@ -35,6 +35,7 @@ const allowed = [
   ['grep -n -C3 on a cache file', `grep -n -C3 -e 'term' -e 'other' "${C}/developer.salesforce.com/docs/p.md"`],
   ['grep with a positional pattern and a | inside it', `grep -n -i -E 'oauth|userinfo' ${A}`],
   ['grep -o -m with a quoted bracket pattern', `grep -h -o -m 40 -e 'id=[a-z_.]*' "${C}/help.salesforce.com/apex/H_1.txt"`],
+  ['grep -r over a cache folder', `grep -rhoi -m5 -e 'id=[a-z_]*xorg' "${C}/help.salesforce.com/apex"`],
   ['a trailing newline', `grep -c -e x ${A}\n`],
 ];
 const denied = [
@@ -74,6 +75,7 @@ const denied = [
   ['a subshell', `(grep -e x ${A})`],
   ['brace expansion', `grep -e x "${C}"/{a,b}`],
   ['an unclosed quote', `grep -e 'x ${A}`],
+  ['grep -R, which follows every symlink it meets', `grep -R -e SECRET "${C}"`],
   ['a .* glob, which bash before 5.2 expands to ..', `grep -c -e root ${C}/.*/.*/.*/etc/passwd`],
   ['a glob that reaches a symlink in the cache', `grep -e SECRET ${C}/link*`],
   ['a backslash-newline in double quotes that the shell turns into ..', `grep -c -e root "${C}/.\\\n./.\\\n./.\\\n./.\\\n./etc/passwd"`],

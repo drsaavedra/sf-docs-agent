@@ -79,7 +79,8 @@ const commands = [];
 
 // grep options allowed: short flags, then short options taking a value (attached, or the next word), and long ones.
 // grep -C is attached only (-C3): BSD grep's -C takes an optional value, so the next word would be a file.
-const FLAGS = 'cEFhHiIlLnoqrRsvwx0123456789', VALUES = 'eABmC';
+// -r, not -R: GNU -R follows every symlink it meets, -r only those named on the command line (checked here).
+const FLAGS = 'cEFhHiIlLnoqrsvwx0123456789', VALUES = 'eABmC';
 const LONG = ['--regexp', '--include', '--exclude', '--exclude-dir', '--color', '--max-count', '--context', '--ignore-case',
   '--line-number', '--count', '--only-matching', '--no-filename', '--recursive', '--extended-regexp', '--fixed-strings',
   '--word-regexp'];
