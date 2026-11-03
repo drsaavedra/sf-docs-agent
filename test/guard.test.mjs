@@ -58,6 +58,7 @@ const denied = [
   ['command substitution in double quotes', `grep -n -e "$(cat /etc/passwd)" ${A}`],
   ['backticks', `${FD} \`id\``],
   ['eval', `eval ${FD} x.md`],
+  ['2>&1 glued to a word, which redirects to a file', `${FD} --search x 2>&1foo`],
   ['a redirect', `grep -n -e x ${A} > "${C}/b.txt"`],
   ['a heredoc', `grep -c -F -f - ${A} <<'EOF'\nx\nEOF`],
   ['||', `grep -e x ${A} || grep -e y ${A}`],

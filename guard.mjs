@@ -65,7 +65,7 @@ const commands = [];
       add(src[++i]);
     } else if (c === ' ' || c === '\t') end();
     else if (c === '&' && src[i + 1] === '&') { end(); commands.push(cmd); cmd = []; i++; }
-    else if (c === '2' && !word && src.startsWith('2>&1', i) && /\s|$/.test(src[i + 4] ?? '')) i += 3;
+    else if (c === '2' && !word && src.startsWith('2>&1', i) && (src[i + 4] ?? ' ').trim() === '') i += 3;
     // A wildcard is checked as text but run as the files it matches (a symlink, or .. on bash before 5.2).
     else if ('*?['.includes(c)) deny(`wildcard ${c}: name each file, or quote the pattern`);
     else if ('$`'.includes(c)) deny('variables and command substitution');
