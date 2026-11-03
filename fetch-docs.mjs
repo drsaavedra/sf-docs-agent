@@ -170,7 +170,8 @@ const blockLines = (ls, all) => {
     .map(([a, b]) => ({ a, b, s: all.filter(m => m.n >= a && m.n <= b).reduce((t, m) => t + score(m), 0) }))
     .filter(x => x.s).sort((x, y) => y.s - x.s || y.s / (y.b - y.a) - x.s / (x.b - x.a) || x.a - y.a)
     .slice(0, BLOCKS).map(({ a, b }) => {
-    const body = ls.slice(a - 1, b).map((l, i) => [a + i, l]).filter(([, l]) => l.trim());
+    // Clipped at 300 chars, as show() clips a matching line: one long cell must not print whole.
+    const body = ls.slice(a - 1, b).map((l, i) => [a + i, l.length > 300 ? `${l.slice(0, 300)}...` : l]).filter(([, l]) => l.trim());
     const fits = body.length <= BLOCK_LINES && body.reduce((s, [, l]) => s + l.length, 0) <= BLOCK_CHARS;
     return { a, b, out: fits ? [`(list or table, lines ${a}-${b}, shown whole)`, ...body.map(([n, l]) => `${n}: ${l}`)]
       : [`(list or table, lines ${a}-${b}, ${b - a + 1} lines: too long to show; Read ${a}-${b})`], fits };

@@ -402,3 +402,11 @@ test('lines outside the block rank by how rare their term is on the whole page',
   assert.equal(shown(r).filter(l => / rare line \d+$/.test(l)).length, 20, r); // 'common' is on 31 lines, 'rare' on 25
   assert.doesNotMatch(r, /one more common line/, r);
 });
+
+test('a block line longer than 300 chars prints clipped, as a matching line does', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_long.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'NAME\tDESCRIPTION', 'a\tshort', `b\t${'x'.repeat(5000)}`, 'c\tshort', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'description', 'https://help.salesforce.com/s/articleView?id=long.htm&type=5').out;
+  assert.ok(r.length < 2000, `${r.length} chars`);
+  assert.ok(shown(r).some(l => l.endsWith(': c\tshort')), r);
+});
