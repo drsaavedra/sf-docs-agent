@@ -259,7 +259,7 @@ test('--terms prints a whole markdown table when a match lands in its header, pa
 test('--terms prints a whole rendered table, spilled cells included, and stops before the next table', () => {
   const rows = lines(25, i => i === 5 ? 'format\t\n\nOptional. Values are:\n\njson\nxml\n' : `p${i}\tdesc ${i}`);
   const out = cache({ 'help.salesforce.com/s/articleView_id_t.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
-    'PARAMETER\tDESCRIPTION', rows, 'Other Limits', 'Intro line.', 'NAME\tVALUE', lines(5, i => `other${i}\tv${i}`)]) });
+    'PARAMETER\tDESCRIPTION', rows, '', 'Other Limits', 'Intro line.', 'NAME\tVALUE', lines(5, i => `other${i}\tv${i}`)]) });
   const r = run(out, '--terms', 'parameter', 'https://help.salesforce.com/s/articleView?id=t.htm&type=5').out;
   assert.ok(shown(r).some(l => l.endsWith(': p25\tdesc 25')), r);
   assert.ok(shown(r).some(l => l.endsWith(': json')), r);
@@ -383,7 +383,7 @@ test('a rendered row whose first cell spills over lines before its tabs stays in
 
 test('two rendered tables with a caption between them are two blocks', () => {
   const out = cache({ 'help.salesforce.com/s/articleView_id_two.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
-    'NAME\tVALUE', lines(4, i => `first${i}\tv${i}`), 'Table 2. Other', 'KEY\tVALUE', lines(4, i => `second${i}\tw${i}`), lines(30, i => `after ${i}`)]) });
+    'NAME\tVALUE', lines(4, i => `first${i}\tv${i}`), '', 'Table 2. Other', 'KEY\tVALUE', lines(4, i => `second${i}\tw${i}`), lines(30, i => `after ${i}`)]) });
   const r = run(out, '--terms', 'first2', 'https://help.salesforce.com/s/articleView?id=two.htm&type=5').out;
   assert.ok(shown(r).some(l => l.endsWith(': first4\tv4')), r);
   assert.doesNotMatch(r, /second\d/, r);
@@ -391,7 +391,7 @@ test('two rendered tables with a caption between them are two blocks', () => {
 
 test('a block leads in with at most two lines above its first row', () => {
   const out = cache({ 'help.salesforce.com/s/articleView_id_lead.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
-    'Limits', 'NAME\tVALUE', lines(5, i => `row${i}\tv${i}`), lines(30, i => `after ${i}`)]) });
+    'Limits', 'NAME\tVALUE', lines(5, i => `row${i}\tv${i}`), '', lines(30, i => `after ${i}`)]) });
   const r = run(out, '--terms', 'limits', 'https://help.salesforce.com/s/articleView?id=lead.htm&type=5').out;
   assert.match(r, /^\(list or table, lines 31-38, shown whole\)$/m, r);
 });
@@ -464,4 +464,14 @@ test('a code sample indented under a step stays inside the steps list', () => {
     '1. Install target one', '', '   ```bash', '   sf org list', '   ```', '', '2. Configure two', '3. Deploy three', '4. Verify four', '', lines(30, i => `after ${i}`)]) });
   const r = run(out, '--terms', 'target', '/docs/a/b/c/steps.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': 4. Verify four')), r);
+});
+
+test('a line right under a row, with no blank between, continues it', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_wrap.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'FEATURE\tDESCRIPTION', 'alpha target\tfirst', 'beta\tsecond para one', 'second para two', 'gamma\tthird', 'delta\tfourth', '', lines(30, i => `after ${i}`)]) });
+  assert.ok(shown(run(out, '--terms', 'target', 'https://help.salesforce.com/s/articleView?id=wrap.htm&type=5').out).some(l => l.endsWith(': delta\tfourth')));
+  const md = cache({ 'developer.salesforce.com/docs/a/b/c/lazy.md': page([lines(30, i => `filler ${i}`), '',
+    '- one target is long', 'and wraps here', '- two', '- three', '- four', '', lines(30, i => `after ${i}`)]) });
+  const r = run(md, '--terms', 'target', '/docs/a/b/c/lazy.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - four')), r);
 });
