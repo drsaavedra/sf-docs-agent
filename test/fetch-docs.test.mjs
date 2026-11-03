@@ -293,6 +293,7 @@ test('a list too long to print is named by its line range instead', () => {
   const r = run(out, '--terms', 'values', '/docs/a/b/c/long-list.md').out;
   assert.match(r, /^\(list or table, lines 33-154, 122 lines: too long to show; Read 33-154\)$/m, r);
   assert.doesNotMatch(r, /value 120/, r);
+  assert.match(r, /^33: ## Values$/m, r); // a match inside a block too long to print still prints
 });
 
 test('a match on the plain caption above a rendered table prints the table', () => {
@@ -423,4 +424,23 @@ test('a list item holding a tab is still a list row', () => {
     lines(5, i => i === 3 ? '- key 3\twith a tab' : `- key ${i}`), '', lines(30, i => `after ${i}`)]) });
   const r = run(out, '--terms', 'keys', '/docs/a/b/c/tabbed.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': - key 5')), r);
+});
+
+test('a match in a nested item prints the whole list it sits in', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/nested.md': page([lines(30, i => `filler ${i}`), '',
+    '- a', '  - a1 target', '- b', '- c', '- d', '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'target', '/docs/a/b/c/nested.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - d')), r);
+});
+
+test('two items are not a block', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/pair.md': page([lines(30, i => `filler ${i}`), '', '- x1 target', '- x2', '', lines(30, i => `after ${i}`)]) });
+  assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/pair.md').out, /list or table/);
+});
+
+test('between blocks scoring the same, the denser one prints', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/dense.md': page([lines(30, i => `filler ${i}`), '',
+    lines(8, i => `- big ${i}${i === 1 ? ' target' : ''}`), '', 'Between.', '', lines(3, i => `- small ${i}${i === 1 ? ' target' : ''}`), '', lines(30, i => `after ${i}`)]) });
+  const r = run(out, '--terms', 'target', '/docs/a/b/c/dense.md').out;
+  assert.ok(shown(r).some(l => l.endsWith(': - small 3')), r);
 });
