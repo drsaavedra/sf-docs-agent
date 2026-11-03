@@ -496,3 +496,15 @@ test('bullets under bold terms are their descriptions, not the end of the term l
   assert.ok(shown(r).some(l => l.endsWith(': - 2 users')), r);
   assert.doesNotMatch(r, /after \d/, r);
 });
+
+test('a code block after a term list is not the last term\'s description', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/terms-code.md': page([lines(30, i => `filler ${i}`), '',
+    lines(3, i => `**Term ${i}**\n\nDefinition ${i}.\n`), '```', 'call(target)', '```', '', lines(30, i => `after ${i}`)]) });
+  assert.doesNotMatch(run(out, '--terms', 'target', '/docs/a/b/c/terms-code.md').out, /list or table/);
+});
+
+test('a rendered list right under a table is not taken as wrapped cells', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_under.htm_type_5.txt': page([lines(30, i => `filler ${i}`),
+    'NAME\tVALUE', lines(4, i => `row${i}\tv${i}`), 'Resume events', 'Time triggers target', 'Flow interviews', '', lines(30, i => `after ${i}`)]) });
+  assert.doesNotMatch(run(out, '--terms', 'target', 'https://help.salesforce.com/s/articleView?id=under.htm&type=5').out, /list or table/);
+});

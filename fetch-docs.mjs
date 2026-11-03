@@ -147,7 +147,7 @@ const blocksOf = ls => {
       if (!l.trim()) continue;
       const deeper = indent >= 0 && /^\s*/.exec(l)[0].length > indent; // under a list item: fenced code included
       if (fenced[j] && !deeper) break;
-      if (!fenced[j] && rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
+      if (rowKind(l) === k) { rows++; end = j; described ||= gap > 0; gap = 0; open = k === '\t' && l.endsWith('\t') ? j : 0; continue; }
       if ((open && j - open <= 30) || deeper || (k === '\t' && spills(ls, j))) { end = j; continue; }
       if (PARAS.has(k) && rowKind(l)[0] === '-') { gap ||= 1; continue; } // bullets under a term are its description
       if (HEAD.test(l) || rowKind(l)) break; // a row of another kind starts its own run
