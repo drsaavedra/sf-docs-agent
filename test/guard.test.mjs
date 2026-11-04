@@ -187,3 +187,14 @@ test('the hand-back is refused when a Sources URL was retyped, and the refusal c
   assert.equal(r.status, 2);
   assert.ok(r.stderr.includes('is on the page as:\n[1] https://developer.salesforce.com/docs/limits.html'), r.stderr);
 });
+
+test('the hand-back refusal says what to do when the cached page is gone or cannot be read', () => {
+  const gone = handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/pruned.md`));
+  assert.equal(gone.status, 2);
+  assert.match(gone.stderr, /is gone: fetch its URL again, run --quote again/, gone.stderr);
+  mkdirSync(join(C, 'developer.salesforce.com/docs/dir.md'), { recursive: true });
+  const dir = handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/dir.md`));
+  assert.equal(dir.status, 2);
+  assert.match(dir.stderr, /could not check the report/, dir.stderr);
+  assert.doesNotMatch(dir.stderr, /Allowed: node/, dir.stderr);
+});

@@ -29,7 +29,7 @@ try { input = JSON.parse(readFileSync(0, 'utf8')); } catch { deny('hook input is
 const { tool_name: tool, tool_input: args = {} } = input;
 // The hand-back: each Evidence line must be the line --quote prints for its [n:line] from the cached page named in
 // Sources, so a quote the model retyped wrong cannot reach the caller. The refusal carries the right lines.
-if (tool === 'SubagentHandback') {
+if (tool === 'SubagentHandback') try {
   const msg = (typeof args.message === 'string' ? args.message : '').replace(/\r\n?/g, '\n');
   const refuse = why => { console.error(`sf-docs guard: ${why}. Paste the --quote output unchanged and send the report again.`); process.exit(2); };
   // Fail closed: a report in any shape but --quote's is refused, not passed unchecked. A header that only looks like
@@ -60,10 +60,17 @@ if (tool === 'SubagentHandback') {
       ? readFileSync(f, 'utf8').split('\n') : null;
     const text = page?.[0].startsWith('Source: ') && m[2] > 1 ? (page[m[2] - 1] || '').trim() : '';
     const want = text && `- "${text}" [${m[1]}:${m[2]}]`;
-    if (l !== want) wrong.push(want ? `this line:\n${l}\nis on the page as:\n${want}` : `this line has no [n:line] or no cache path in Sources:\n${l}`);
+    // A cited page that is gone (pruned since --quote) has no line to paste: say to fetch it again.
+    const gone = f && isAbsolute(f) && inside(f) && !existsSync(f);
+    if (l !== want) wrong.push(want ? `this line:\n${l}\nis on the page as:\n${want}`
+      : gone ? `the cached page ${f} is gone: fetch its URL again, run --quote again, and use its output for:\n${l}`
+      : `this line has no [n:line], or Sources gives no cached page for it:\n${l}`);
   }
   if (wrong.length) refuse(`${wrong.length} Evidence line(s) differ from the cached page\n\n${wrong.join('\n\n')}\n`);
   process.exit(0);
+} catch (e) { // a read that fails (a directory, no permission): about the report, not the Bash allowlist deny() prints
+  console.error(`sf-docs guard: could not check the report (${e.code || e.message}). Run --quote again and paste its output unchanged.`);
+  process.exit(2);
 }
 if (tool === 'Read') {
   if (typeof args.file_path !== 'string' || !isAbsolute(args.file_path) || !inside(resolve(args.file_path)))
