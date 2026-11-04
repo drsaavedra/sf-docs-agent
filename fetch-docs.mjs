@@ -196,6 +196,7 @@ const indexKind = rel => /(^|\/)apex\/Help_\w*SiteMapIndex|sitemap_index[^/]*\.x
 // prints its output without the 200 lines and the sitemaps with no match.
 const expand = f => {
   const locs = [...readFileSync(f, 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
+  if (!locs.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
   const budget = deadline === Infinity ? [] : ['--budget', String(Math.max(0, Math.floor((deadline - Date.now()) / 1000)))];
   const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), ...locs],
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20 });

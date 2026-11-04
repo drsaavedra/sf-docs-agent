@@ -161,6 +161,14 @@ test('--terms on a sitemap index fetches its page sitemaps and prints only their
   assert.doesNotMatch(r.out, /no match|^200 .*Help_SiteMapExternal/m, r.out);
 });
 
+test('--terms on a sitemap index that lists no sitemaps says so and exits 0', () => {
+  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt': '<sitemapindex></sitemapindex>' });
+  const r = run(out, '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /\nno sitemaps listed/, r.out);
+  assert.doesNotMatch(r.err, /usage/, r.err);
+});
+
 test('a short page prints whole from line 2, without the Source line or a trailing empty line', () => {
   const out = cache({ 'help.salesforce.com/s/articleView_id_short.htm_type_5.txt': '# Short\n\nThe limit is 95%.\n' });
   const r = run(out, '--terms', 'nothing_here', 'https://help.salesforce.com/s/articleView?id=short.htm&type=5').out;
