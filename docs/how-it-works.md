@@ -83,7 +83,8 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   The agent changed those 3 calls, and the result stayed at 20 of 20. The guard at commit `8e12e06` stops the same 3
   calls when the 103 calls are replayed through it (2026-11-03).
 - The same hook checks the agent's report before the agent hands it back. Each Evidence line must be the cited line
-  of the cached page, so a quote that the model typed wrong goes back to the agent with the line as it is on the page.
+  of the cached page, and each Sources URL the page's own URL, so a quote or URL that the model typed wrong goes back to
+  the agent with the text as it is on the page. A report in another shape is sent back too, not passed unchecked.
   On the 10 benchmark questions, 3 rounds, the hook sent no quote back in 30 runs and all 30 answers were right. The
   report with the wrong quote from 4 November is sent back when it is replayed through the hook (2026-11-04).
 - The hook reads the cached page when the agent hands its report back. If another session fetches the same page
