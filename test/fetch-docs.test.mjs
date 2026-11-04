@@ -218,6 +218,14 @@ test('the <loc> lines of a nested index do not count toward the article cap', ()
   assert.doesNotMatch(r, /more matching lines/, r);
 });
 
+test('an index still expands when SF_DOCS_EXPANDED is set in the caller environment', () => {
+  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+    '<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&#38;producttype=platform</loc>' });
+  const r = spawnSync(process.execPath, [SCRIPT, '--out', out, '--budget', '0', '--terms', 'flow',
+    'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform'], { encoding: 'utf8', env: { ...process.env, SF_DOCS_EXPANDED: '1' } });
+  assert.match(r.stdout, /its 1 sitemaps fetched, matches only/, r.stdout);
+});
+
 test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
   const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
   const out = cache({
