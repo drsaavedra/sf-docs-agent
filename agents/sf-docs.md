@@ -38,7 +38,8 @@ Each argument is a URL on one of the sites above (`https://` may be left off). A
 `/docs/...` path means developer.salesforce.com, but Git Bash on Windows rewrites a leading `/` into a Windows path.
 Quote any URL that holds `?`, `&` or `#`. Pass many URLs in one call: it opens one browser.
 Pass `--budget 480` on every fetch and `timeout: 600000` on its Bash call. The script starts no page after 480 s and
-prints `not fetched (time limit) <url>` for each one left: rerun only those URLs. A call that passes the Bash limit is
+prints `not fetched (time limit) <url>` for each one left: rerun only those URLs. A sitemap index call prints one
+`not fetched (time limit): N sitemaps` line instead: rerun that same call. A call that passes the Bash limit is
 moved to the background and you lose its output, though every page it printed is cached. Up to 20 URLs a call; past
 that, the printed output is the limit, not time.
 

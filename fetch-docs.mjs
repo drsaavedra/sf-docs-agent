@@ -219,10 +219,15 @@ const expand = f => {
     if (shown < 40) { shown += n; return true; }
     hidden += n + Number(s.match(/^\((\d+) more lower-ranked lines/m)?.[1] ?? 0); cut++; return false; // and its own cut
   });
-  // One line for the sitemaps the budget left: the same call fetches only those again. Other failures print each.
-  const lines = head.split('\n'), late = lines.filter(l => /^not fetched \(time limit\)/.test(l)).length;
-  const status = lines.filter(l => l && !/^not fetched \(time limit\)/.test(l) && (!/^200 /.test(l) || / not saved/.test(l)));
-  if (late) status.push(`not fetched (time limit): ${late} sitemaps; rerun the same call for them`);
+  // One line for the sitemaps the budget left, since a rerun of the same call reads the rest from the cache. With no
+  // cache (SF_DOCS_CACHE_HOURS=0) a rerun fetches them all again, so each URL prints. Other failures print each.
+  const status = [], collapse = MAX_AGE > 0;
+  let late = 0;
+  for (const l of head.split('\n')) {
+    if (collapse && /^not fetched \(time limit\)/.test(l)) late++;
+    else if (l && (!/^200 /.test(l) || / not saved/.test(l))) status.push(l);
+  }
+  if (late) status.push(`not fetched (time limit): ${late} sitemaps; rerun the same call, which reads the others from the cache`);
   console.log([`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only`, ...status,
     ...kept.map(s => `\n== ${s.trimEnd()}`),
     ...(cut ? [`\n(${hidden} more matching lines in ${cut} more sitemaps: use a more specific word_word term)`] : [])].join('\n'));
