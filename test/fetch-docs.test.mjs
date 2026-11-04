@@ -183,12 +183,13 @@ test('an index listed by an index prints its <loc> lines and is not expanded aga
   const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
   const out = cache({
     [`${idx}_producttype_platform.txt`]: '<loc>https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=sales</loc>',
-    [`${idx}_producttype_sales.txt`]: '<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=9&#38;producttype=sales</loc>',
+    [`${idx}_producttype_sales.txt`]: '<?xml version="1.0"?>\n<sitemapindex>\n<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=9&#38;producttype=sales</loc>\n</sitemapindex>',
   });
   const r = run(out, '--budget', '0', '--terms', 'flow', `https://${idx}?producttype=platform`); // no fetch at any level
   assert.equal(r.code, 0, r.err);
   assert.equal(r.out.match(/sitemaps fetched, matches only/g)?.length, 1, r.out);
-  assert.match(r.out, /\n2: <loc>https:\/\/help\.salesforce\.com\/apex\/Help_SiteMapExternal\?page=9/, r.out);
+  assert.match(r.out, /\n4: <loc>https:\/\/help\.salesforce\.com\/apex\/Help_SiteMapExternal\?page=9/, r.out);
+  assert.doesNotMatch(r.out, /short page|<\?xml|<sitemapindex>/, r.out);
 });
 
 test('--terms on a sitemap index that lists no sitemaps says so and exits 0', () => {
