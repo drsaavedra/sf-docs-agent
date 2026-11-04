@@ -212,9 +212,45 @@ test('the hand-back is refused for a quote or source outside the blocks, and pas
     'a zero-padded line number': report(L4.replace('[1:4]', '[1:04]')),
     'a bold header with a quote under it': `Answer: x\n**Evidence:**\n- "| Enterprise | 999,000 |" [1:4]`,
   };
-  for (const [name, message] of Object.entries(holes)) assert.equal(handback(message).status, 2, name);
+  for (const [name, message] of Object.entries(holes)) {
+    const r = handback(message);
+    assert.equal(r.status, 2, name);
+    assert.doesNotMatch(r.stderr, /could not check the report/, `${name}: refused by a crash, not the check`);
+  }
   const noSource = join(C, 'developer.salesforce.com/docs/nosource.md'); writeFileSync(noSource, '# Limits\n| x |\n');
   assert.equal(handback(report('- "| x |" [1:2]').replace(`cache: ${PAGE}`, `cache: ${noSource}`)).status, 2, 'a cached file with no Source line');
   for (const ok of ['Answer: not found.\nEvidence: none\nGaps: the release window [9:30] notes are not on the page.', 'Answer: not found.\nGaps: Sources (none) were found.'])
     assert.equal(handback(ok).status, 0, ok);
+});
+
+test('the hand-back passes a correct report whose prose has quoted words, bullets or checked-page URLs', () => {
+  const good = report(L4);
+  for (const [name, message] of Object.entries({
+    'a Gaps bullet that starts with a quoted word': good.replace('Gaps: none.', 'Gaps:\n- "Per hour" is not on the limits page.'),
+    'a scan answer in quoted bullets': good.replace('Answer: Enterprise gets 250,000 an hour.', 'Answer:\n- "Enterprise": 250,000 an hour.'),
+    'checked pages as plain URLs in Gaps': good.replace('Gaps: none.', 'Gaps: also checked https://developer.salesforce.com/docs/other.html'),
+    'an indented block with trailing spaces': good.replace('Evidence:', '  Evidence: ').replace(L4, `  ${L4}  `),
+  })) assert.equal(handback(message).status, 0, name);
+});
+
+test('the hand-back is refused for the shapes the first rewrite missed, with advice the agent can follow', () => {
+  const good = report(L4);
+  for (const [name, message] of Object.entries({
+    'a URL on a Sources header line': 'Answer: x\nSources: https://developer.salesforce.com/wrong',
+    'a quote on an Evidence header line': 'Answer: x\nEvidence: "the limit is 999,000 an hour"',
+    'a reference with no space': good.replace('Gaps: none.', 'Gaps: the page says "999,000"[1:4].'),
+    'a reference in round brackets': good.replace('Gaps: none.', "Gaps: the page says '999,000' (1:4)."),
+    'a zero-padded source number': good.replace('[1] https://', '[01] https://'),
+    'a capitalised cache line after Gaps': `${good}\nCache: ${PAGE}`,
+  })) {
+    const r = handback(message);
+    assert.equal(r.status, 2, name);
+    assert.doesNotMatch(r.stderr, /could not check the report/, name);
+  }
+  assert.match(handback(good.replace('Gaps: none.', 'Gaps: "999,000" [1:4]')).stderr, /name pages you checked in Gaps as plain URLs/);
+});
+
+test('a cited page that is gone is reported once, not again for each of its lines', () => {
+  const r = handback(report(L4, '- "# Limits" [1:2]').replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/pruned.md`));
+  assert.match(r.stderr, /1 line\(s\) in Evidence or Sources differ/, r.stderr);
 });

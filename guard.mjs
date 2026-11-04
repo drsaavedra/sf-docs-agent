@@ -31,14 +31,18 @@ const { tool_name: tool, tool_input: args = {} } = input;
 // source or cache path may sit outside them, so a quote or URL the model retyped wrong cannot reach the caller.
 if (tool === 'SubagentHandback') try {
   const msg = (typeof args.message === 'string' ? args.message : '').replace(/\r\n?/g, '\n'); // spans compare exactly
-  const refuse = why => { console.error(`sf-docs guard: ${why}. Paste the --quote output unchanged and send the report again.`); process.exit(2); };
-  const lines = msg.split('\n'), at = h => lines.flatMap((l, i) => l === h ? [i] : []);
-  // Lines that carry a quote, a source or a cache path: allowed only inside the two blocks --quote prints.
-  const carries = l => /^\s*[-*•] ?["“]/.test(l) || /["”] \[\d+:\d+\]/.test(l) || /^\s*cache: /.test(l) || /^\s*\[\d+\] https?:\/\//.test(l);
+  const refuse = (why, fix = 'Paste the --quote output unchanged') => { console.error(`sf-docs guard: ${why}. ${fix} and send the report again.`); process.exit(2); };
+  const STRAY = 'Put each quote in Evidence through --quote, and name pages you checked in Gaps as plain URLs, with no [n] and no [n:line]';
+  const lines = msg.split('\n'), at = h => lines.flatMap((l, i) => l.trim() === h ? [i] : []);
+  // Lines shaped like a --quote line or a Sources pair: allowed only inside the two blocks. A quote mark before a
+  // [n:line] reference, a [n] source or a cache path, or a header line that carries a quote or a URL.
+  const carries = l => /["'”’][ \t]*[-–(]?[ \t]*[[(]\d+:[ \t]*\d+[\])]/.test(l) || /^\s*cache:/i.test(l)
+    || /^\s*\[\d+\] (https?:\/\/|[\w.-]+\.(salesforce|lightningdesignsystem)\.com)/i.test(l)
+    || (/^[*#_ \t]*(evidence|sources)\b[*_ \t]*[:(]/i.test(l) && !['Evidence:', 'Sources:'].includes(l.trim()) && /["“”]|https?:\/\//.test(l));
   const [e, s] = [at('Evidence:'), at('Sources:')];
   if (!e.length && !s.length) {
     const stray = lines.find(carries);
-    if (stray) refuse(`a quote or source outside the --quote blocks: ${stray.trim()}`);
+    if (stray) refuse(`a quote or source outside the --quote blocks: ${stray.trim()}`, STRAY);
     process.exit(0); // a report with no quotes, such as not found
   }
   if (e.length !== 1 || s.length !== 1 || s[0] < e[0]) refuse('one Evidence: block, then one Sources: block, as one --quote call prints them');
@@ -46,20 +50,20 @@ if (tool === 'SubagentHandback') try {
   const src = [];
   let k = s[0] + 1;
   for (; k + 1 < lines.length; k += 2) {
-    const a = lines[k].match(/^\[(\d+)\] (.+)$/), b = lines[k + 1].match(/^    cache: (.+)$/);
+    const a = lines[k].match(/^\s*\[(\d+)\] (.+?)\s*$/), b = lines[k + 1].match(/^\s*cache: (.+?)\s*$/);
     if (!a || !b) break;
-    if (Number(a[1]) !== src.length + 1) refuse(`Sources numbered out of order at [${a[1]}]`);
+    if (a[1] !== String(src.length + 1)) refuse(`Sources numbered other than --quote numbers them, at [${a[1]}]`);
     src.push({ url: a[2], file: b[1] });
   }
   const stray = lines.find((l, i) => (i < e[0] || i >= k) && carries(l));
-  if (stray) refuse(`a quote or source outside the --quote blocks: ${stray.trim()}`);
+  if (stray) refuse(`a quote or source outside the --quote blocks: ${stray.trim()}`, STRAY);
   if (!src.length) refuse('no [n] url and cache: lines under Sources:');
   // A page as --quote reads one: a file in the cache that starts with its Source: line. Each file is read once.
   const pages = new Map(), page = f => {
     if (!pages.has(f)) {
-      const ok = isAbsolute(f) && inside(f) && !relative(join(ROOT, 'cache'), real(f)).startsWith('..');
-      const p = ok && existsSync(f) ? readFileSync(f, 'utf8').split('\n') : null;
-      pages.set(f, p?.[0].startsWith('Source: ') ? p : ok && !existsSync(f) ? 'gone' : null);
+      const r = isAbsolute(f) && real(f), c = r && relative(join(ROOT, 'cache'), r), ok = c && !c.startsWith('..') && !isAbsolute(c);
+      const there = ok && existsSync(f), p = there ? readFileSync(f, 'utf8').split('\n') : null;
+      pages.set(f, p?.[0].startsWith('Source: ') ? p : ok && !there ? 'gone' : null);
     }
     return pages.get(f);
   };
@@ -70,8 +74,9 @@ if (tool === 'SubagentHandback') try {
     else if (!p) wrong.push(`[${i + 1}] cache: ${file} is not a cached page`);
     else if (url !== p[0].slice(8).trim()) wrong.push(`this source:\n[${i + 1}] ${url}\nis on the page as:\n[${i + 1}] ${p[0].slice(8).trim()}`);
   });
-  for (const l of lines.slice(e[0] + 1, s[0]).filter(x => x.trim())) {
+  for (const l of lines.slice(e[0] + 1, s[0]).map(x => x.trim()).filter(Boolean)) {
     const m = l.match(/^- ".*" \[(\d+):(\d+)\]$/), f = m && src[m[1] - 1], p = f && page(f.file);
+    if (p === 'gone') continue; // said once, under Sources
     const text = Array.isArray(p) && m[2] > 1 ? (p[m[2] - 1] || '').trim() : '';
     const want = text && `- "${text}" [${Number(m[1])}:${Number(m[2])}]`;
     if (l !== want) wrong.push(want ? `this line:\n${l}\nis on the page as:\n${want}` : `this line is not a --quote line for a page in Sources:\n${l}`);
