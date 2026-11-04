@@ -5,7 +5,7 @@ model: claude-sonnet-5-5
 tools: Bash, Read
 hooks:
   PreToolUse:
-    - matcher: "Bash|Read"
+    - matcher: "Bash|Read|SubagentHandback"
       hooks:
         - type: command
           command: 'node "/path/to/sf-docs-agent/guard.mjs" || exit 2'

@@ -134,3 +134,27 @@ test('a long option is denied with a pointer to the short one', () => {
 test('a bare -- is denied with advice the agent can follow', () => {
   assert.match(bash(`grep -e x -- ${A}`).stderr, /grep --: drop it/);
 });
+
+// The hand-back gate: each Evidence line must be the cached page's line for its [n:line], as --quote prints it.
+const PAGE = join(C, 'developer.salesforce.com/docs/limits.md');
+writeFileSync(PAGE, 'Source: https://developer.salesforce.com/docs/limits.html\n# Limits\n| Edition | Per hour |\n| Enterprise | 250,000 [see](https://x/a.meta/a/b.htm) |\n');
+const report = (...ev) => `Answer: Enterprise gets 250,000 an hour.\nEvidence:\n${ev.join('\n')}\nSources:\n[1] https://developer.salesforce.com/docs/limits.html\n    cache: ${PAGE}\nGaps: none.`;
+const handback = message => hook(JSON.stringify({ tool_name: 'SubagentHandback', tool_input: { message }, cwd: PROJECT }));
+const L4 = '- "| Enterprise | 250,000 [see](https://x/a.meta/a/b.htm) |" [1:4]';
+
+test('the hand-back passes when every Evidence line is the cited line, and when there is no Evidence', () => {
+  assert.equal(handback(report('- "# Limits" [1:2]', L4)).status, 0);
+  assert.equal(handback('Answer: not found.\nGaps: checked the limits page.').status, 0);
+});
+
+test('the hand-back is refused when a quote was retyped, and the refusal carries the line on the page', () => {
+  const r = handback(report('- "| Enterprise | 250,000 [see](https://x/a.meta/b.htm) |" [1:4]'));
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes(`is on the page as:\n${L4}`), r.stderr);
+});
+
+test('the hand-back is refused for a quote with no line reference or no cache path', () => {
+  assert.equal(handback(report('- "| Enterprise | 250,000 |"')).status, 2);
+  assert.equal(handback(report(L4.replace('[1:4]', '[2:4]'))).status, 2);
+  assert.equal(handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${PROJECT}/.env`)).status, 2);
+});

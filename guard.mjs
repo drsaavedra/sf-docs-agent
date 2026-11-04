@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // PreToolUse hook for the sf-docs agent: Bash may run fetch-docs.mjs and grep on files in this dir; Read may open them.
+// On the agent's hand-back it checks each Evidence line against the cached page it cites.
 // It only denies (exit 2, reason on stderr), and denies anything its parser does not recognise; the rest falls through.
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
@@ -26,6 +27,25 @@ const inside = p => { const r = relative(ROOT, real(p)); return !r.startsWith('.
 let input;
 try { input = JSON.parse(readFileSync(0, 'utf8')); } catch { deny('hook input is not JSON'); }
 const { tool_name: tool, tool_input: args = {} } = input;
+// The hand-back: each Evidence line must be the line --quote prints for its [n:line] from the cached page named in
+// Sources, so a quote the model retyped wrong cannot reach the caller. The refusal carries the right lines.
+if (tool === 'SubagentHandback') {
+  const msg = typeof args.message === 'string' ? args.message : '';
+  const ev = msg.match(/^Evidence:[ \t]*\n([\s\S]*?)^Sources:/m)?.[1] ?? '';
+  const files = Object.fromEntries([...msg.matchAll(/^\[(\d+)\] [^\n]*\n[ \t]*cache: ([^\n]+)$/gm)].map(m => [m[1], m[2].trim()]));
+  const wrong = [];
+  for (const l of ev.split('\n').map(x => x.trim()).filter(x => x.startsWith('- "'))) {
+    const m = l.match(/\[(\d+):(\d+)\]$/), f = m && files[m[1]];
+    const page = f && isAbsolute(f) && inside(f) && existsSync(f) ? readFileSync(f, 'utf8').split('\n') : null;
+    const want = page && `- "${(page[m[2] - 1] || '').trim()}" [${m[1]}:${m[2]}]`;
+    if (l !== want) wrong.push(want ? `this line:\n${l}\nis on the page as:\n${want}` : `this line has no [n:line] or no cache path in Sources:\n${l}`);
+  }
+  if (wrong.length) {
+    console.error(`sf-docs guard: ${wrong.length} Evidence line(s) differ from the cached page. Paste the --quote output unchanged and send the report again.\n\n${wrong.join('\n\n')}`);
+    process.exit(2);
+  }
+  process.exit(0);
+}
 if (tool === 'Read') {
   if (typeof args.file_path !== 'string' || !isAbsolute(args.file_path) || !inside(resolve(args.file_path)))
     deny(`Read is limited to files under the install dir, not ${args.file_path}`);
