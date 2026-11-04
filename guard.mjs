@@ -49,8 +49,11 @@ if (tool === 'SubagentHandback') {
   const wrong = [];
   for (const l of ev) {
     const m = l.match(/\[(\d+):(\d+)\]$/), f = m && files[m[1]];
-    const page = f && isAbsolute(f) && inside(f) && existsSync(f) ? readFileSync(f, 'utf8').split('\n') : null;
-    const want = page && `- "${(page[m[2] - 1] || '').trim()}" [${m[1]}:${m[2]}]`;
+    // A page as --quote reads one: a file in the cache that starts with its Source: line, and a line after it with text.
+    const page = f && isAbsolute(f) && inside(f) && !relative(join(ROOT, 'cache'), real(f)).startsWith('..') && existsSync(f)
+      ? readFileSync(f, 'utf8').split('\n') : null;
+    const text = page?.[0].startsWith('Source: ') && m[2] > 1 ? (page[m[2] - 1] || '').trim() : '';
+    const want = text && `- "${text}" [${m[1]}:${m[2]}]`;
     if (l !== want) wrong.push(want ? `this line:\n${l}\nis on the page as:\n${want}` : `this line has no [n:line] or no cache path in Sources:\n${l}`);
   }
   if (wrong.length) refuse(`${wrong.length} Evidence line(s) differ from the cached page\n\n${wrong.join('\n\n')}\n`);

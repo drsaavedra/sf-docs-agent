@@ -173,3 +173,11 @@ test('the hand-back is refused, not passed, when the report is not in the --quot
   assert.equal(handback(report(L4).replaceAll('\n', '\r\n')).status, 0, 'CRLF line ends');
   assert.equal(handback('Answer: not found.\nGaps: the sources I checked do not say.').status, 0, 'prose that starts with a header word');
 });
+
+test('the hand-back is refused for a cited file --quote would not read', () => {
+  const other = join(RT, 'notes.md'); writeFileSync(other, 'Source: https://x\n# notes\n');
+  assert.equal(handback(report('- "# notes" [1:2]').replace(`cache: ${PAGE}`, `cache: ${other}`)).status, 2, 'a file outside the cache');
+  assert.equal(handback(report('- "Source: https://developer.salesforce.com/docs/limits.html" [1:1]')).status, 2, 'the Source line');
+  assert.equal(handback(report('- "" [1:0]')).status, 2, 'line 0');
+  assert.equal(handback(report('- "" [1:99]')).status, 2, 'past the end');
+});
