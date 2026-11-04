@@ -181,3 +181,9 @@ test('the hand-back is refused for a cited file --quote would not read', () => {
   assert.equal(handback(report('- "" [1:0]')).status, 2, 'line 0');
   assert.equal(handback(report('- "" [1:99]')).status, 2, 'past the end');
 });
+
+test('the hand-back is refused when a Sources URL was retyped, and the refusal carries the URL on the page', () => {
+  const r = handback(report(L4).replace('[1] https://developer.salesforce.com/docs/limits.html', '[1] https://developer.salesforce.com/limits.html'));
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes('is on the page as:\n[1] https://developer.salesforce.com/docs/limits.html'), r.stderr);
+});

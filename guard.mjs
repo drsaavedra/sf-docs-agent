@@ -47,6 +47,12 @@ if (tool === 'SubagentHandback') {
   const ev = lines.slice(e[0] + 1, s[0]).map(x => x.trim()).filter(Boolean);
   const files = Object.fromEntries([...msg.matchAll(/^\[(\d+)\] [^\n]*\n[ \t]*cache: ([^\n]+)$/gm)].map(m => [m[1], m[2].trim()]));
   const wrong = [];
+  // The Sources URL is retyped too: each must be the official URL on its cached page's Source: line, as --quote prints it.
+  for (const m of msg.matchAll(/^\[(\d+)\] ([^\n]*)\n[ \t]*cache: ([^\n]+)$/gm)) {
+    const f = m[3].trim(), head = isAbsolute(f) && inside(f) && existsSync(f) ? readFileSync(f, 'utf8').split('\n', 1)[0] : '';
+    if (head.startsWith('Source: ') && m[2].trim() !== head.slice(8).trim())
+      wrong.push(`this source:\n[${m[1]}] ${m[2].trim()}\nis on the page as:\n[${m[1]}] ${head.slice(8).trim()}`);
+  }
   for (const l of ev) {
     const m = l.match(/\[(\d+):(\d+)\]$/), f = m && files[m[1]];
     // A page as --quote reads one: a file in the cache that starts with its Source: line, and a line after it with text.
