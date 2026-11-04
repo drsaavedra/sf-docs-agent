@@ -197,9 +197,11 @@ const indexKind = rel => /(^|\/)apex\/Help_\w*SiteMapIndex|sitemap_index[^/]*\.x
 const expand = f => {
   const locs = [...readFileSync(f, 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
   if (!locs.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
-  const budget = deadline === Infinity ? [] : ['--budget', String(Math.max(0, Math.floor((deadline - Date.now()) / 1000)))];
+  const left = Math.max(0, Math.floor((deadline - Date.now()) / 1000)), budget = deadline === Infinity ? [] : ['--budget', String(left)];
+  // The budget only stops new fetches; the kill ends a hung one (Playwright traps SIGTERM) 60 s after the budget.
   const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), ...locs],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20, env: { ...process.env, SF_DOCS_EXPANDED: '1' } });
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20, env: { ...process.env, SF_DOCS_EXPANDED: '1' },
+      timeout: deadline === Infinity ? undefined : (left + 60) * 1000, killSignal: 'SIGKILL' });
   const body = (r.stdout || '').split('\n').filter(l => !/^200 /.test(l) || / not saved/.test(l)).join('\n').replace(/\n== [^\n]*\nno match(?=\n|$)/g, '').replace(/\n{3,}/g, '\n\n');
   console.log(`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only\n${body.trim()}`);
   // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match.
