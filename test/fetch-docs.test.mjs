@@ -196,6 +196,16 @@ test('an index that lists only off-site sitemaps shows them refused, not as a fa
   assert.doesNotMatch(r.out, /sitemap run failed/, r.out);
 });
 
+test('an index with one off-site sitemap refuses it and still searches the rest', () => {
+  const out = cache({ 'admin.salesforce.com/sitemap_index.xml': '<loc>https://example.com/x-sitemap.xml</loc>\n<loc>https://admin.salesforce.com/post-sitemap.xml</loc>',
+    'admin.salesforce.com/post-sitemap.xml': lines(50, i => `<loc>https://admin.salesforce.com/blog/${i === 7 ? 'headless-360' : `post-${i}`}</loc>`) });
+  const r = run(out, '--terms', 'headless-360', 'https://admin.salesforce.com/sitemap_index.xml');
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /^refused https:\/\/example\.com\/x-sitemap\.xml: not an official doc site$/m, r.out);
+  assert.match(r.out, /blog\/headless-360/, r.out);
+  assert.doesNotMatch(r.out, /sitemap run failed/, r.out);
+});
+
 test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
   const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
   const out = cache({

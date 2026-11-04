@@ -197,8 +197,12 @@ const indexKind = rel => /(^|\/)apex\/Help_\w*SiteMapIndex|sitemap_index[^/]*\.x
 // A sitemap index names page sitemaps, not articles, so --terms fetches them all in a child run of this script and
 // prints its output without the 200 lines (failures kept) and the sitemaps with no match, up to a cap.
 const expand = f => {
-  const locs = [...readFileSync(f, 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
-  if (!locs.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
+  const all = [...readFileSync(f, 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
+  if (!all.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
+  // Off-site sitemaps are refused here, as the child would refuse them, so any child exit but 0 is a failure.
+  const on = u => { const x = parse(u); return x && SITES.includes(x.host); }, locs = all.filter(on);
+  for (const u of all.filter(u => !on(u))) console.log(`refused ${u}: not an official doc site`);
+  if (!locs.length) { process.exitCode = 1; return console.log(`\n== ${slash(relative(out, f))}\nno sitemap on a doc site`); }
   const left = Math.max(0, Math.floor((deadline - Date.now()) / 1000)), budget = deadline === Infinity ? [] : ['--budget', String(left)];
   // The budget only stops new fetches; the kill ends a hung one (Playwright traps SIGTERM) 60 s after the budget.
   const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), '--expanded', ...locs],
@@ -221,11 +225,11 @@ const expand = f => {
   console.log([`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only`, ...status,
     ...kept.map(s => `\n== ${s.trimEnd()}`),
     ...(cut ? [`\n(${hidden} more matching lines in ${cut} more sitemaps: use a more specific word_word term)`] : [])].join('\n'));
-  // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match. Exit 1
-  // is the child refusing every URL (its refused lines are above), not a failure.
-  if (r.error || r.signal || r.status > 1)
+  // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match.
+  if (r.error || r.signal || r.status) {
     console.log(`sitemap run failed: ${r.error?.code || r.signal || `exit ${r.status}`}; the matches above may be incomplete`);
-  if (r.error || r.signal || r.status) process.exitCode = r.status || 1;
+    process.exitCode = r.status || 1;
+  }
 };
 // llms.txt and llms-<product>.txt, not a page whose cached name starts with llms (llms-overview.html.txt).
 const isLlms = rel => /(^|\/)llms(-[\w-]+)?\.txt$/i.test(rel);
