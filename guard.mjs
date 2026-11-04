@@ -30,20 +30,30 @@ const { tool_name: tool, tool_input: args = {} } = input;
 // The hand-back: each Evidence line must be the line --quote prints for its [n:line] from the cached page named in
 // Sources, so a quote the model retyped wrong cannot reach the caller. The refusal carries the right lines.
 if (tool === 'SubagentHandback') {
-  const msg = typeof args.message === 'string' ? args.message : '';
-  const ev = msg.match(/^Evidence:[ \t]*\n([\s\S]*?)^Sources:/m)?.[1] ?? '';
+  const msg = (typeof args.message === 'string' ? args.message : '').replace(/\r\n?/g, '\n');
+  const refuse = why => { console.error(`sf-docs guard: ${why}. Paste the --quote output unchanged and send the report again.`); process.exit(2); };
+  // Fail closed: a report in any shape but --quote's is refused, not passed unchecked. A header that only looks like
+  // Evidence: or Sources: (bold, a note after it) or a second block cannot hide quotes from the check.
+  const lines = msg.split('\n'), at = h => lines.flatMap((l, i) => l.trim() === h ? [i] : []);
+  const odd = lines.find(l => /^[*#_ \t]*(evidence|sources)[*_ \t]*[:(]/i.test(l) && !['Evidence:', 'Sources:'].includes(l.trim()));
+  if (odd) refuse(`write the headers as --quote prints them, Evidence: and Sources: on lines of their own, not: ${odd.trim()}`);
+  const [e, s] = [at('Evidence:'), at('Sources:')];
+  if (e.length > 1 || s.length > 1) refuse('one Evidence block and one Sources block: quote every page in one --quote call');
+  if (!e.length) {
+    if (/\[\d+:\d+\]|^[ \t]*cache: /m.test(msg)) refuse('quotes or cache paths with no Evidence: block');
+    process.exit(0); // a report with no quotes, such as not found
+  }
+  if (!s.length || s[0] < e[0]) refuse('no Sources: block after Evidence:');
+  const ev = lines.slice(e[0] + 1, s[0]).map(x => x.trim()).filter(Boolean);
   const files = Object.fromEntries([...msg.matchAll(/^\[(\d+)\] [^\n]*\n[ \t]*cache: ([^\n]+)$/gm)].map(m => [m[1], m[2].trim()]));
   const wrong = [];
-  for (const l of ev.split('\n').map(x => x.trim()).filter(x => x.startsWith('- "'))) {
+  for (const l of ev) {
     const m = l.match(/\[(\d+):(\d+)\]$/), f = m && files[m[1]];
     const page = f && isAbsolute(f) && inside(f) && existsSync(f) ? readFileSync(f, 'utf8').split('\n') : null;
     const want = page && `- "${(page[m[2] - 1] || '').trim()}" [${m[1]}:${m[2]}]`;
     if (l !== want) wrong.push(want ? `this line:\n${l}\nis on the page as:\n${want}` : `this line has no [n:line] or no cache path in Sources:\n${l}`);
   }
-  if (wrong.length) {
-    console.error(`sf-docs guard: ${wrong.length} Evidence line(s) differ from the cached page. Paste the --quote output unchanged and send the report again.\n\n${wrong.join('\n\n')}`);
-    process.exit(2);
-  }
+  if (wrong.length) refuse(`${wrong.length} Evidence line(s) differ from the cached page\n\n${wrong.join('\n\n')}\n`);
   process.exit(0);
 }
 if (tool === 'Read') {

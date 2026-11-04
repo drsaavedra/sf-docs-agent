@@ -158,3 +158,18 @@ test('the hand-back is refused for a quote with no line reference or no cache pa
   assert.equal(handback(report(L4.replace('[1:4]', '[2:4]'))).status, 2);
   assert.equal(handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${PROJECT}/.env`)).status, 2);
 });
+
+test('the hand-back is refused, not passed, when the report is not in the --quote shape', () => {
+  const shapes = {
+    'a bold Evidence header': report(L4).replace('Evidence:', '**Evidence:**'),
+    'a note after the header': report(L4).replace('Evidence:', 'Evidence (cells are tab-separated):'),
+    'a * bullet': report(L4.replace('- "', '* "')),
+    'a line with no reference': report(L4, 'the row also says 250,000'),
+    'no Sources block': report(L4).replace(/Sources:[\s\S]*/, ''),
+    'two Evidence blocks': report(L4) + '\n' + report('- "# Limits" [1:2]'),
+    'quotes with no Evidence block': `Answer: 250,000.\n${L4}\nSources:\n[1] x\n    cache: ${PAGE}`,
+  };
+  for (const [name, message] of Object.entries(shapes)) assert.equal(handback(message).status, 2, name);
+  assert.equal(handback(report(L4).replaceAll('\n', '\r\n')).status, 0, 'CRLF line ends');
+  assert.equal(handback('Answer: not found.\nGaps: the sources I checked do not say.').status, 0, 'prose that starts with a header word');
+});
