@@ -6,6 +6,7 @@
 //        node fetch-docs.mjs --search a,b [--site <host>]   (ranked matching lines across the cached pages)
 //        node fetch-docs.mjs --quote <cache file>:<line>[,<line>...] ...   (prints Evidence and Sources verbatim)
 import { chromium } from 'playwright-core';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, sep } from 'node:path';
@@ -191,6 +192,17 @@ const blockLines = (ls, all, score) => blocksOf(ls).filter(([a, b]) => b - a < B
 // page about sitemaps, or an --out dir named for them, is neither.
 const indexKind = rel => /(^|\/)apex\/Help_\w*SiteMapIndex|sitemap_index[^/]*\.xml$/i.test(rel) ? 'index'
   : /(^|\/)apex\/Help_\w*SiteMap|[^/]*sitemap[^/]*\.xml$/i.test(rel) ? 'map' : '';
+// A sitemap index names page sitemaps, not articles, so --terms fetches them all in a child run of this script and
+// prints its output without the 200 lines and the sitemaps with no match.
+const expand = f => {
+  const locs = [...readFileSync(f, 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
+  const budget = deadline === Infinity ? [] : ['--budget', String(Math.max(0, Math.floor((deadline - Date.now()) / 1000)))];
+  const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), ...locs],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20 });
+  const body = (r.stdout || '').split('\n').filter(l => !/^200 /.test(l)).join('\n').replace(/\n== [^\n]*\nno match(?=\n|$)/g, '').replace(/\n{3,}/g, '\n\n');
+  console.log(`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only\n${body.trim()}`);
+  if (r.status) process.exitCode = r.status;
+};
 // llms.txt and llms-<product>.txt, not a page whose cached name starts with llms (llms-overview.html.txt).
 const isLlms = rel => /(^|\/)llms(-[\w-]+)?\.txt$/i.test(rel);
 const grep = (file, t) => {
@@ -580,6 +592,7 @@ try {
   console.log(`fetched ${urls.length - late}, 200 ${ok}, unique bodies ${seen.size}${refused.length ? `, refused ${refused.length}` : ''}${late ? `, not fetched ${late} (time limit)` : ''}, out ${slash(out)}`);
   if (!urls.length && refused.length) process.exitCode = 1; // nothing on a doc site was asked for
   for (const f of terms.length ? saved : []) {
+    if (indexKind(slash(relative(out, f))) === 'index') { expand(f); continue; }
     console.log(`\n== ${slash(relative(out, f))}\n${grep(f, terms).join('\n') || 'no match'}`);
     const links = statSync(`${f}.links.txt`, { throwIfNoEntry: false }) ? grep(`${f}.links.txt`, terms) : [];
     if (links.length) console.log(`== ${slash(relative(out, f))}.links.txt\n${links.join('\n')}`);

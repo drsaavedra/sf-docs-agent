@@ -144,13 +144,21 @@ test('--terms on a Help sitemap lists up to 40 articles by their <loc> line only
   assert.ok(shown.every(l => l.includes('<loc>')), 'only <loc> lines');
 });
 
-test('--terms on a sitemap index prints every <loc> line, whatever the terms, past the 40 cap', () => {
-  const body = lines(50, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>\n<lastmod>x</lastmod>`);
-  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt': body });
-  const r = run(out, '--terms', 'salesforce_connect_xorg', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform').out;
-  const shown = r.split('\n').filter(l => /^\d+: /.test(l));
-  assert.equal(shown.length, 50, r);
-  assert.ok(shown.every(l => l.includes('<loc>')), 'only <loc> lines');
+test('--terms on a sitemap index fetches its page sitemaps and prints only their matching <loc> lines', () => {
+  const page = i => `help.salesforce.com/apex/Help_SiteMapExternal_page_${i}_producttype_platform.txt`;
+  const art = (i, id) => lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j === 30 ? id : `x_${i}_${j}`}.htm&amp;type=5</loc>`);
+  const out = cache({
+    'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+      lines(3, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>\n<lastmod>x</lastmod>`),
+    [page(1)]: art(1, 'flow_a'), [page(2)]: art(2, 'xorg_adapter_about'), [page(3)]: art(3, 'flow_b'),
+  });
+  const r = run(out, '--terms', 'xorg_adapter', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /its 3 sitemaps fetched, matches only/, r.out);
+  assert.deepEqual(r.out.split('\n').filter(l => /^\d+: /.test(l)),
+    ['31: <loc>https://help.salesforce.com/s/articleView?id=platform.xorg_adapter_about.htm&amp;type=5</loc>'], r.out);
+  assert.match(r.out, new RegExp(`== ${page(2).replace(/[.?]/g, '\\$&')}\n31: `), 'the match names its sitemap');
+  assert.doesNotMatch(r.out, /no match|^200 .*Help_SiteMapExternal/m, r.out);
 });
 
 test('a short page prints whole from line 2, without the Source line or a trailing empty line', () => {
