@@ -199,7 +199,7 @@ const expand = f => {
   if (!locs.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
   const budget = deadline === Infinity ? [] : ['--budget', String(Math.max(0, Math.floor((deadline - Date.now()) / 1000)))];
   const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), ...locs],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20 });
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20, env: { ...process.env, SF_DOCS_EXPANDED: '1' } });
   const body = (r.stdout || '').split('\n').filter(l => !/^200 /.test(l)).join('\n').replace(/\n== [^\n]*\nno match(?=\n|$)/g, '').replace(/\n{3,}/g, '\n\n');
   console.log(`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only\n${body.trim()}`);
   if (r.status) process.exitCode = r.status;
@@ -594,7 +594,9 @@ try {
   console.log(`fetched ${urls.length - late}, 200 ${ok}, unique bodies ${seen.size}${refused.length ? `, refused ${refused.length}` : ''}${late ? `, not fetched ${late} (time limit)` : ''}, out ${slash(out)}`);
   if (!urls.length && refused.length) process.exitCode = 1; // nothing on a doc site was asked for
   for (const f of terms.length ? saved : []) {
-    if (indexKind(slash(relative(out, f))) === 'index') { expand(f); continue; }
+    // In the child run (SF_DOCS_EXPANDED) an index lists its <loc> lines: one level only, so an index of indexes or one
+    // that lists itself cannot spawn without end.
+    if (indexKind(slash(relative(out, f))) === 'index' && !process.env.SF_DOCS_EXPANDED) { expand(f); continue; }
     console.log(`\n== ${slash(relative(out, f))}\n${grep(f, terms).join('\n') || 'no match'}`);
     const links = statSync(`${f}.links.txt`, { throwIfNoEntry: false }) ? grep(`${f}.links.txt`, terms) : [];
     if (links.length) console.log(`== ${slash(relative(out, f))}.links.txt\n${links.join('\n')}`);

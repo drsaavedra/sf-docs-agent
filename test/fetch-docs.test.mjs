@@ -168,6 +168,18 @@ test('a short sitemap with no matching article prints no match, not its whole bo
   assert.doesNotMatch(r, /short page|post-1</, r);
 });
 
+test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
+  const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
+  const out = cache({
+    [`${idx}_producttype_platform.txt`]: '<loc>https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=sales</loc>',
+    [`${idx}_producttype_sales.txt`]: '<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=9&#38;producttype=sales</loc>',
+  });
+  const r = run(out, '--budget', '0', '--terms', 'flow', `https://${idx}?producttype=platform`); // no fetch at any level
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out.match(/sitemaps fetched, matches only/g)?.length, 1, r.out);
+  assert.match(r.out, /\n2: <loc>https:\/\/help\.salesforce\.com\/apex\/Help_SiteMapExternal\?page=9/, r.out);
+});
+
 test('--terms on a sitemap index that lists no sitemaps says so and exits 0', () => {
   const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt': '<sitemapindex></sitemapindex>' });
   const r = run(out, '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');
