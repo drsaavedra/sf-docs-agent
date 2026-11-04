@@ -168,6 +168,17 @@ test('a short sitemap with no matching article prints no match, not its whole bo
   assert.doesNotMatch(r, /short page|post-1</, r);
 });
 
+test('an index search shows whole sitemaps until 40 article lines, then counts the rest', () => {
+  const page = i => `help.salesforce.com/apex/Help_SiteMapExternal_page_${i}_producttype_platform.txt`;
+  const files = { 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+    lines(4, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>`) };
+  for (let i = 1; i <= 4; i++) files[page(i)] = lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j <= 30 ? 'flow' : 'x'}_${i}_${j}.htm&amp;type=5</loc>`);
+  const r = run(cache(files), '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform').out;
+  assert.equal(r.split('\n').filter(l => /^\d+: /.test(l)).length, 60, r); // 2 whole sitemaps of 30
+  assert.match(r, /\(60 more matching lines in 2 more sitemaps: use a more specific word_word term\)/, r);
+  assert.doesNotMatch(r, /page_3_/, r);
+});
+
 test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
   const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
   const out = cache({

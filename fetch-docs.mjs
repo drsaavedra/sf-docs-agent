@@ -193,7 +193,7 @@ const blockLines = (ls, all, score) => blocksOf(ls).filter(([a, b]) => b - a < B
 const indexKind = rel => /(^|\/)apex\/Help_\w*SiteMapIndex|sitemap_index[^/]*\.xml$/i.test(rel) ? 'index'
   : /(^|\/)apex\/Help_\w*SiteMap|[^/]*sitemap[^/]*\.xml$/i.test(rel) ? 'map' : '';
 // A sitemap index names page sitemaps, not articles, so --terms fetches them all in a child run of this script and
-// prints its output without the 200 lines (failures kept) and the sitemaps with no match.
+// prints its output without the 200 lines (failures kept) and the sitemaps with no match, up to a cap.
 const expand = f => {
   const locs = [...readFileSync(f, 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
   if (!locs.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
@@ -202,8 +202,20 @@ const expand = f => {
   const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), ...locs],
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20, env: { ...process.env, SF_DOCS_EXPANDED: '1' },
       timeout: deadline === Infinity ? undefined : (left + 60) * 1000, killSignal: 'SIGKILL' });
-  const body = (r.stdout || '').split('\n').filter(l => !/^200 /.test(l) || / not saved/.test(l)).join('\n').replace(/\n== [^\n]*\nno match(?=\n|$)/g, '').replace(/\n{3,}/g, '\n\n');
-  console.log(`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only\n${body.trim()}`);
+  const [head, ...maps] = (r.stdout || '').split('\n== ');
+  // 40 article lines in all, as one sitemap shows: a broad term across 46 sitemaps would print thousands. Whole
+  // sitemaps only, so the cap can overrun by one sitemap's 40.
+  let shown = 0, hidden = 0, cut = 0;
+  const kept = maps.filter(s => {
+    const n = s.split('\n').filter(l => /^\d+: /.test(l)).length;
+    if (!n) return false;
+    if (shown < 40) { shown += n; return true; }
+    hidden += n; cut++; return false;
+  });
+  const status = head.split('\n').filter(l => l && (!/^200 /.test(l) || / not saved/.test(l)));
+  console.log([`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only`, ...status,
+    ...kept.map(s => `\n== ${s.trimEnd()}`),
+    ...(cut ? [`\n(${hidden} more matching lines in ${cut} more sitemaps: use a more specific word_word term)`] : [])].join('\n'));
   // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match.
   if (r.error || r.signal || r.status) {
     console.log(`sitemap run failed: ${r.error?.code || r.signal || `exit ${r.status}`}; the matches above may be incomplete`);
