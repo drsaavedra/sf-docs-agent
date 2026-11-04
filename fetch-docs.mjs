@@ -30,6 +30,8 @@ const plain = text => text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201
 const termsOf = v => plain(v ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); // the cache holds straight quotes
 const ti = args.indexOf('--terms');
 const terms = ti >= 0 ? termsOf(args.splice(ti, 2)[1]) : [];
+// --expanded: set only by expand() on its child run, so an index there is listed, not expanded again.
+const ei = args.indexOf('--expanded'), expanded = ei >= 0 && !!args.splice(ei, 1);
 if (!args.length || !out || Number.isNaN(deadline) || (ti >= 0 && !terms.length)) { console.error('usage: node fetch-docs.mjs [--out dir] [--budget seconds] [--terms a,b] <url | /docs/path.md> ...\n       node fetch-docs.mjs [--out dir] --search a,b [--site <host>]\n       node fetch-docs.mjs [--out dir] --quote <cache file>:<line>[,<line>...] ...'); process.exit(2); }
 const fileFor = u => join(out, u.host, (u.pathname + u.search.replace(/[^\w.-]+/g, '_')).replace(/\/$/, '/index') + (/\.(md|txt|xml)$/.test(u.pathname) ? '' : '.txt'));
 // Cache window: SF_DOCS_CACHE_HOURS (default 24; 0 means always fetch). An empty value counts as unset.
@@ -199,8 +201,8 @@ const expand = f => {
   if (!locs.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
   const left = Math.max(0, Math.floor((deadline - Date.now()) / 1000)), budget = deadline === Infinity ? [] : ['--budget', String(left)];
   // The budget only stops new fetches; the kill ends a hung one (Playwright traps SIGTERM) 60 s after the budget.
-  const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), ...locs],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20, env: { ...process.env, SF_DOCS_EXPANDED: '1' },
+  const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), '--expanded', ...locs],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20,
       timeout: deadline === Infinity ? undefined : (left + 60) * 1000, killSignal: 'SIGKILL' });
   const [head, ...maps] = (r.stdout || '').split('\n== ');
   // 40 article lines in all, as one sitemap shows: a broad term across 46 sitemaps would print thousands. Whole
@@ -619,9 +621,9 @@ try {
   try { await browser.close(); } catch (e) { console.error(`browser close failed: ${e.message.split('\n')[0]}`); }
   browser = { close() {} };
   for (const f of terms.length ? saved : []) {
-    // In the child run (SF_DOCS_EXPANDED) an index lists its <loc> lines: one level only, so an index of indexes or one
+    // In the child run (--expanded) an index lists its <loc> lines: one level only, so an index of indexes or one
     // that lists itself cannot spawn without end.
-    if (indexKind(slash(relative(out, f))) === 'index' && !process.env.SF_DOCS_EXPANDED) { expand(f); continue; }
+    if (indexKind(slash(relative(out, f))) === 'index' && !expanded) { expand(f); continue; }
     console.log(`\n== ${slash(relative(out, f))}\n${grep(f, terms).join('\n') || 'no match'}`);
     const links = statSync(`${f}.links.txt`, { throwIfNoEntry: false }) ? grep(`${f}.links.txt`, terms) : [];
     if (links.length) console.log(`== ${slash(relative(out, f))}.links.txt\n${links.join('\n')}`);
