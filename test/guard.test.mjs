@@ -219,7 +219,7 @@ test('the hand-back is refused for a quote or source outside the blocks, and pas
   }
   const noSource = join(C, 'developer.salesforce.com/docs/nosource.md'); writeFileSync(noSource, '# Limits\n| x |\n');
   assert.equal(handback(report('- "| x |" [1:2]').replace(`cache: ${PAGE}`, `cache: ${noSource}`)).status, 2, 'a cached file with no Source line');
-  for (const ok of ['Answer: not found.\nEvidence: none\nGaps: the release window [9:30] notes are not on the page.', 'Answer: not found.\nGaps: Sources (none) were found.'])
+  for (const ok of ['Answer: not found.\nEvidence: none\nGaps: the release window (9:30) notes are not on the page.', 'Answer: not found.\nGaps: Sources (none) were found.'])
     assert.equal(handback(ok).status, 0, ok);
 });
 
@@ -239,7 +239,6 @@ test('the hand-back is refused for the shapes the first rewrite missed, with adv
     'a URL on a Sources header line': 'Answer: x\nSources: https://developer.salesforce.com/wrong',
     'a quote on an Evidence header line': 'Answer: x\nEvidence: "the limit is 999,000 an hour"',
     'a reference with no space': good.replace('Gaps: none.', 'Gaps: the page says "999,000"[1:4].'),
-    'a reference in round brackets': good.replace('Gaps: none.', "Gaps: the page says '999,000' (1:4)."),
     'a zero-padded source number': good.replace('[1] https://', '[01] https://'),
     'a capitalised cache line after Gaps': `${good}\nCache: ${PAGE}`,
   })) {
@@ -253,4 +252,31 @@ test('the hand-back is refused for the shapes the first rewrite missed, with adv
 test('a cited page that is gone is reported once, not again for each of its lines', () => {
   const r = handback(report(L4, '- "# Limits" [1:2]').replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/pruned.md`));
   assert.match(r.stderr, /1 line\(s\) in Evidence or Sources differ/, r.stderr);
+});
+
+test('outside the blocks, --quote syntax in any spelling is refused, and prose that only looks like it passes', () => {
+  const good = report(L4), gap = t => good.replace('Gaps: none.', `Gaps: ${t}`);
+  for (const [name, message] of Object.entries({
+    'an em dash before a reference': gap('the page says "999,000" — [1:4].'),
+    'a range': gap('"999,000" [1:4-5]'), 'a list': gap('"999,000" [1:4, 1:5]'), 'spaces inside': gap('"999,000" [ 1:4 ]'),
+    'backticks': gap('the page says `999,000` [1:4]'), 'a reference to a line Evidence does not hold': gap('Enterprise gets 999,000 an hour [1:3].'),
+    'a markdown reference link': `${good}\n[2]: https://developer.salesforce.com/wrong`,
+    'a bulleted [n] source': `${good}\n- [2] https://help.salesforce.com/s/wrong`,
+    'an angle-bracket [n] source': `${good}\n[2] <https://developer.salesforce.com/wrong>`,
+    'a singular Source header': 'Answer: 999,000 an hour.\nSource: https://developer.salesforce.com/wrong',
+    'a bold header block with quoted bullets': 'Answer: 999,000.\n**Evidence:**\n- "| Enterprise | 999,000 |"\n**Sources:**\n- https://developer.salesforce.com/docs/limits.html',
+    'a blockquote header': 'Answer: x\n> Evidence: "999,000 an hour"',
+  })) { const r = handback(message); assert.equal(r.status, 2, name); assert.doesNotMatch(r.stderr, /could not check the report/, name); }
+  for (const [name, message] of Object.entries({
+    'a quoted word before a time': gap('the "nightly" (2:00) window is not on the page.'),
+    'Cache as a word': good.replace('Answer: Enterprise gets 250,000 an hour.', 'Answer: Enterprise gets 250,000 an hour.\nCache: Enterprise Edition gets 10 MB of Platform Cache.'),
+    'an evidence-based sentence': gap('Evidence-based: the page lists one edition.'),
+    'Sources (none)': 'Answer: not found.\nGaps: Sources (none) were found.',
+  })) assert.equal(handback(message).status, 0, name);
+});
+
+test('a reference in prose passes when it names a line the Evidence block holds, and is refused when it does not', () => {
+  const good = report(L4);
+  assert.equal(handback(good.replace('Gaps: none.', 'Gaps: the wording "250,000" in [1:4] is the default allocation.')).status, 0);
+  assert.equal(handback(good.replace('Gaps: none.', 'Gaps: the wording "999,000" in [1:3] is the default allocation.')).status, 2);
 });

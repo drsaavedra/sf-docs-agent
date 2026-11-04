@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse hook for the sf-docs agent: Bash may run fetch-docs.mjs and grep on files in this dir; Read may open them.
 // On the agent's hand-back it checks each Evidence line against the cached page it cites.
-// It only denies (exit 2, reason on stderr), and denies anything its parser does not recognise; the rest falls through.
+// It only denies (exit 2, reason on stderr); a Bash command its parser does not recognise is denied, the rest falls through.
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,18 +27,27 @@ const inside = p => { const r = relative(ROOT, real(p)); return !r.startsWith('.
 let input;
 try { input = JSON.parse(readFileSync(0, 'utf8')); } catch { deny('hook input is not JSON'); }
 const { tool_name: tool, tool_input: args = {} } = input;
-// The hand-back: the Evidence and Sources blocks must be what --quote prints for the lines they cite, and no quote,
-// source or cache path may sit outside them, so a quote or URL the model retyped wrong cannot reach the caller.
+// The hand-back: the Evidence and Sources blocks must be what --quote prints for the lines they cite, and no [n:line]
+// reference, [n] source or cache path may sit outside them, so a quote or URL the model retyped cannot reach the caller.
 if (tool === 'SubagentHandback') try {
   const msg = (typeof args.message === 'string' ? args.message : '').replace(/\r\n?/g, '\n'); // spans compare exactly
   const refuse = (why, fix = 'Paste the --quote output unchanged') => { console.error(`sf-docs guard: ${why}. ${fix} and send the report again.`); process.exit(2); };
-  const STRAY = 'Put each quote in Evidence through --quote, and name pages you checked in Gaps as plain URLs, with no [n] and no [n:line]';
+  const STRAY = 'Put each quote in Evidence through --quote, name pages you checked in Gaps as plain URLs with no [n], and write a time without square brackets';
   const lines = msg.split('\n'), at = h => lines.flatMap((l, i) => l.trim() === h ? [i] : []);
-  // Lines shaped like a --quote line or a Sources pair: allowed only inside the two blocks. A quote mark before a
-  // [n:line] reference, a [n] source or a cache path, or a header line that carries a quote or a URL.
-  const carries = l => /["'”’][ \t]*[-–(]?[ \t]*[[(]\d+:[ \t]*\d+[\])]/.test(l) || /^\s*cache:/i.test(l)
-    || /^\s*\[\d+\] (https?:\/\/|[\w.-]+\.(salesforce|lightningdesignsystem)\.com)/i.test(l)
-    || (/^[*#_ \t]*(evidence|sources)\b[*_ \t]*[:(]/i.test(l) && !['Evidence:', 'Sources:'].includes(l.trim()) && /["“”]|https?:\/\//.test(l));
+  // Outside the two blocks, refuse --quote's own syntax in any spelling, not the model's phrasings: a square-bracket
+  // [n:line] reference (ranges and lists too), a [n] label on a doc URL, a cache: line with a path, or an Evidence or
+  // Source header written any other way (unless it says none). Quoted prose with no reference is prose: unchecked.
+  const HEAD = /^[\s>*#_•-]*(evidence|sources?)\b[\s*_]*(:|\s[—–]\s)/i, NONE = /^[\s>*#_•-]*(evidence|sources?)\b[\s*_]*(:|\s[—–]\s)[\s*_]*(none|n\/a|not found)[\s.*_]*$/i;
+  // A reference may sit in prose when it names a line the Evidence block holds ("the wording in [1:31]"): it was checked.
+  // A quote right before it must be on that line, so "999,000" [1:4] cannot pass on a line that says 250,000.
+  const carries = (l, refs = new Map()) => [...l.matchAll(/\[\s*\d+\s*:\s*\d+[\d\s,:-]*\]/g)].some(m => {
+    if (!refs.has(m[0])) return true;
+    const q = l.slice(0, m.index).match(/["“'‘`]([^"“”'‘’`\n]{1,500})["”'’`][^\w\n]{0,4}$/);
+    return q && !refs.get(m[0]).includes(q[1]);
+  })
+    || /\[\d+\]:?\s*<?(https?:\/\/|[\w.-]+\.(salesforce|lightningdesignsystem)\.com)/i.test(l)
+    || /^\s*cache:\s*(\/|~|[a-z]:[\\/])/i.test(l)
+    || (HEAD.test(l) && !['Evidence:', 'Sources:'].includes(l.trim()) && !NONE.test(l.trim()));
   const [e, s] = [at('Evidence:'), at('Sources:')];
   if (!e.length && !s.length) {
     const stray = lines.find(carries);
@@ -55,7 +64,8 @@ if (tool === 'SubagentHandback') try {
     if (a[1] !== String(src.length + 1)) refuse(`Sources numbered other than --quote numbers them, at [${a[1]}]`);
     src.push({ url: a[2], file: b[1] });
   }
-  const stray = lines.find((l, i) => (i < e[0] || i >= k) && carries(l));
+  const refs = new Map(lines.slice(e[0] + 1, s[0]).flatMap(l => { const m = l.trim().match(/^- "(.*)" (\[\d+:\d+\])$/); return m ? [[m[2], m[1]]] : []; }));
+  const stray = lines.find((l, i) => (i < e[0] || i >= k) && carries(l, refs));
   if (stray) refuse(`a quote or source outside the --quote blocks: ${stray.trim()}`, STRAY);
   if (!src.length) refuse('no [n] url and cache: lines under Sources:');
   // A page as --quote reads one: a file in the cache that starts with its Source: line. Each file is read once.
