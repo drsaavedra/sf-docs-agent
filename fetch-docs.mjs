@@ -292,7 +292,7 @@ if (args[0] === '--search') {
     const rel = slash(relative(out, f));
     // Sidecars and markers are not pages; a file another run pruned mid-walk is skipped.
     if (/\.(links\.txt|missing|tmp|fallback)$/.test(rel) || !statSync(f, { throwIfNoEntry: false })?.isFile()) continue;
-    if (isLlms(rel) || indexKind(rel)) continue; // indexes: --terms on the index already shows them
+    if (isLlms(rel) || indexKind(rel)) continue; // indexes: --terms on the index searches what it lists
     // At most PER_FILE lines a file, so ties across files cannot all come from the one that sorts first.
     try { const ms = matches(rel, readFileSync(f, 'utf8'), t); total += ms.length; all.push(...rank(ms, PER_FILE)); }
     catch (e) { if (e.code !== 'ENOENT') throw e; }
