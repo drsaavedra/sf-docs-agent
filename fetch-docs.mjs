@@ -210,7 +210,7 @@ const expand = f => {
     const n = s.split('\n').filter(l => /^\d+: /.test(l)).length;
     if (!n) return false;
     if (shown < 40) { shown += n; return true; }
-    hidden += n; cut++; return false;
+    hidden += n + Number(s.match(/^\((\d+) more lower-ranked lines/m)?.[1] ?? 0); cut++; return false; // and its own cut
   });
   const status = head.split('\n').filter(l => l && (!/^200 /.test(l) || / not saved/.test(l)));
   console.log([`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only`, ...status,

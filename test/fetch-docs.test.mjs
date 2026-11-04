@@ -172,10 +172,11 @@ test('an index search shows whole sitemaps until 40 article lines, then counts t
   const page = i => `help.salesforce.com/apex/Help_SiteMapExternal_page_${i}_producttype_platform.txt`;
   const files = { 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
     lines(4, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>`) };
-  for (let i = 1; i <= 4; i++) files[page(i)] = lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j <= 30 ? 'flow' : 'x'}_${i}_${j}.htm&amp;type=5</loc>`);
+  for (let i = 1; i <= 3; i++) files[page(i)] = lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j <= 30 ? 'flow' : 'x'}_${i}_${j}.htm&amp;type=5</loc>`);
+  files[page(4)] = lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.flow_4_${j}.htm&amp;type=5</loc>`); // 40 shown, 20 cut
   const r = run(cache(files), '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform').out;
   assert.equal(r.split('\n').filter(l => /^\d+: /.test(l)).length, 60, r); // 2 whole sitemaps of 30
-  assert.match(r, /\(60 more matching lines in 2 more sitemaps: use a more specific word_word term\)/, r);
+  assert.match(r, /\(90 more matching lines in 2 more sitemaps: use a more specific word_word term\)/, r); // 30 + 40 + 20
   assert.doesNotMatch(r, /page_3_/, r);
 });
 
