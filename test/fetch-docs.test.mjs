@@ -161,6 +161,13 @@ test('--terms on a sitemap index fetches its page sitemaps and prints only their
   assert.doesNotMatch(r.out, /no match|^200 .*Help_SiteMapExternal/m, r.out);
 });
 
+test('a short sitemap with no matching article prints no match, not its whole body', () => {
+  const out = cache({ 'admin.salesforce.com/post-sitemap3.xml': lines(5, i => `<loc>https://admin.salesforce.com/blog/2026/post-${i}</loc>`) });
+  const r = run(out, '--terms', 'headless_360', 'https://admin.salesforce.com/post-sitemap3.xml').out;
+  assert.match(r, /== admin\.salesforce\.com\/post-sitemap3\.xml\nno match/, r);
+  assert.doesNotMatch(r, /short page|post-1</, r);
+});
+
 test('--terms on a sitemap index that lists no sitemaps says so and exits 0', () => {
   const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt': '<sitemapindex></sitemapindex>' });
   const r = run(out, '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');

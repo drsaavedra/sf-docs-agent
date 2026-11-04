@@ -209,7 +209,8 @@ const isLlms = rel => /(^|\/)llms(-[\w-]+)?\.txt$/i.test(rel);
 const grep = (file, t) => {
   const text = readFileSync(file, 'utf8'), lines = text.split('\n'), rel = slash(relative(out, file)), kind = indexKind(rel);
   const links = file.endsWith('.links.txt');
-  if (!links && lines.length <= SHORT_LINES && text.length <= SHORT_CHARS)
+  // A sitemap's lines are URLs, so a short one prints its matches only, not every article it lists.
+  if (!links && kind !== 'map' && lines.length <= SHORT_LINES && text.length <= SHORT_CHARS)
     return ['(short page, shown whole)', ...lines.slice(1, text.endsWith('\n') ? -1 : undefined).map((l, i) => `${i + 2}: ${l}`)]; // line 1 is the Source line
   // A sitemap index names page sitemaps, not topics, so no term can pick among them: print every <loc> line.
   if (kind === 'index') return matches(null, text, ['<loc>']).map(show);
