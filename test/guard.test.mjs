@@ -191,10 +191,30 @@ test('the hand-back is refused when a Sources URL was retyped, and the refusal c
 test('the hand-back refusal says what to do when the cached page is gone or cannot be read', () => {
   const gone = handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/pruned.md`));
   assert.equal(gone.status, 2);
-  assert.match(gone.stderr, /is gone: fetch its URL again, run --quote again/, gone.stderr);
+  assert.match(gone.stderr, /is gone: fetch \[1\] \S+ again and run --quote again/, gone.stderr);
   mkdirSync(join(C, 'developer.salesforce.com/docs/dir.md'), { recursive: true });
   const dir = handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/dir.md`));
   assert.equal(dir.status, 2);
   assert.match(dir.stderr, /could not check the report/, dir.stderr);
   assert.doesNotMatch(dir.stderr, /Allowed: node/, dir.stderr);
+});
+
+test('the hand-back is refused for a quote or source outside the blocks, and passes plain prose', () => {
+  const good = report(L4);
+  const holes = {
+    'a quote line in the Answer': good.replace('Answer:', `Answer:\n- "| Enterprise | 999,000 |" [1:4]\n`),
+    'a quote line after Gaps': `${good}\n- "| Enterprise | 999,000 |" [1:4]`,
+    'an inline quote with a reference': good.replace('Gaps: none.', 'Gaps: the page says "999,000 an hour" [1:4].'),
+    'an extra source with no cache line': good.replace('Gaps:', '[2] https://help.salesforce.com/s/wrong\nGaps:'),
+    'a second [1] after Gaps': `${good}\n[1] https://developer.salesforce.com/docs/other.html\n    cache: ${PAGE}`,
+    'Sources with no Evidence': 'Answer: not found.\nSources:\n[1] https://developer.salesforce.com/limits.html\nGaps: none.',
+    'Sources before Evidence': `Answer: x\nSources:\n[1] https://developer.salesforce.com/docs/limits.html\n    cache: ${PAGE}\nEvidence:\n${L4}`,
+    'a zero-padded line number': report(L4.replace('[1:4]', '[1:04]')),
+    'a bold header with a quote under it': `Answer: x\n**Evidence:**\n- "| Enterprise | 999,000 |" [1:4]`,
+  };
+  for (const [name, message] of Object.entries(holes)) assert.equal(handback(message).status, 2, name);
+  const noSource = join(C, 'developer.salesforce.com/docs/nosource.md'); writeFileSync(noSource, '# Limits\n| x |\n');
+  assert.equal(handback(report('- "| x |" [1:2]').replace(`cache: ${PAGE}`, `cache: ${noSource}`)).status, 2, 'a cached file with no Source line');
+  for (const ok of ['Answer: not found.\nEvidence: none\nGaps: the release window [9:30] notes are not on the page.', 'Answer: not found.\nGaps: Sources (none) were found.'])
+    assert.equal(handback(ok).status, 0, ok);
 });
