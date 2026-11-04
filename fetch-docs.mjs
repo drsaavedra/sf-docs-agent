@@ -202,7 +202,11 @@ const expand = f => {
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20, env: { ...process.env, SF_DOCS_EXPANDED: '1' } });
   const body = (r.stdout || '').split('\n').filter(l => !/^200 /.test(l) || / not saved/.test(l)).join('\n').replace(/\n== [^\n]*\nno match(?=\n|$)/g, '').replace(/\n{3,}/g, '\n\n');
   console.log(`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only\n${body.trim()}`);
-  if (r.status) process.exitCode = r.status;
+  // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match.
+  if (r.error || r.signal || r.status) {
+    console.log(`sitemap run failed: ${r.error?.code || r.signal || `exit ${r.status}`}; the matches above may be incomplete`);
+    process.exitCode = r.status || 1;
+  }
 };
 // llms.txt and llms-<product>.txt, not a page whose cached name starts with llms (llms-overview.html.txt).
 const isLlms = rel => /(^|\/)llms(-[\w-]+)?\.txt$/i.test(rel);
