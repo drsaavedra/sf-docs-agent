@@ -215,6 +215,7 @@ const expand = f => {
   const kept = maps.filter(s => {
     const n = s.split('\n').filter(l => /^\d+: /.test(l)).length;
     if (!n) return false;
+    if (indexKind(s.slice(0, s.indexOf('\n'))) === 'index') return true; // a nested index's <loc> list, not articles
     if (shown < 40) { shown += n; return true; }
     hidden += n + Number(s.match(/^\((\d+) more lower-ranked lines/m)?.[1] ?? 0); cut++; return false; // and its own cut
   });

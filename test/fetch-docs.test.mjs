@@ -206,6 +206,18 @@ test('an index with one off-site sitemap refuses it and still searches the rest'
   assert.doesNotMatch(r.out, /sitemap run failed/, r.out);
 });
 
+test('the <loc> lines of a nested index do not count toward the article cap', () => {
+  const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal', page = 'help.salesforce.com/apex/Help_SiteMapExternal_page_1_producttype_platform.txt';
+  const out = cache({
+    [`${idx}_producttype_platform.txt`]: `<loc>https://${idx}?producttype=sales</loc>\n<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&#38;producttype=platform</loc>`,
+    [`${idx}_producttype_sales.txt`]: lines(50, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=sales</loc>`),
+    [page]: lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j === 9 ? 'xorg_adapter' : `x_${j}`}.htm&amp;type=5</loc>`),
+  });
+  const r = run(out, '--budget', '0', '--terms', 'xorg_adapter', `https://${idx}?producttype=platform`).out;
+  assert.match(r, /platform\.xorg_adapter\.htm/, r);
+  assert.doesNotMatch(r, /more matching lines/, r);
+});
+
 test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
   const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
   const out = cache({
