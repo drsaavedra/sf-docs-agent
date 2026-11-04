@@ -615,7 +615,8 @@ try {
   console.log(`fetched ${urls.length - late}, 200 ${ok}, unique bodies ${seen.size}${refused.length ? `, refused ${refused.length}` : ''}${late ? `, not fetched ${late} (time limit)` : ''}, out ${slash(out)}`);
   if (!urls.length && refused.length) process.exitCode = 1; // nothing on a doc site was asked for
   // Every page is fetched: close the browser now, or it idles beside a sitemap child run's own browser.
-  await browser.close();
+  // A close that fails (Chromium crashed) must not cost the matches: every page is already saved.
+  try { await browser.close(); } catch (e) { console.error(`browser close failed: ${e.message.split('\n')[0]}`); }
   browser = { close() {} };
   for (const f of terms.length ? saved : []) {
     // In the child run (SF_DOCS_EXPANDED) an index lists its <loc> lines: one level only, so an index of indexes or one
