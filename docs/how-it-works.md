@@ -26,8 +26,10 @@ Here is how the two compare:
 The trade-off: your main session trusts the subagent. That is why the model only picks line numbers and the script
 copies the lines. Every quote comes word for word from the page, not from the model's memory. The model then writes
 the script's lines into its report, and in one of 136 quotes on 4 November 2026 it dropped one folder from a link in
-a long table row. So check each quote with one `grep` against the cached copy, which saves curly quotes as straight
-ones and drops image links and the padding in table rows.
+a long table row. The hook now checks each quote in the report against the cached page before the agent hands the
+report back, and it sends a quote that differs back to the agent with the line as it is on the page. You can also
+check each quote with one `grep` against the cached copy, which saves curly quotes as straight ones and drops image
+links and the padding in table rows.
 
 ## How sf-docs-agent reads each site
 
@@ -80,6 +82,13 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 - On the 20-question regression, the hook ran on 103 Bash and Read calls and stopped 3: a pipe, a `;` and a redirect.
   The agent changed those 3 calls, and the result stayed at 20 of 20. The guard at commit `8e12e06` stops the same 3
   calls when the 103 calls are replayed through it (2026-11-03).
+- The same hook checks the agent's report before the agent hands it back. Each Evidence line must be the cited line
+  of the cached page, so a quote that the model typed wrong goes back to the agent with the line as it is on the page.
+  On the 10 benchmark questions, 3 rounds, the hook sent no quote back in 30 runs and all 30 answers were right. The
+  report with the wrong quote from 4 November is sent back when it is replayed through the hook (2026-11-04).
+- The hook reads the cached page when the agent hands its report back. If another session fetches the same page
+  again in that time and the page changed, a correct quote can be sent back. The check runs only when Claude Code
+  gives the agent its hand-back tool (`SubagentHandback`); without that tool, the report comes back unchecked.
 - For a `--project` install, Claude Code runs the hook only in a folder that you trust. In a folder that you did
   not trust, for example under `claude -p`, the agent runs without the hook (measured 2026-11-03). A user install,
   the default, runs the hook in every folder.
