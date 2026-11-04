@@ -2,33 +2,34 @@
 
 [Back to the README](../README.md)
 
-The sf-docs-agent numbers below come from a rerun on 2 November 2026 with the agent that follows up to two links. The
-platform-docs-get and Salesforce Docs MCP numbers are from their runs on 30 and 31 October 2026, which were not
-repeated, and the docs changed in between: the Apex guides gained `.md` copies on 31 October 2026.
-[One link against two](#one-link-against-two) compares the agent before and after the change.
+The sf-docs-agent numbers below come from a rerun on 4 November 2026. That agent reads a Help or admin sitemap index
+in one call, and it asks the caller to wait for its report. The platform-docs-get and Salesforce Docs MCP numbers are
+from their runs on 30 and 31 October 2026, which were not repeated, and the docs changed in between: the Apex guides
+gained `.md` copies on 31 October 2026. [What changed on 4 November](#what-changed-on-4-november) gives the
+2 November numbers and the cause of each change. [One link against two](#one-link-against-two) compares the agent
+before and after it started to follow two links.
 
-## 84% less in your context, 34% fewer tokens than platform-docs-get
+## 83% less in your context, 41% fewer tokens than platform-docs-get
 
 On 10 questions against Salesforce's own platform-docs-get skill, the agent
-added 84% fewer tokens to your context and used 34% fewer tokens over the whole session, with the right answer on
-39 of 40 runs for each. In the second of four rounds, platform-docs-get missed question 5 and sf-docs-agent missed
-question 4.
+added 83% fewer tokens to your context and used 41% fewer tokens over the whole session. sf-docs-agent had the right
+answer on 40 of 40 runs and platform-docs-get on 39 of 40: it missed question 5 in the second of four rounds.
 
 Below are the medians of those four rounds, each read as platform-docs-get → sf-docs-agent.
 
 | Question | Site | Tokens added to context | Saved | Session token usage | Saved |
 |---|---|---|---|---|---|
-| 1. Scratch org editions | developer | 2,178 → **261** | **88.0%** | 186,768 → **108,986** | **41.6%** |
-| 2. Platform event allocation | developer | 4,107 → **517** | **87.4%** | 245,482 → **126,394** | **48.5%** |
-| 3. QueryLocator batch limits | developer | 2,567 → **439** | **82.9%** | 217,691 → **115,116** | **47.1%** |
-| 4. Integration patterns | architect | 1,104 → **599** | **45.7%** | 127,043 → **126,123** | **0.7%** |
-| 5. Salesforce Connect editions | help | 1,949 → **367** | **81.2%** | 201,770 → **199,655** | **1.0%** |
-| 6. Flow version limits | help | 4,578 → **303** | **93.4%** | 217,138 → **165,364** | **23.8%** |
-| 7. Headless 360 | admin | 3,772 → **369** | **90.2%** | 250,200 → **116,094** | **53.6%** |
-| 8. SLDS tooltips | lightningdesignsystem | 3,875 → **413** | **89.3%** | 201,906 → **113,047** | **44.0%** |
-| 9. Bulk API batch size | developer | 2,134 → **547** | **74.4%** | 255,340 → **141,404** | **44.6%** |
-| 10. Pub/Sub fetch limit | developer | 1,199 → **619** | **48.4%** | 141,826 → **135,983** | **4.1%** |
-| **All** | | 27,463 → **4,434** | **83.9%** | 2,045,164 → **1,348,166** | **34.1%** |
+| 1. Scratch org editions | developer | 2,178 → **239** | **89.0%** | 186,768 → **113,706** | **39.1%** |
+| 2. Platform event allocation | developer | 4,107 → **519** | **87.4%** | 245,482 → **120,394** | **51.0%** |
+| 3. QueryLocator batch limits | developer | 2,567 → **558** | **78.3%** | 217,691 → **111,018** | **49.0%** |
+| 4. Integration patterns | architect | 1,104 → **752** | **31.9%** | 127,043 → **103,650** | **18.4%** |
+| 5. Salesforce Connect editions | help | 1,949 → **282** | **85.5%** | 201,770 → **139,668** | **30.8%** |
+| 6. Flow version limits | help | 4,578 → **338** | **92.6%** | 217,138 → **130,048** | **40.1%** |
+| 7. Headless 360 | admin | 3,772 → **380** | **89.9%** | 250,200 → **121,508** | **51.4%** |
+| 8. SLDS tooltips | lightningdesignsystem | 3,875 → **445** | **88.5%** | 201,906 → **118,348** | **41.4%** |
+| 9. Bulk API batch size | developer | 2,134 → **472** | **77.9%** | 255,340 → **142,031** | **44.4%** |
+| 10. Pub/Sub fetch limit | developer | 1,199 → **655** | **45.4%** | 141,826 → **107,168** | **24.4%** |
+| **All** | | 27,463 → **4,640** | **83.1%** | 2,045,164 → **1,207,539** | **41.0%** |
 
 <details>
 <summary>The 10 questions</summary>
@@ -61,17 +62,16 @@ Three rounds each, medians, same model.
 
 | | sf-docs-agent | a. MCP in main session | b. MCP in a subagent |
 |---|---|---|---|
-| Tokens added to context | **4,508** | 45,636 | 5,327 |
-| Session token usage | 1,323,755 | 1,052,673 | **937,229** |
-| Seconds, all 10 | 346 | 239 | **218** |
-| Right answers, of 30 | **29** | 28 | 24 |
-| Quotes that match the text the tools returned, all runs | **117 of 117** | 173 of 188 | 172 of 177 |
-| Quotes on today's page, checked with sf-docs-agent's fetcher, all runs | **117 of 117** | 159 of 188 | 135 of 177 |
+| Tokens added to context | **4,560** | 45,636 | 5,327 |
+| Session token usage | 1,202,023 | 1,052,673 | **937,229** |
+| Seconds, all 10 | 510 | 239 | **218** |
+| Right answers, of 30 | **30** | 28 | 24 |
+| Quotes that match the text the tools returned, all runs | **135 of 136** | 173 of 188 | 172 of 177 |
+| Quotes on today's page, checked with sf-docs-agent's fetcher, all runs | **135 of 136** | 159 of 188 | 135 of 177 |
 
-The MCP in a subagent is faster and uses 29% fewer session tokens than sf-docs-agent, and a. MCP in main session uses
-20% fewer. sf-docs-agent's one wrong answer is question 4 in its second round, a list reported a row short (a known
-limitation). The quote audit counted one more quoted string for sf-docs-agent, "Salesforce Flow Limits by Edition",
-which is the title of a page the agent named in its Gaps as not read, not a quote. Its results come back as markdown excerpts, so I suspect Salesforce keeps a `.md` snapshot of the docs taken
+The MCP in a subagent is faster and uses 22% fewer session tokens than sf-docs-agent, and a. MCP in main session uses
+12% fewer. sf-docs-agent's one quote that is not on the page is on question 2: the script printed an 887-character
+table row correctly, and the agent dropped one folder from a link in that row when it wrote its report. The MCP's results come back as markdown excerpts, so I suspect Salesforce keeps a `.md` snapshot of the docs taken
 at some point. Because the index is closed, you can't see what it holds or when it was taken, and that has some costs:
 
 - **Coverage.** Across 91 searches it returned no admin.salesforce.com page and no SLDS 2 content page. The
@@ -90,25 +90,50 @@ median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and
 Apex Developer Guide had no `.md` copy, so sf-docs-agent rendered them in a headless browser, and the 12 runs that
 rendered every page took a median 68.5 seconds, against 20 for the MCP subagent. The Apex Developer Guide and Apex
 Reference had `.md` copies by 31 October 2026, and in the 2 November 2026 rerun sf-docs-agent's total for all 10 fell from 433
-to 346 seconds. Help, admin, Metadata API and Object Reference still have none.
+to 346 seconds. In the 4 November 2026 rerun it rose to 510 seconds, and the cause is not known. Help, admin,
+Metadata API and Object Reference still have none.
 
 <details>
 <summary>Per question, sf-docs-agent / a. MCP in main session / b. MCP in a subagent</summary>
 
 | Question | Tokens added to context | Seconds | Right answers, of 3 |
 |---|---|---|---|
-| 1. Scratch org editions | 284 / 5,011 / 421 | 20 / 22 / 18 | 3 / 3 / 3 |
-| 2. Platform event allocation | 516 / 6,177 / 713 | 25 / 28 / 21 | 3 / 3 / 3 |
-| 3. QueryLocator batch limits | 451 / 8,304 / 531 | 45 / 18 / 20 | 3 / 3 / 3 |
-| 4. Integration patterns | 700 / 4,863 / 788 | 25 / 21 / 22 | 2 / 3 / 3 |
-| 5. Salesforce Connect editions | 362 / 3,556 / 381 | 79 / 17 / 18 | 3 / 3 / 3 |
-| 6. Flow version limits | 318 / 2,817 / 291 | 42 / 20 / 19 | 3 / 3 / 3 |
-| 7. Headless 360 | 368 / 4,232 / 772 | 26 / 31 / 31 | 3 / 3 / 0 |
-| 8. SLDS tooltips | 390 / 1,231 / 617 | 28 / 40 / 33 | 3 / 1 / 0 |
-| 9. Bulk API batch size | 496 / 6,284 / 529 | 27 / 22 / 20 | 3 / 3 / 3 |
-| 10. Pub/Sub fetch limit | 623 / 3,161 / 284 | 29 / 20 / 16 | 3 / 3 / 3 |
+| 1. Scratch org editions | 242 / 5,011 / 421 | 29 / 22 / 18 | 3 / 3 / 3 |
+| 2. Platform event allocation | 514 / 6,177 / 713 | 37 / 28 / 21 | 3 / 3 / 3 |
+| 3. QueryLocator batch limits | 482 / 8,304 / 531 | 51 / 18 / 20 | 3 / 3 / 3 |
+| 4. Integration patterns | 740 / 4,863 / 788 | 40 / 21 / 22 | 3 / 3 / 3 |
+| 5. Salesforce Connect editions | 306 / 3,556 / 381 | 106 / 17 / 18 | 3 / 3 / 3 |
+| 6. Flow version limits | 315 / 2,817 / 291 | 46 / 20 / 19 | 3 / 3 / 3 |
+| 7. Headless 360 | 384 / 4,232 / 772 | 62 / 31 / 31 | 3 / 3 / 0 |
+| 8. SLDS tooltips | 446 / 1,231 / 617 | 44 / 40 / 33 | 3 / 1 / 0 |
+| 9. Bulk API batch size | 479 / 6,284 / 529 | 53 / 22 / 20 | 3 / 3 / 3 |
+| 10. Pub/Sub fetch limit | 652 / 3,161 / 284 | 42 / 20 / 16 | 3 / 3 / 3 |
 
 </details>
+
+## What changed on 4 November
+
+On 2 November 2026 sf-docs-agent used 34% fewer session tokens than platform-docs-get, and only 0.7%, 1.0% and 4.1%
+fewer on questions 4, 5 and 10. The transcripts of those runs gave three causes:
+
+- **The caller spent one turn to wait.** The caller started the agent in the background, and then used one turn
+  only to say that the agent was still running. That turn cost about 22,000 tokens on all 40 runs. The agent's
+  description now tells the caller to start it with `run_in_background: false`. In 9 test runs, no caller used
+  that turn.
+- **Help sitemaps took many calls.** With no article id, the agent read the Help sitemap index, and then typed the
+  46 sitemap URLs that the index lists into more calls, 20 URLs at a time. Now, `--terms` on a sitemap index reads
+  all of its sitemaps in the same call and shows only the matches. On question 5 the session fell from 284,673 tokens
+  to 137,273 in 3 runs each.
+- **A list was not shown whole.** On question 4 the agent opened the whole page to see the full patterns table.
+  0.1.4 shows a list or table whole when a term matches in it, and that step is gone.
+
+Some cost stays because the agent is a second session:
+
+- **Each question has a fixed cost.** The caller uses about 46,000 tokens to start the agent and to give the
+  answer, and the agent uses about 42,000 or more. When platform-docs-get finds the page with one search and one
+  fetch, as on question 4, the saving on session tokens is small. The saving on context does not change.
+- **A quote check costs one more turn.** The caller can check a quote with `grep` on the cached page. On some runs
+  it does, and that turn costs about 22,000 tokens.
 
 ## One link against two
 
