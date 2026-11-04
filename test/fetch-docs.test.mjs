@@ -180,6 +180,14 @@ test('an index search shows whole sitemaps until 40 article lines, then counts t
   assert.doesNotMatch(r, /page_3_/, r);
 });
 
+test('an index search with its budget spent prints one not-fetched line, not one per sitemap', () => {
+  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+    lines(5, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>`) });
+  const r = run(out, '--budget', '0', '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');
+  assert.match(r.out, /\nnot fetched \(time limit\): 5 sitemaps; rerun the same call for them/, r.out);
+  assert.doesNotMatch(r.out, /^not fetched \(time limit\) https/m, r.out);
+});
+
 test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
   const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
   const out = cache({

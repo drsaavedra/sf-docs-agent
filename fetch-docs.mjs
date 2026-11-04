@@ -212,7 +212,10 @@ const expand = f => {
     if (shown < 40) { shown += n; return true; }
     hidden += n + Number(s.match(/^\((\d+) more lower-ranked lines/m)?.[1] ?? 0); cut++; return false; // and its own cut
   });
-  const status = head.split('\n').filter(l => l && (!/^200 /.test(l) || / not saved/.test(l)));
+  // One line for the sitemaps the budget left: the same call fetches only those again. Other failures print each.
+  const lines = head.split('\n'), late = lines.filter(l => /^not fetched \(time limit\)/.test(l)).length;
+  const status = lines.filter(l => l && !/^not fetched \(time limit\)/.test(l) && (!/^200 /.test(l) || / not saved/.test(l)));
+  if (late) status.push(`not fetched (time limit): ${late} sitemaps; rerun the same call for them`);
   console.log([`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only`, ...status,
     ...kept.map(s => `\n== ${s.trimEnd()}`),
     ...(cut ? [`\n(${hidden} more matching lines in ${cut} more sitemaps: use a more specific word_word term)`] : [])].join('\n'));
