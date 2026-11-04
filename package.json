@@ -1,6 +1,6 @@
 {
   "name": "sf-docs-agent",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "Claude Code subagent that answers from official Salesforce docs (developer, architect, help, admin, lightningdesignsystem.com) with grep-checked quotes",
   "devDependencies": {
