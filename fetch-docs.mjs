@@ -6,6 +6,7 @@
 //        node fetch-docs.mjs --search a,b [--site <host>]   (ranked matching lines across the cached pages)
 //        node fetch-docs.mjs --quote <cache file>:<line>[,<line>...] ...   (prints Evidence and Sources verbatim)
 import { chromium } from 'playwright-core';
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { closeSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, sep } from 'node:path';
@@ -29,6 +30,8 @@ const plain = text => text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201
 const termsOf = v => plain(v ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); // the cache holds straight quotes
 const ti = args.indexOf('--terms');
 const terms = ti >= 0 ? termsOf(args.splice(ti, 2)[1]) : [];
+// --expanded: set only by expand() on its child run, so an index there is listed, not expanded again.
+const ei = args.indexOf('--expanded'), expanded = ei >= 0 && !!args.splice(ei, 1);
 if (!args.length || !out || Number.isNaN(deadline) || (ti >= 0 && !terms.length)) { console.error('usage: node fetch-docs.mjs [--out dir] [--budget seconds] [--terms a,b] <url | /docs/path.md> ...\n       node fetch-docs.mjs [--out dir] --search a,b [--site <host>]\n       node fetch-docs.mjs [--out dir] --quote <cache file>:<line>[,<line>...] ...'); process.exit(2); }
 const fileFor = u => join(out, u.host, (u.pathname + u.search.replace(/[^\w.-]+/g, '_')).replace(/\/$/, '/index') + (/\.(md|txt|xml)$/.test(u.pathname) ? '' : '.txt'));
 // Cache window: SF_DOCS_CACHE_HOURS (default 24; 0 means always fetch). An empty value counts as unset.
@@ -191,12 +194,56 @@ const blockLines = (ls, all, score) => blocksOf(ls).filter(([a, b]) => b - a < B
 // page about sitemaps, or an --out dir named for them, is neither.
 const indexKind = rel => /(^|\/)apex\/Help_\w*SiteMapIndex|sitemap_index[^/]*\.xml$/i.test(rel) ? 'index'
   : /(^|\/)apex\/Help_\w*SiteMap|[^/]*sitemap[^/]*\.xml$/i.test(rel) ? 'map' : '';
+// A sitemap index names page sitemaps, not articles, so --terms fetches them all in a child run of this script and
+// prints its output without the 200 lines (failures kept) and the sitemaps with no match, up to a cap.
+const expand = f => {
+  const all = [...readFileSync(f, 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map(m => m[1]);
+  if (!all.length) return console.log(`\n== ${slash(relative(out, f))}\nno sitemaps listed`); // a child given no URL prints usage
+  // Off-site sitemaps are refused here, as the child would refuse them, so any child exit but 0 is a failure.
+  const on = u => { const x = parse(u); return x && SITES.includes(x.host); }, locs = all.filter(on);
+  for (const u of all.filter(u => !on(u))) console.log(`refused ${u}: not an official doc site`);
+  if (!locs.length) { process.exitCode = 1; return console.log(`\n== ${slash(relative(out, f))}\nno sitemap on a doc site`); }
+  const left = Math.max(0, Math.floor((deadline - Date.now()) / 1000)), budget = deadline === Infinity ? [] : ['--budget', String(left)];
+  // The budget only stops new fetches; the kill ends a hung one (Playwright traps SIGTERM) 60 s after the budget.
+  const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--out', out, ...budget, '--terms', terms.join(','), '--expanded', ...locs],
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], maxBuffer: 64 << 20,
+      timeout: deadline === Infinity ? undefined : (left + 60) * 1000, killSignal: 'SIGKILL' });
+  const [head, ...maps] = (r.stdout || '').split('\n== ');
+  // 40 article lines in all, as one sitemap shows: a broad term across 46 sitemaps would print thousands. Whole
+  // sitemaps only, so the cap can overrun by one sitemap's 40.
+  let shown = 0, hidden = 0, cut = 0;
+  const kept = maps.filter(s => {
+    const n = s.split('\n').filter(l => /^\d+: /.test(l)).length;
+    if (!n) return false;
+    if (indexKind(s.slice(0, s.indexOf('\n'))) === 'index') return true; // a nested index's <loc> list, not articles
+    if (shown < 40) { shown += n; return true; }
+    hidden += n + Number(s.match(/^\((\d+) more lower-ranked lines/m)?.[1] ?? 0); cut++; return false; // and its own cut
+  });
+  // One line for the sitemaps the budget left, since a rerun of the same call reads the rest from the cache. With no
+  // cache (SF_DOCS_CACHE_HOURS=0) a rerun fetches them all again, so each URL prints. Other failures print each.
+  const status = [], collapse = MAX_AGE > 0;
+  let late = 0;
+  for (const l of head.split('\n')) {
+    if (collapse && /^not fetched \(time limit\)/.test(l)) late++;
+    else if (l && (!/^200 /.test(l) || / not saved/.test(l))) status.push(l);
+  }
+  if (late) status.push(`not fetched (time limit): ${late} sitemaps; rerun the same call, which reads the others from the cache`);
+  console.log([`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only`, ...status,
+    ...kept.map(s => `\n== ${s.trimEnd()}`),
+    ...(cut ? [`\n(${hidden} more matching lines in ${cut} more sitemaps: use a more specific word_word term)`] : [])].join('\n'));
+  // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match.
+  if (r.error || r.signal || r.status) {
+    console.log(`sitemap run failed: ${r.error?.code || r.signal || `exit ${r.status}`}; the matches above may be incomplete`);
+    process.exitCode = r.status || 1;
+  }
+};
 // llms.txt and llms-<product>.txt, not a page whose cached name starts with llms (llms-overview.html.txt).
 const isLlms = rel => /(^|\/)llms(-[\w-]+)?\.txt$/i.test(rel);
 const grep = (file, t) => {
   const text = readFileSync(file, 'utf8'), lines = text.split('\n'), rel = slash(relative(out, file)), kind = indexKind(rel);
   const links = file.endsWith('.links.txt');
-  if (!links && lines.length <= SHORT_LINES && text.length <= SHORT_CHARS)
+  // A sitemap's or an index's lines are URLs, so a short one prints its matches or <loc> lines only.
+  if (!links && !kind && lines.length <= SHORT_LINES && text.length <= SHORT_CHARS)
     return ['(short page, shown whole)', ...lines.slice(1, text.endsWith('\n') ? -1 : undefined).map((l, i) => `${i + 2}: ${l}`)]; // line 1 is the Source line
   // A sitemap index names page sitemaps, not topics, so no term can pick among them: print every <loc> line.
   if (kind === 'index') return matches(null, text, ['<loc>']).map(show);
@@ -260,7 +307,7 @@ if (args[0] === '--search') {
     const rel = slash(relative(out, f));
     // Sidecars and markers are not pages; a file another run pruned mid-walk is skipped.
     if (/\.(links\.txt|missing|tmp|fallback)$/.test(rel) || !statSync(f, { throwIfNoEntry: false })?.isFile()) continue;
-    if (isLlms(rel) || indexKind(rel)) continue; // indexes: --terms on the index already shows them
+    if (isLlms(rel) || indexKind(rel)) continue; // indexes: --terms on the index searches what it lists
     // At most PER_FILE lines a file, so ties across files cannot all come from the one that sorts first.
     try { const ms = matches(rel, readFileSync(f, 'utf8'), t); total += ms.length; all.push(...rank(ms, PER_FILE)); }
     catch (e) { if (e.code !== 'ENOENT') throw e; }
@@ -579,7 +626,14 @@ try {
   const late = skippedAs.size;
   console.log(`fetched ${urls.length - late}, 200 ${ok}, unique bodies ${seen.size}${refused.length ? `, refused ${refused.length}` : ''}${late ? `, not fetched ${late} (time limit)` : ''}, out ${slash(out)}`);
   if (!urls.length && refused.length) process.exitCode = 1; // nothing on a doc site was asked for
+  // Every page is fetched: close the browser now, or it idles beside a sitemap child run's own browser.
+  // A close that fails (Chromium crashed) must not cost the matches: every page is already saved.
+  try { await browser.close(); } catch (e) { console.error(`browser close failed: ${e.message.split('\n')[0]}`); }
+  browser = { close() {} };
   for (const f of terms.length ? saved : []) {
+    // In the child run (--expanded) an index lists its <loc> lines: one level only, so an index of indexes or one
+    // that lists itself cannot spawn without end.
+    if (indexKind(slash(relative(out, f))) === 'index' && !expanded) { expand(f); continue; }
     console.log(`\n== ${slash(relative(out, f))}\n${grep(f, terms).join('\n') || 'no match'}`);
     const links = statSync(`${f}.links.txt`, { throwIfNoEntry: false }) ? grep(`${f}.links.txt`, terms) : [];
     if (links.length) console.log(`== ${slash(relative(out, f))}.links.txt\n${links.join('\n')}`);

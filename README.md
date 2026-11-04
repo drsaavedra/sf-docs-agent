@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/sf-docs-agent)](https://www.npmjs.com/package/sf-docs-agent)
 
-**84% fewer tokens** added to your session than Salesforce's own docs skill · **117 of 117** cited lines still on today's page · **every line** checkable with one `grep`
+**83% fewer tokens** added to your session than Salesforce's own docs skill · **135 of 136** quotes found word for word on the live docs page · **every line** checkable with one `grep`
 
 [Install](#install) · [Use](#use) · [How it works](#how-it-works) · [How it compares](#how-it-compares) · [Limitations](#limitations) · [Benchmarks](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
@@ -87,13 +87,13 @@ Every site, and how it reads each one: [docs/how-it-works.md](https://github.com
 
 Salesforce has two official options for the same job. I ran both on the same 10 questions.
 
-**[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 84% fewer tokens to your session and used 34% fewer tokens overall. Both got 39 of 40 runs right.
+**[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 83% fewer tokens to your session and used 41% fewer tokens overall. sf-docs-agent got 40 of 40 runs right, and platform-docs-get 39 of 40.
 
-**[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. It is the same trade-off you accept with [Context7](https://github.com/upstash/context7), whose README says its parsing and crawling engines are private: you can't see what the index holds or when it was taken. In my runs it returned no page from admin.salesforce.com or SLDS 2. In a subagent it got 24 of 30 right against sf-docs-agent's 29 of 30, and only 135 of its 177 quotes were on today's page, against 117 of 117. Called from the main session it got 28 of 30, but added 10 times as many tokens to your session.
+**[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. It is the same trade-off you accept with [Context7](https://github.com/upstash/context7), whose README says its parsing and crawling engines are private: you can't see what the index holds or when it was taken. In my runs it returned no page from admin.salesforce.com or SLDS 2. In a subagent it got 24 of 30 right against sf-docs-agent's 30 of 30, and only 135 of its 177 quotes were on today's page, against 135 of 136. Called from the main session it got 28 of 30, but added 10 times as many tokens to your session.
 
-**Where sf-docs-agent loses:** the MCP in a subagent is faster and cheaper: 218 seconds against 346 for all 10 questions, and 29% fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
+**Where sf-docs-agent loses:** the MCP in a subagent is faster and cheaper: 218 seconds against 510 for all 10 questions, and 22% fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
 
-My numbers are from a rerun on 2 November 2026, after the agent started following two links. The other tools ran on 30 and 31 October 2026 and were not rerun, and the docs changed in between.
+My numbers are from a rerun on 4 November 2026. The other tools ran on 30 and 31 October 2026 and were not rerun, and the docs changed in between.
 
 Every number, per question, with the method: [docs/benchmarks.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 

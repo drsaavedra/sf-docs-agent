@@ -144,13 +144,107 @@ test('--terms on a Help sitemap lists up to 40 articles by their <loc> line only
   assert.ok(shown.every(l => l.includes('<loc>')), 'only <loc> lines');
 });
 
-test('--terms on a sitemap index prints every <loc> line, whatever the terms, past the 40 cap', () => {
-  const body = lines(50, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>\n<lastmod>x</lastmod>`);
-  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt': body });
-  const r = run(out, '--terms', 'salesforce_connect_xorg', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform').out;
-  const shown = r.split('\n').filter(l => /^\d+: /.test(l));
-  assert.equal(shown.length, 50, r);
-  assert.ok(shown.every(l => l.includes('<loc>')), 'only <loc> lines');
+test('--terms on a sitemap index fetches its page sitemaps and prints only their matching <loc> lines', () => {
+  const page = i => `help.salesforce.com/apex/Help_SiteMapExternal_page_${i}_producttype_platform.txt`;
+  const art = (i, id) => lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j === 30 ? id : `x_${i}_${j}`}.htm&amp;type=5</loc>`);
+  const out = cache({
+    'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+      lines(3, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>\n<lastmod>x</lastmod>`),
+    [page(1)]: art(1, 'flow_a'), [page(2)]: art(2, 'xorg_adapter_about'), [page(3)]: art(3, 'flow_b'),
+  });
+  const r = run(out, '--terms', 'xorg_adapter', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /its 3 sitemaps fetched, matches only/, r.out);
+  assert.deepEqual(r.out.split('\n').filter(l => /^\d+: /.test(l)),
+    ['31: <loc>https://help.salesforce.com/s/articleView?id=platform.xorg_adapter_about.htm&amp;type=5</loc>'], r.out);
+  assert.match(r.out, new RegExp(`== ${page(2).replace(/[.?]/g, '\\$&')}\n31: `), 'the match names its sitemap');
+  assert.doesNotMatch(r.out, /no match|^200 .*Help_SiteMapExternal/m, r.out);
+});
+
+test('a short sitemap with no matching article prints no match, not its whole body', () => {
+  const out = cache({ 'admin.salesforce.com/post-sitemap3.xml': lines(5, i => `<loc>https://admin.salesforce.com/blog/2026/post-${i}</loc>`) });
+  const r = run(out, '--terms', 'headless_360', 'https://admin.salesforce.com/post-sitemap3.xml').out;
+  assert.match(r, /== admin\.salesforce\.com\/post-sitemap3\.xml\nno match/, r);
+  assert.doesNotMatch(r, /short page|post-1</, r);
+});
+
+test('an index search shows whole sitemaps until 40 article lines, then counts the rest', () => {
+  const page = i => `help.salesforce.com/apex/Help_SiteMapExternal_page_${i}_producttype_platform.txt`;
+  const files = { 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+    lines(4, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>`) };
+  for (let i = 1; i <= 3; i++) files[page(i)] = lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j <= 30 ? 'flow' : 'x'}_${i}_${j}.htm&amp;type=5</loc>`);
+  files[page(4)] = lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.flow_4_${j}.htm&amp;type=5</loc>`); // 40 shown, 20 cut
+  const r = run(cache(files), '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform').out;
+  assert.equal(r.split('\n').filter(l => /^\d+: /.test(l)).length, 60, r); // 2 whole sitemaps of 30
+  assert.match(r, /\(90 more matching lines in 2 more sitemaps: use a more specific word_word term\)/, r); // 30 + 40 + 20
+  assert.doesNotMatch(r, /page_3_/, r);
+});
+
+test('an index search with its budget spent prints one not-fetched line, not one per sitemap', () => {
+  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+    lines(5, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=platform</loc>`) });
+  const r = run(out, '--budget', '0', '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');
+  assert.match(r.out, /\nnot fetched \(time limit\): 5 sitemaps; rerun the same call, which reads the others from the cache/, r.out);
+  assert.doesNotMatch(r.out, /^not fetched \(time limit\) https/m, r.out);
+});
+
+test('an index that lists only off-site sitemaps shows them refused, not as a failed run', () => {
+  const out = cache({ 'admin.salesforce.com/sitemap_index.xml': '<loc>https://example.com/post-sitemap.xml</loc>' });
+  const r = run(out, '--terms', 'flow', 'https://admin.salesforce.com/sitemap_index.xml');
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /refused/, r.out);
+  assert.doesNotMatch(r.out, /sitemap run failed/, r.out);
+});
+
+test('an index with one off-site sitemap refuses it and still searches the rest', () => {
+  const out = cache({ 'admin.salesforce.com/sitemap_index.xml': '<loc>https://example.com/x-sitemap.xml</loc>\n<loc>https://admin.salesforce.com/post-sitemap.xml</loc>',
+    'admin.salesforce.com/post-sitemap.xml': lines(50, i => `<loc>https://admin.salesforce.com/blog/${i === 7 ? 'headless-360' : `post-${i}`}</loc>`) });
+  const r = run(out, '--terms', 'headless-360', 'https://admin.salesforce.com/sitemap_index.xml');
+  assert.equal(r.code, 0, r.out);
+  assert.match(r.out, /^refused https:\/\/example\.com\/x-sitemap\.xml: not an official doc site$/m, r.out);
+  assert.match(r.out, /blog\/headless-360/, r.out);
+  assert.doesNotMatch(r.out, /sitemap run failed/, r.out);
+});
+
+test('the <loc> lines of a nested index do not count toward the article cap', () => {
+  const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal', page = 'help.salesforce.com/apex/Help_SiteMapExternal_page_1_producttype_platform.txt';
+  const out = cache({
+    [`${idx}_producttype_platform.txt`]: `<loc>https://${idx}?producttype=sales</loc>\n<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&#38;producttype=platform</loc>`,
+    [`${idx}_producttype_sales.txt`]: lines(50, i => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${i}&#38;producttype=sales</loc>`),
+    [page]: lines(60, j => `<loc>https://help.salesforce.com/s/articleView?id=platform.${j === 9 ? 'xorg_adapter' : `x_${j}`}.htm&amp;type=5</loc>`),
+  });
+  const r = run(out, '--budget', '0', '--terms', 'xorg_adapter', `https://${idx}?producttype=platform`).out;
+  assert.match(r, /platform\.xorg_adapter\.htm/, r);
+  assert.doesNotMatch(r, /more matching lines/, r);
+});
+
+test('an index still expands when SF_DOCS_EXPANDED is set in the caller environment', () => {
+  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
+    '<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&#38;producttype=platform</loc>' });
+  const r = spawnSync(process.execPath, [SCRIPT, '--out', out, '--budget', '0', '--terms', 'flow',
+    'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform'], { encoding: 'utf8', env: { ...process.env, SF_DOCS_EXPANDED: '1' } });
+  assert.match(r.stdout, /its 1 sitemaps fetched, matches only/, r.stdout);
+});
+
+test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
+  const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
+  const out = cache({
+    [`${idx}_producttype_platform.txt`]: '<loc>https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=sales</loc>',
+    [`${idx}_producttype_sales.txt`]: '<?xml version="1.0"?>\n<sitemapindex>\n<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=9&#38;producttype=sales</loc>\n</sitemapindex>',
+  });
+  const r = run(out, '--budget', '0', '--terms', 'flow', `https://${idx}?producttype=platform`); // no fetch at any level
+  assert.equal(r.code, 0, r.err);
+  assert.equal(r.out.match(/sitemaps fetched, matches only/g)?.length, 1, r.out);
+  assert.match(r.out, /\n4: <loc>https:\/\/help\.salesforce\.com\/apex\/Help_SiteMapExternal\?page=9/, r.out);
+  assert.doesNotMatch(r.out, /short page|<\?xml|<sitemapindex>/, r.out);
+});
+
+test('--terms on a sitemap index that lists no sitemaps says so and exits 0', () => {
+  const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt': '<sitemapindex></sitemapindex>' });
+  const r = run(out, '--terms', 'flow', 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform');
+  assert.equal(r.code, 0, r.err);
+  assert.match(r.out, /\nno sitemaps listed/, r.out);
+  assert.doesNotMatch(r.err, /usage/, r.err);
 });
 
 test('a short page prints whole from line 2, without the Source line or a trailing empty line', () => {

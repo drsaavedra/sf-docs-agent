@@ -24,9 +24,10 @@ Here is how the two compare:
 | Checking an answer | re-read the page | `grep` one line |
 
 The trade-off: your main session trusts the subagent. That is why the model only picks line numbers and the script
-copies the lines. Every quote is copied word for word from the page, not written from the model's memory, and you can
-check it with one `grep` against the cached copy, which saves curly quotes as straight ones and drops image links and
-the padding in table rows.
+copies the lines. Every quote comes word for word from the page, not from the model's memory. The model then writes
+the script's lines into its report, and in one of 136 quotes on 4 November 2026 it dropped one folder from a link in
+a long table row. So check each quote with one `grep` against the cached copy, which saves curly quotes as straight
+ones and drops image links and the padding in table rows.
 
 ## How sf-docs-agent reads each site
 
