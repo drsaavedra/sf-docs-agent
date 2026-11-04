@@ -84,8 +84,10 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   calls when the 103 calls are replayed through it (2026-11-03).
 - The same hook checks the agent's report before the agent hands it back. Each Evidence line must be the cited line
   of the cached page, and each Sources URL the page's own URL, so a quote or URL that the model typed wrong goes back to
-  the agent with the text as it is on the page. A quote reference, a `[n]` source or a cache path outside those two
-  blocks is sent back too. A value that the Answer states without quote marks is prose, and the hook cannot check it.
+  the agent with the text as it is on the page. Outside those two blocks, a `[n:line]` reference must name a line in
+  Evidence, and a quote right before it must be on that line; a `[n]` source or a cache path there is sent back.
+  Other text, quoted or not, is prose, and the hook cannot check it. Over 398 saved reports, these rules send back 8,
+  each a report that changed the `--quote` output.
   On the 10 benchmark questions, 3 rounds, the hook sent no quote back in 30 runs and all 30 answers were right. The
   report with the wrong quote from 4 November is sent back when it is replayed through the hook (2026-11-04).
 - The hook reads the cached page when the agent hands its report back. If another session fetches the same page
