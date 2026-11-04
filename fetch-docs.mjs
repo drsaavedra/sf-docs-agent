@@ -219,11 +219,11 @@ const expand = f => {
   console.log([`\n== ${slash(relative(out, f))}: its ${locs.length} sitemaps fetched, matches only`, ...status,
     ...kept.map(s => `\n== ${s.trimEnd()}`),
     ...(cut ? [`\n(${hidden} more matching lines in ${cut} more sitemaps: use a more specific word_word term)`] : [])].join('\n'));
-  // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match.
-  if (r.error || r.signal || r.status) {
+  // A spawn error, a signal or a full buffer leaves status null: say so, or a cut-off run reads as no match. Exit 1
+  // is the child refusing every URL (its refused lines are above), not a failure.
+  if (r.error || r.signal || r.status > 1)
     console.log(`sitemap run failed: ${r.error?.code || r.signal || `exit ${r.status}`}; the matches above may be incomplete`);
-    process.exitCode = r.status || 1;
-  }
+  if (r.error || r.signal || r.status) process.exitCode = r.status || 1;
 };
 // llms.txt and llms-<product>.txt, not a page whose cached name starts with llms (llms-overview.html.txt).
 const isLlms = rel => /(^|\/)llms(-[\w-]+)?\.txt$/i.test(rel);

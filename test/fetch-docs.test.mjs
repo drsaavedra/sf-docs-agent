@@ -188,6 +188,14 @@ test('an index search with its budget spent prints one not-fetched line, not one
   assert.doesNotMatch(r.out, /^not fetched \(time limit\) https/m, r.out);
 });
 
+test('an index that lists only off-site sitemaps shows them refused, not as a failed run', () => {
+  const out = cache({ 'admin.salesforce.com/sitemap_index.xml': '<loc>https://example.com/post-sitemap.xml</loc>' });
+  const r = run(out, '--terms', 'flow', 'https://admin.salesforce.com/sitemap_index.xml');
+  assert.equal(r.code, 1, r.out);
+  assert.match(r.out, /refused/, r.out);
+  assert.doesNotMatch(r.out, /sitemap run failed/, r.out);
+});
+
 test('an index listed by an index prints its <loc> lines and is not expanded again', () => {
   const idx = 'help.salesforce.com/apex/Help_SiteMapIndexExternal';
   const out = cache({
