@@ -7,7 +7,8 @@ in one call, and it asks the caller to wait for its report. The platform-docs-ge
 from their runs on 30 and 31 October 2026, which were not repeated, and the docs changed in between: the Apex guides
 gained `.md` copies on 31 October 2026. [What changed on 4 November](#what-changed-on-4-november) gives the
 2 November numbers and the cause of each change. [One link against two](#one-link-against-two) compares the agent
-before and after it started to follow two links.
+before and after it started to follow two links. [Graded blind](#graded-blind) regrades every answer with the tool
+hidden from the grader.
 
 ## 83% less in your context, 41% fewer tokens than platform-docs-get
 
@@ -110,6 +111,22 @@ Metadata API and Object Reference still have none.
 | 10. Pub/Sub fetch limit | 652 / 3,161 / 284 | 42 / 20 / 16 | 3 / 3 / 3 |
 
 </details>
+
+## Graded blind
+
+The grader behind the right-answer counts above could see which tool wrote each answer. On 4 November 2026 the same
+grader regraded all 140 of those answers with the tool hidden: tool names, cache paths, `[n:line]` markers and fetch
+tallies removed, the answers shuffled under random ids, and each one graded on its page and its answer only. Two
+answers with a wrong number planted in them were mixed in as a control, and both were graded wrong.
+
+| Right answers | sf-docs-agent | platform-docs-get | a. MCP in main session | b. MCP in a subagent |
+|---|---|---|---|---|
+| Grader could see the tool | 40 of 40 | 39 of 40 | 28 of 30 | 24 of 30 |
+| Grader blind | **40 of 40** | **40 of 40** | **30 of 30** | 24 of 30 |
+
+Three answers changed, each from partial to right, and none went the other way: platform-docs-get on question 5,
+which quoted a different official Help article with the same editions, and two MCP main-session answers on question
+8, which reached the right conclusion from a nearby SLDS page. sf-docs-agent's count is the same either way.
 
 ## What changed on 4 November
 
