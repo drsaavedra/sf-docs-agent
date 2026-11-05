@@ -114,12 +114,13 @@ How it reads each site, and the full list: [docs/how-it-works.md](https://github
 
 ```
 git clone https://github.com/drsaavedra/sf-docs-agent && cd sf-docs-agent && npm install
+npx playwright-core install --only-shell chromium
 mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents"
 sed "s|/path/to/sf-docs-agent|$PWD|g" agents/sf-docs.md > "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents/sf-docs.md"
 npm test
 ```
 
-`agents/sf-docs.md` names its script and cache as `/path/to/sf-docs-agent`. The `sed` line writes your copy with your clone's path. Run it again after you edit the agent.
+On Linux, add `--with-deps` to the Chromium line. `agents/sf-docs.md` names its script and cache as `/path/to/sf-docs-agent`. The `sed` line writes your copy with your clone's path. Run it again after you edit the agent.
 
 **Release:** open a PR that only bumps the version (`npm version patch --no-git-tag-version`, which changes `package.json` and `package-lock.json`). Merging it runs [`release.yml`](.github/workflows/release.yml): the tests, an install of the packed tarball, `npm publish` through npm trusted publishing (no token), a check that npm holds the tarball that was tested, then the `v<version>` tag and GitHub Release.
 
