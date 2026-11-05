@@ -23,22 +23,25 @@ const run = (out, ...args) => {
   const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8' });
   return { code: r.status, out: r.stdout, err: r.stderr };
 };
-// A fresh fetch offline: the script's copy beside a stub playwright-core, which resolves first.
-// pages: URL given -> { text, status, to } (to: where it landed); raw: path -> .md body.
-const STUB = `const { pages = {}, raw = {} } = JSON.parse(process.env.STUB);
-export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = ''; return {
+// A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL given -> { text, links, status, to, first }
+// (first: the URL before the render); raw: path -> .md body; twin: path -> { status, body } or { reject }. stderr logs each read.
+const STUB = `const { pages = {}, raw = {}, twin = {} } = JSON.parse(process.env.STUB);
+export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = '', seen = false; return {
   goto: async u => { at = u; return { status: () => pages[u]?.status ?? 200 }; },
-  url: () => pages[at]?.to ?? at,
+  url: () => (!seen && pages[at]?.first) || pages[at]?.to || at,
   waitForTimeout: async () => {}, close: async () => {},
   evaluate: async (f, a) => {
+    if (typeof a === 'string') { console.error('twin read'); if (twin[a].reject) throw new Error(twin[a].reject); return twin[a]; }
     if (a.length === 3) return a[0].map(p => ({ p, status: 200, body: raw[p] }));
-    return { sel: 'div.body', text: pages[at].text, links: '', pending: 0 };
+    console.error('rendered'); seen = true;
+    return { sel: 'div.body', text: pages[at].text, links: pages[at].links ?? '', pending: 0 };
   } }; } }) };`;
 const stubDirs = [];
 process.on('exit', () => stubDirs.forEach(d => rmSync(d, { recursive: true, force: true })));
 function fetched(stub, ...args) {
   const dir = mkdtempSync(join(tmpdir(), 'sf-docs-stub-')), mod = join(dir, 'node_modules/playwright-core'), out = join(dir, 'cache');
   stubDirs.push(dir);
+  for (const f of stub.seed ?? []) { mkdirSync(dirname(join(out, f)), { recursive: true }); writeFileSync(join(out, f), ''); }
   mkdirSync(mod, { recursive: true });
   writeFileSync(join(mod, 'package.json'), '{"name":"playwright-core","type":"module","main":"index.mjs"}');
   writeFileSync(join(mod, 'index.mjs'), STUB);
@@ -690,4 +693,79 @@ test('a fresh page is saved with straight quotes', () => {
   const p = '/docs/a/b/c/page.md';
   const r = fetched({ raw: { [p]: '# Page\n\nThe \u201Corg\u201D and the \u2018user\u2019.' } }, p);
   assert.match(readFileSync(join(r.cache, `developer.salesforce.com${p}`), 'utf8'), /The "org" and the 'user'\./, r.out + r.err);
+});
+
+const MOVED = 'https://developer.salesforce.com/docs/platform/apex-dev/guide/moved.html', MOVED_MD = '/docs/platform/apex-dev/guide/moved.md';
+
+test('an atlas redirect with a twin reads the twin without the render', () => {
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'Rendered.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '# Moved\n\nThe twin text.' } } }, `${ATLAS}/old.htm`);
+  assert.doesNotMatch(r.err, /rendered/);
+  assert.match(r.out, /\[twin \/docs\/platform\/apex-dev\/guide\/moved\.md\] \[redirected /);
+  assert.match(readFileSync(atlasFile(r, 'old'), 'utf8'), /The twin text\./);
+});
+
+test('an atlas redirect whose twin fails keeps the rendered text and says why', () => {
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 500, body: 'error' } } }, `${ATLAS}/old.htm`);
+  assert.match(r.out, /\[twin failed: status 500\]/);
+  assert.match(r.err, /rendered/);
+  assert.equal(r.err.match(/twin read/g).length, 1, 'a failed twin is not read twice');
+  assert.match(readFileSync(atlasFile(r, 'old'), 'utf8'), /The rendered topic text\./);
+});
+
+test('the LDS home still renders, so its links reach the sidecar beside the twin', () => {
+  const home = 'https://www.lightningdesignsystem.com/', to = `${home}2e1ef8501/p/85bd85-home`;
+  const r = fetched({ pages: { [home]: { text: 'Rendered.', links: '/2e1ef8501/p/abc-button Button', to } }, twin: { '/2e1ef8501/p/85bd85-home.md': { status: 200, body: '# Home\n\nThe twin text.' } } }, home);
+  assert.match(r.err, /rendered/);
+  assert.match(r.out, /\[twin \/2e1ef8501\/p\/85bd85-home\.md\]/, r.out + r.err);
+  const saved = r.out.match(/-> (\S+)/)[1];
+  assert.match(readFileSync(join(r.cache, `${saved}.links.txt`), 'utf8'), /abc-button/);
+});
+
+test('an atlas redirect that only shows after the render still reads its twin', () => {
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'Rendered.', first: `${ATLAS}/old.htm`, to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '# Moved\n\nThe twin text.' } } }, `${ATLAS}/old.htm`);
+  assert.match(readFileSync(atlasFile(r, 'old'), 'utf8'), /The twin text\./, r.out);
+});
+
+test('a twin that answers 404 leaves its marker and keeps the rendered text', () => {
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 404, body: 'nope' } } }, `${ATLAS}/old.htm`);
+  assert.match(r.out, /\[twin failed: status 404\]/);
+  assert.match(readFileSync(atlasFile(r, 'old'), 'utf8'), /The rendered topic text\./);
+  assert.equal(existsSync(join(r.cache, `developer.salesforce.com${MOVED_MD}.missing`)), true, r.out);
+});
+
+test('a twin that fails at load does not stop the read of the page the render ends on', () => {
+  const stage = 'https://developer.salesforce.com/docs/platform/apex-dev/guide/stage.html';
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'Rendered.', first: stage, to: MOVED } },
+    twin: { '/docs/platform/apex-dev/guide/stage.md': { status: 404, body: 'nope' }, [MOVED_MD]: { status: 200, body: '# Moved\n\nThe twin text.' } } }, `${ATLAS}/old.htm`);
+  assert.match(readFileSync(atlasFile(r, 'old'), 'utf8'), /The twin text\./, r.out);
+});
+
+test('a twin read that rejects, or times out in the page, keeps the rendered text and says why', () => {
+  for (const [tw, why] of [[{ reject: 'context destroyed' }, 'context destroyed'], [{ why: 'TimeoutError' }, 'TimeoutError']]) {
+    const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: tw } }, `${ATLAS}/old.htm`);
+    assert.match(r.out, new RegExp(`\\[twin failed: ${why}\\]`), r.out + r.err);
+    assert.match(readFileSync(atlasFile(r, 'old'), 'utf8'), /The rendered topic text\./);
+  }
+});
+
+test('a twin already marked missing is not read', () => {
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: 'no' } }, seed: [`developer.salesforce.com${MOVED_MD}.missing`] }, `${ATLAS}/old.htm`);
+  assert.doesNotMatch(r.err, /twin read/, r.out + r.err);
+});
+
+test('a twin that answers a shell says so', () => {
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '<!doctype html><html><body></body></html>' } } }, `${ATLAS}/old.htm`);
+  assert.match(r.out, /\[twin failed: shell\]/, r.out);
+});
+
+test('a failure at load is not printed against a different page the render ends on', () => {
+  const other = 'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/moved.htm';
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The topic in its new guide.', first: MOVED, to: other } }, twin: { [MOVED_MD]: { status: 404, body: 'nope' } } }, `${ATLAS}/old.htm`);
+  assert.doesNotMatch(r.out, /twin failed/, r.out);
+});
+
+test('a twin read at load removes the sidecar of the render it replaces', () => {
+  const side = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/old.htm.txt.links.txt';
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'Rendered.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '# Moved\n\nThe twin text.' } }, seed: [side] }, `${ATLAS}/old.htm`);
+  assert.equal(existsSync(join(r.cache, side)), false, r.out);
 });
