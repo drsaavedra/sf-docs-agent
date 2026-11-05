@@ -55,7 +55,7 @@ Below are the medians of those four rounds, each read as platform-docs-get → s
 ## Compared with Salesforce Docs MCP
 
 Aside from the platform-docs-get skill, Salesforce also has
-[salesforce-docs-mcp](https://labs.agentforce.com/docs/salesforce-docs-mcp), a closed-source public MCP server that
+[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp), a closed-source public MCP server that
 searches an index of Help articles, developer guides and release notes. I ran the same 10 questions through it in two
 setups:
 
