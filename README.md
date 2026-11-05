@@ -10,11 +10,11 @@
 
 ---
 
-| Salesforce's platform-docs-get skill · 4,578 tokens | sf-docs-agent · 303 tokens |
+| Salesforce's platform-docs-get skill · 4,578 tokens | sf-docs-agent · 338 tokens |
 |---|---|
 | Every page it read lands in your session | Only the lines that answer, each with its official URL |
 
-*"How many versions can a flow have?"* Same right answer. 4,578 tokens become 303.
+*"How many versions can a flow have, and how many active flows per flow type in Enterprise vs Professional?"* Same right answer. 4,578 tokens become 338.
 
 The agent reads the pages in its own context. The model picks the lines and a script copies them word for word from the cached page, so no quote is written from the model's memory. Where Claude Code gives the agent its hand-back tool and runs its hook, the hook also checks each quote and source in the agent's report against the cached page before the report reaches you.
 
@@ -49,7 +49,7 @@ Ask in your own words. Name the site or product if you know it, or paste a Sales
 Go scan the developer.salesforce.com docs on the current release's governors and limits
 ```
 
-Part of what came back (Opus 5.5, 89 seconds):
+Part of what came back, in 89 seconds. The session was on Opus 5.5, and the agent is set to Sonnet 5.5:
 
 > I read the Apex Developer Guide page **Execution Governors and Limits**. I spot-checked several of the quotes against the cached copy of the page and they match.
 >

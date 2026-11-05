@@ -147,7 +147,7 @@ test('--search --site with no value or an unknown host is a usage error, not a s
   }
 });
 
-test('--search reports a site folder it cannot read instead of saying no match', () => {
+test('--search reports a site folder it cannot read instead of saying no match', { skip: process.getuid?.() === 0 && 'chmod does not stop root' }, () => {
   const out = cache({ 'help.salesforce.com/s/a.txt': lines(50, i => `x ${i}`) });
   chmodSync(join(out, 'help.salesforce.com'), 0o000);
   try {

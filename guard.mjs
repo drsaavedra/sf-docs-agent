@@ -40,7 +40,8 @@ if (tool === 'SubagentHandback') try {
   const HEAD = /^[\s>*#_•-]*(evidence|sources?)\b[\s*_]*(:|\s[—–]\s)/i, NONE = /^[\s>*#_•-]*(evidence|sources?)\b[\s*_]*(:|\s[—–]\s)[\s*_]*(none|n\/a|not found)[\s.*_]*$/i;
   // A reference may sit in prose when it names a line the Evidence block holds ("the wording in [1:31]"): it was checked.
   // A quote right before it must be on that line, so "999,000" [1:4] cannot pass on a line that says 250,000.
-  const carries = (l, refs = new Map()) => [...l.matchAll(/\[\s*\d+\s*:\s*\d+[\d\s,:-]*\]/g)].some(m => {
+  let refs = new Map(); // filled once the Evidence block is read
+  const carries = l => [...l.matchAll(/\[\s*\d+\s*:\s*\d+[\d\s,:-]*\]/g)].some(m => {
     if (!refs.has(m[0])) return true;
     const q = l.slice(0, m.index).match(/["“'‘`]([^"“”'‘’`\n]{1,500})["”'’`][^\w\n]{0,4}$/);
     return q && !refs.get(m[0]).includes(q[1]);
@@ -64,8 +65,8 @@ if (tool === 'SubagentHandback') try {
     if (a[1] !== String(src.length + 1)) refuse(`Sources numbered other than --quote numbers them, at [${a[1]}]`);
     src.push({ url: a[2], file: b[1] });
   }
-  const refs = new Map(lines.slice(e[0] + 1, s[0]).flatMap(l => { const m = l.trim().match(/^- "(.*)" (\[\d+:\d+\])$/); return m ? [[m[2], m[1]]] : []; }));
-  const stray = lines.find((l, i) => (i < e[0] || i >= k) && carries(l, refs));
+  refs = new Map(lines.slice(e[0] + 1, s[0]).flatMap(l => { const m = l.trim().match(/^- "(.*)" (\[\d+:\d+\])$/); return m ? [[m[2], m[1]]] : []; }));
+  const stray = lines.find((l, i) => (i < e[0] || i >= k) && carries(l));
   if (stray) refuse(`a quote or source outside the --quote blocks: ${stray.trim()}`, STRAY);
   if (!src.length) refuse('no [n] url and cache: lines under Sources:');
   // A page as --quote reads one: a file in the cache that starts with its Source: line. Each file is read once.
