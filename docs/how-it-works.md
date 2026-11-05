@@ -64,6 +64,9 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 - It reads the current docs, which don't always name their release.
 - From a page it found, it follows at most two more links in a row, and only toward a missing part of the answer. An
   answer that sits further away comes back as a gap.
+- `--terms` and `--search` match `_` or `-` between letters or digits as a space, so `delete_components` finds "delete
+  components". A term like `__c` matches as written, and the line prints as the page has it. On 100 questions this cut searches that found nothing from 34 and 35 to 30 (5 November
+  2026); right answers stayed within the run-to-run spread.
 - When a `--terms` match lands in a list or table, the script prints the whole block: markdown tables and lists,
   rendered table rows, and tables flattened to one paragraph a cell. It prints one block a page, the one whose matches
   hold the rarest terms. Up to 60 lines and 6,000 characters it prints the block; up to 200 lines it names the
