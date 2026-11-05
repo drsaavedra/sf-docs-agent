@@ -45,7 +45,10 @@ const BAND = [0.5, 2];
 // One cold run: a fresh --out dir, so nothing comes from cache. Raw lines print the path only, rendered lines the
 // full URL, and the order is not the input order, so each line is matched back to its URL.
 let broke = ''; // why fetch-docs did not finish, for the report as well as the log
-const run = urls => {
+export const failure = () => broke;
+// Each run is judged on its own fetch, so a clean retry drops an earlier failure.
+export const run = urls => {
+  broke = '';
   const out = mkdtempSync(join(tmpdir(), 'sf-docs-site-check-'));
   try {
     // The budget only stops new pages starting: the kill ends a hung one (Playwright traps SIGTERM), and three runs plus
@@ -55,7 +58,7 @@ const run = urls => {
     if (r.error || r.stderr) console.error(`fetch-docs exit ${r.status ?? r.signal}${r.error ? `: ${r.error.message}` : ''}\n${r.stderr ?? ''}`);
     // Name the cause: a BLOCKED or Error line, else the last line, since warnings can come before a crash.
     const errs = (r.error?.message || r.stderr || '').trim().split('\n');
-    if (r.error || r.status !== 0) broke ||= `fetch-docs exit ${r.status ?? r.signal}: ${errs.find(l => /^(BLOCKED|\w*Error)/.test(l)) ?? errs.at(-1)}`;
+    if (r.error || r.status !== 0) broke = `fetch-docs exit ${r.status ?? r.signal}: ${errs.find(l => /^(BLOCKED|\w*Error)/.test(l)) ?? errs.at(-1)}`;
     return parse(urls, r.stdout ?? '', out);
   } finally { rmSync(out, { recursive: true, force: true }); }
 };
@@ -121,9 +124,7 @@ if (process.argv.includes('--update')) {
 
 const base = JSON.parse(readFileSync(BASE, 'utf8'));
 const first = run(URLS);
-// broke is reset so each retry is judged on its own fetch.
-const { now, bad } = await retry(base, first, URLS,
-  urls => { broke = ''; return run(urls); }, ms => new Promise(r => setTimeout(r, ms)));
+const { now, bad } = await retry(base, first, URLS, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
   ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``])].join('\n')
   : `All ${URLS.length} doc pages read as in the baseline.`);

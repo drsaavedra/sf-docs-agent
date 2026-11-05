@@ -1,10 +1,12 @@
 // The site check's drift rule, offline: importing the module fetches nothing.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { drifted, parse, retry, unfit } from '../site-check/site-check.mjs';
+import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
 
@@ -104,4 +106,37 @@ test('a sidecar that cannot be read is an error, not 0 article links', () => {
   const line = '200 5000 https://help.salesforce.com/s/articleView?id=a.htm&type=5 [.slds-text-longform] -> help.salesforce.com/s/a.txt';
   try { assert.throws(() => parse([u], line, out), { code: 'EISDIR' }); }
   finally { rmSync(out, { recursive: true, force: true }); }
+});
+
+// A copy of the check beside a fake fetch-docs, which writes one Help page's sidecar and its result line, and fails while a 'fail' file exists.
+const FAKE = `import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+const out = process.argv[process.argv.indexOf('--out') + 1], url = process.argv.at(-1);
+if (existsSync(new URL('fail', import.meta.url))) { console.error('BLOCKED: no browser'); process.exit(3); }
+mkdirSync(join(out, 'help'), { recursive: true });
+writeFileSync(join(out, 'help/a.txt.links.txt'), '/s/articleView?id=b.htm&type=5 B\\n');
+console.log('200 5000 ' + url + ' [.slds-text-longform] -> help/a.txt');`;
+const copy = async () => {
+  const dir = tempDir('sf-docs-check-');
+  mkdirSync(join(dir, 'site-check'));
+  copyFileSync(join(dirname(fileURLToPath(import.meta.url)), '../site-check/site-check.mjs'), join(dir, 'site-check/site-check.mjs'));
+  writeFileSync(join(dir, 'fetch-docs.mjs'), FAKE);
+  return { dir, ...await import(pathToFileURL(join(dir, 'site-check/site-check.mjs')).href) };
+};
+const HELP = 'https://help.salesforce.com/s/articleView?id=a.htm&type=5';
+
+test('a run hands parse its out dir, so a Help page counts its article links', async () => {
+  const { run } = await copy();
+  assert.equal(run([HELP])[HELP].links, 1);
+});
+
+test('a later run that fetches cleanly drops the failure the first one recorded', async t => {
+  const { dir, run, failure } = await copy();
+  t.mock.method(console, 'error', () => {});
+  writeFileSync(join(dir, 'fail'), '');
+  run([HELP]);
+  assert.match(failure(), /BLOCKED: no browser/);
+  rmSync(join(dir, 'fail'));
+  run([HELP]);
+  assert.equal(failure(), '');
 });
