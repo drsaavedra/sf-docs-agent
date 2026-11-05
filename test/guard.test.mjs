@@ -134,3 +134,149 @@ test('a long option is denied with a pointer to the short one', () => {
 test('a bare -- is denied with advice the agent can follow', () => {
   assert.match(bash(`grep -e x -- ${A}`).stderr, /grep --: drop it/);
 });
+
+// The hand-back gate: each Evidence line must be the cached page's line for its [n:line], as --quote prints it.
+const PAGE = join(C, 'developer.salesforce.com/docs/limits.md');
+writeFileSync(PAGE, 'Source: https://developer.salesforce.com/docs/limits.html\n# Limits\n| Edition | Per hour |\n| Enterprise | 250,000 [see](https://x/a.meta/a/b.htm) |\n');
+const report = (...ev) => `Answer: Enterprise gets 250,000 an hour.\nEvidence:\n${ev.join('\n')}\nSources:\n[1] https://developer.salesforce.com/docs/limits.html\n    cache: ${PAGE}\nGaps: none.`;
+const handback = message => hook(JSON.stringify({ tool_name: 'SubagentHandback', tool_input: { message }, cwd: PROJECT }));
+const L4 = '- "| Enterprise | 250,000 [see](https://x/a.meta/a/b.htm) |" [1:4]';
+
+test('the hand-back passes when every Evidence line is the cited line, and when there is no Evidence', () => {
+  assert.equal(handback(report('- "# Limits" [1:2]', L4)).status, 0);
+  assert.equal(handback('Answer: not found.\nGaps: checked the limits page.').status, 0);
+});
+
+test('the hand-back is refused when a quote was retyped, and the refusal carries the line on the page', () => {
+  const r = handback(report('- "| Enterprise | 250,000 [see](https://x/a.meta/b.htm) |" [1:4]'));
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes(`is on the page as:\n${L4}`), r.stderr);
+});
+
+test('the hand-back is refused for a quote with no line reference or no cache path', () => {
+  assert.equal(handback(report('- "| Enterprise | 250,000 |"')).status, 2);
+  assert.equal(handback(report(L4.replace('[1:4]', '[2:4]'))).status, 2);
+  assert.equal(handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${PROJECT}/.env`)).status, 2);
+});
+
+test('the hand-back is refused, not passed, when the report is not in the --quote shape', () => {
+  const shapes = {
+    'a bold Evidence header': report(L4).replace('Evidence:', '**Evidence:**'),
+    'a note after the header': report(L4).replace('Evidence:', 'Evidence (cells are tab-separated):'),
+    'a * bullet': report(L4.replace('- "', '* "')),
+    'a line with no reference': report(L4, 'the row also says 250,000'),
+    'no Sources block': report(L4).replace(/Sources:[\s\S]*/, ''),
+    'two Evidence blocks': report(L4) + '\n' + report('- "# Limits" [1:2]'),
+    'quotes with no Evidence block': `Answer: 250,000.\n${L4}\nSources:\n[1] x\n    cache: ${PAGE}`,
+  };
+  for (const [name, message] of Object.entries(shapes)) assert.equal(handback(message).status, 2, name);
+  assert.equal(handback(report(L4).replaceAll('\n', '\r\n')).status, 0, 'CRLF line ends');
+  assert.equal(handback('Answer: not found.\nGaps: the sources I checked do not say.').status, 0, 'prose that starts with a header word');
+});
+
+test('the hand-back is refused for a cited file --quote would not read', () => {
+  const other = join(RT, 'notes.md'); writeFileSync(other, 'Source: https://x\n# notes\n');
+  assert.equal(handback(report('- "# notes" [1:2]').replace(`cache: ${PAGE}`, `cache: ${other}`)).status, 2, 'a file outside the cache');
+  assert.equal(handback(report('- "Source: https://developer.salesforce.com/docs/limits.html" [1:1]')).status, 2, 'the Source line');
+  assert.equal(handback(report('- "" [1:0]')).status, 2, 'line 0');
+  assert.equal(handback(report('- "" [1:99]')).status, 2, 'past the end');
+});
+
+test('the hand-back is refused when a Sources URL was retyped, and the refusal carries the URL on the page', () => {
+  const r = handback(report(L4).replace('[1] https://developer.salesforce.com/docs/limits.html', '[1] https://developer.salesforce.com/limits.html'));
+  assert.equal(r.status, 2);
+  assert.ok(r.stderr.includes('is on the page as:\n[1] https://developer.salesforce.com/docs/limits.html'), r.stderr);
+});
+
+test('the hand-back refusal says what to do when the cached page is gone or cannot be read', () => {
+  const gone = handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/pruned.md`));
+  assert.equal(gone.status, 2);
+  assert.match(gone.stderr, /is gone: fetch \[1\] \S+ again and run --quote again/, gone.stderr);
+  mkdirSync(join(C, 'developer.salesforce.com/docs/dir.md'), { recursive: true });
+  const dir = handback(report(L4).replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/dir.md`));
+  assert.equal(dir.status, 2);
+  assert.match(dir.stderr, /could not check the report/, dir.stderr);
+  assert.doesNotMatch(dir.stderr, /Allowed: node/, dir.stderr);
+});
+
+test('the hand-back is refused for a quote or source outside the blocks, and passes plain prose', () => {
+  const good = report(L4);
+  const holes = {
+    'a quote line in the Answer': good.replace('Answer:', `Answer:\n- "| Enterprise | 999,000 |" [1:4]\n`),
+    'a quote line after Gaps': `${good}\n- "| Enterprise | 999,000 |" [1:4]`,
+    'an inline quote with a reference': good.replace('Gaps: none.', 'Gaps: the page says "999,000 an hour" [1:4].'),
+    'an extra source with no cache line': good.replace('Gaps:', '[2] https://help.salesforce.com/s/wrong\nGaps:'),
+    'a second [1] after Gaps': `${good}\n[1] https://developer.salesforce.com/docs/other.html\n    cache: ${PAGE}`,
+    'Sources with no Evidence': 'Answer: not found.\nSources:\n[1] https://developer.salesforce.com/limits.html\nGaps: none.',
+    'Sources before Evidence': `Answer: x\nSources:\n[1] https://developer.salesforce.com/docs/limits.html\n    cache: ${PAGE}\nEvidence:\n${L4}`,
+    'a zero-padded line number': report(L4.replace('[1:4]', '[1:04]')),
+    'a bold header with a quote under it': `Answer: x\n**Evidence:**\n- "| Enterprise | 999,000 |" [1:4]`,
+  };
+  for (const [name, message] of Object.entries(holes)) {
+    const r = handback(message);
+    assert.equal(r.status, 2, name);
+    assert.doesNotMatch(r.stderr, /could not check the report/, `${name}: refused by a crash, not the check`);
+  }
+  const noSource = join(C, 'developer.salesforce.com/docs/nosource.md'); writeFileSync(noSource, '# Limits\n| x |\n');
+  assert.equal(handback(report('- "| x |" [1:2]').replace(`cache: ${PAGE}`, `cache: ${noSource}`)).status, 2, 'a cached file with no Source line');
+  for (const ok of ['Answer: not found.\nEvidence: none\nGaps: the release window (9:30) notes are not on the page.', 'Answer: not found.\nGaps: Sources (none) were found.'])
+    assert.equal(handback(ok).status, 0, ok);
+});
+
+test('the hand-back passes a correct report whose prose has quoted words, bullets or checked-page URLs', () => {
+  const good = report(L4);
+  for (const [name, message] of Object.entries({
+    'a Gaps bullet that starts with a quoted word': good.replace('Gaps: none.', 'Gaps:\n- "Per hour" is not on the limits page.'),
+    'a scan answer in quoted bullets': good.replace('Answer: Enterprise gets 250,000 an hour.', 'Answer:\n- "Enterprise": 250,000 an hour.'),
+    'checked pages as plain URLs in Gaps': good.replace('Gaps: none.', 'Gaps: also checked https://developer.salesforce.com/docs/other.html'),
+    'an indented block with trailing spaces': good.replace('Evidence:', '  Evidence: ').replace(L4, `  ${L4}  `),
+  })) assert.equal(handback(message).status, 0, name);
+});
+
+test('the hand-back is refused for the shapes the first rewrite missed, with advice the agent can follow', () => {
+  const good = report(L4);
+  for (const [name, message] of Object.entries({
+    'a URL on a Sources header line': 'Answer: x\nSources: https://developer.salesforce.com/wrong',
+    'a quote on an Evidence header line': 'Answer: x\nEvidence: "the limit is 999,000 an hour"',
+    'a reference with no space': good.replace('Gaps: none.', 'Gaps: the page says "999,000"[1:4].'),
+    'a zero-padded source number': good.replace('[1] https://', '[01] https://'),
+    'a capitalised cache line after Gaps': `${good}\nCache: ${PAGE}`,
+  })) {
+    const r = handback(message);
+    assert.equal(r.status, 2, name);
+    assert.doesNotMatch(r.stderr, /could not check the report/, name);
+  }
+  assert.match(handback(good.replace('Gaps: none.', 'Gaps: "999,000" [1:4]')).stderr, /name pages you checked in Gaps as plain URLs/);
+});
+
+test('a cited page that is gone is reported once, not again for each of its lines', () => {
+  const r = handback(report(L4, '- "# Limits" [1:2]').replace(`cache: ${PAGE}`, `cache: ${C}/developer.salesforce.com/docs/pruned.md`));
+  assert.match(r.stderr, /1 line\(s\) in Evidence or Sources differ/, r.stderr);
+});
+
+test('outside the blocks, --quote syntax in any spelling is refused, and prose that only looks like it passes', () => {
+  const good = report(L4), gap = t => good.replace('Gaps: none.', `Gaps: ${t}`);
+  for (const [name, message] of Object.entries({
+    'an em dash before a reference': gap('the page says "999,000" — [1:4].'),
+    'a range': gap('"999,000" [1:4-5]'), 'a list': gap('"999,000" [1:4, 1:5]'), 'spaces inside': gap('"999,000" [ 1:4 ]'),
+    'backticks': gap('the page says `999,000` [1:4]'), 'a reference to a line Evidence does not hold': gap('Enterprise gets 999,000 an hour [1:3].'),
+    'a markdown reference link': `${good}\n[2]: https://developer.salesforce.com/wrong`,
+    'a bulleted [n] source': `${good}\n- [2] https://help.salesforce.com/s/wrong`,
+    'an angle-bracket [n] source': `${good}\n[2] <https://developer.salesforce.com/wrong>`,
+    'a singular Source header': 'Answer: 999,000 an hour.\nSource: https://developer.salesforce.com/wrong',
+    'a bold header block with quoted bullets': 'Answer: 999,000.\n**Evidence:**\n- "| Enterprise | 999,000 |"\n**Sources:**\n- https://developer.salesforce.com/docs/limits.html',
+    'a blockquote header': 'Answer: x\n> Evidence: "999,000 an hour"',
+  })) { const r = handback(message); assert.equal(r.status, 2, name); assert.doesNotMatch(r.stderr, /could not check the report/, name); }
+  for (const [name, message] of Object.entries({
+    'a quoted word before a time': gap('the "nightly" (2:00) window is not on the page.'),
+    'Cache as a word': good.replace('Answer: Enterprise gets 250,000 an hour.', 'Answer: Enterprise gets 250,000 an hour.\nCache: Enterprise Edition gets 10 MB of Platform Cache.'),
+    'an evidence-based sentence': gap('Evidence-based: the page lists one edition.'),
+    'Sources (none)': 'Answer: not found.\nGaps: Sources (none) were found.',
+  })) assert.equal(handback(message).status, 0, name);
+});
+
+test('a reference in prose passes when it names a line the Evidence block holds, and is refused when it does not', () => {
+  const good = report(L4);
+  assert.equal(handback(good.replace('Gaps: none.', 'Gaps: the wording "250,000" in [1:4] is the default allocation.')).status, 0);
+  assert.equal(handback(good.replace('Gaps: none.', 'Gaps: the wording "999,000" in [1:3] is the default allocation.')).status, 2);
+});

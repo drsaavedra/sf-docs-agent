@@ -71,7 +71,7 @@ Three rounds each, medians, same model.
 
 The MCP in a subagent is faster and uses 22% fewer session tokens than sf-docs-agent, and a. MCP in main session uses
 12% fewer. sf-docs-agent's one quote that is not on the page is on question 2: the script printed an 887-character
-table row correctly, and the agent dropped one folder from a link in that row when it wrote its report. The MCP's results come back as markdown excerpts, so I suspect Salesforce keeps a `.md` snapshot of the docs taken
+table row correctly, and the agent dropped one folder from a link in that row when it wrote its report. The agent's hook now sends a quote like that back to the agent ([how it works](how-it-works.md)). The MCP's results come back as markdown excerpts, so I suspect Salesforce keeps a `.md` snapshot of the docs taken
 at some point. Because the index is closed, you can't see what it holds or when it was taken, and that has some costs:
 
 - **Coverage.** Across 91 searches it returned no admin.salesforce.com page and no SLDS 2 content page. The
