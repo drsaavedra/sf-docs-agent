@@ -59,7 +59,9 @@ runs:
 
     - if: steps.v.outputs.decision != 'skip'
       shell: bash
-      run: npm ci && npm test
+      # The browser tests ran on this commit in the test job: this job can mint an npm token, so it downloads no browser,
+      # and the install check below stays a first-time install.
+      run: npm ci && node --test --test-reporter=spec $(ls test/*.test.mjs | grep -v extract)
 
     # Install this commit's tarball the way a user would, before anything is published.
     - if: steps.v.outputs.decision != 'skip'
