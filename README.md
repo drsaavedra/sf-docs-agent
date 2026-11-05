@@ -10,11 +10,11 @@
 
 ---
 
-| Salesforce's platform-docs-get skill · 4,578 tokens | sf-docs-agent · 303 tokens |
+| Salesforce's platform-docs-get skill · 4,578 tokens | sf-docs-agent · 338 tokens |
 |---|---|
 | Every page it read lands in your session | Only the lines that answer, each with its official URL |
 
-*"How many versions can a flow have?"* Same right answer. 4,578 tokens become 303.
+*"How many versions can a flow have, and how many active flows per flow type in Enterprise vs Professional?"* Same right answer. 4,578 tokens become 338.
 
 The agent reads the pages in its own context. The model picks the lines and a script copies them word for word from the cached page, so no quote is written from the model's memory. Where Claude Code gives the agent its hand-back tool and runs its hook, the hook also checks each quote and source in the agent's report against the cached page before the report reaches you.
 
