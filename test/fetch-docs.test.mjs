@@ -635,6 +635,23 @@ test('a line of inline code in backticks opens no fence', () => {
   assert.ok(shown(r).some(l => l.endsWith(': - item 5')), r);
 });
 
+const ATLAS = 'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta';
+const atlasFile = (r, topic) => join(r.cache, `developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/${topic}.htm.txt`);
+
+test('an atlas topic that lands on another topic of its guide is shown but not cached', () => {
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text of the guide.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`);
+  assert.match(r.out, /\[redirected .*meta_intro\.htm\] not saved: shell, login or missing page/);
+  assert.equal(existsSync(atlasFile(r, 'nope')), false);
+});
+
+test('an atlas topic that stays put, or moves to another guide, is cached', () => {
+  const other = 'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/moved.htm';
+  const r = fetched({ pages: { [`${ATLAS}/real.htm`]: { text: 'The topic itself, long enough.' }, [`${ATLAS}/old.htm`]: { text: 'The topic in its new guide.', to: other } } },
+    `${ATLAS}/real.htm`, `${ATLAS}/old.htm`);
+  assert.equal(existsSync(atlasFile(r, 'real')), true, r.out);
+  assert.equal(existsSync(atlasFile(r, 'old')), true, r.out);
+});
+
 test('a fresh page is saved with straight quotes', () => {
   const p = '/docs/a/b/c/page.md';
   const r = fetched({ raw: { [p]: '# Page\n\nThe \u201Corg\u201D and the \u2018user\u2019.' } }, p);

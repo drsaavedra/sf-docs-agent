@@ -616,9 +616,11 @@ try {
       await page.close();
       continue;
     }
+    // A mistyped atlas topic lands on another topic of its guide at 200: shown and cited, never cached under the asked name.
+    const landing = hop && to.host === u.host && u.pathname.startsWith('/docs/atlas.') && dirname(to.pathname) === dirname(u.pathname);
     // A shell (no container, extract failed, or API docs still not loaded at 20 s) is reported but never cached.
     emit({ p: u.origin + u.pathname + u.search, status: nav?.status() ?? 0, body: text, links, key: u.href,
-      src: hop && to.href, note: ` [${sel}]${hold ? ' [api docs did not load]' : ''}${hop}${failed}`, offsite: !SITES.includes(to.host), shell: sel === 'body' || hold, fallback: sel === 'fallback' });
+      src: hop && to.href, note: ` [${sel}]${hold ? ' [api docs did not load]' : ''}${hop}${failed}`, offsite: !SITES.includes(to.host), shell: sel === 'body' || hold || landing, fallback: sel === 'fallback' });
     await page.close();
   }
 
