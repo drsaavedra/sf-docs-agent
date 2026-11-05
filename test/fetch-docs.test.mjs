@@ -865,3 +865,25 @@ test('a fallback read leaves its marker, and a full read clears it', () => {
   const b = fetched({ pages: { [u]: { text: 'The full topic text.' } }, seed: { [marker]: 0 } }, u);
   assert.equal(existsSync(join(b.cache, marker)), false, b.out);
 });
+
+test('_, - and space match alike in --terms and --search, and the page line prints unchanged', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/del.md': lines(50, i => i === 30 ? 'Deleting components from an org' : i === 40 ? 'Use a delete-components manifest.' : i === 45 ? 'Run batch_apex jobs.' : `filler ${i}`) });
+  const terms = run(out, '--terms', 'deleting_components,batch-apex', '/docs/a/b/c/del.md').out;
+  assert.match(terms, /^31: Deleting components from an org$/m, terms);
+  assert.match(terms, /^46: Run batch_apex jobs\.$/m);
+  const search = run(out, '--search', 'delete components').out;
+  assert.match(search, /del\.md:41: Use a delete-components manifest\.$/m, search);
+});
+
+test('a long line still cuts around a match found through folded separators', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/long.md': `${'a--b '.repeat(200)}field-level security${' b'.repeat(500)}` });
+  assert.match(run(out, '--search', 'field_level').out.split('\n')[0], /\.\.\.[ab -]+field-level security[ b]+\.\.\./);
+});
+
+test('a term that starts with a separator, or is one, matches only as written', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/obj.md': lines(50, i => i === 20 ? 'Account__c is custom.' : i === 30 ? 'Create a  record  continue here' : i === 40 ? 'a - b' : `filler  ${i}`) });
+  const c = run(out, '--search', '__c').out;
+  assert.match(c, /obj\.md:21: Account__c is custom\.$/m, c);
+  assert.doesNotMatch(c, /Create a record/);
+  assert.doesNotMatch(run(out, '--search', '_').out, /filler/);
+});
