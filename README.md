@@ -14,7 +14,7 @@
 |---|---|
 | Every page it read lands in your session | Only the lines that answer, each with its official URL |
 
-*"How many versions can a flow have, and how many active flows per flow type in Enterprise vs Professional?"* Same right answer. 4,578 tokens become 338.
+*"How many versions can a flow have, and how many active flows per flow type in Enterprise vs Professional?"* Same right answer, a fraction of the context.
 
 The agent reads the pages in its own context. The model picks the lines and a script copies them word for word from the cached page, so no quote is written from the model's memory. Where Claude Code gives the agent its hand-back tool and runs its hook, the hook also checks each quote and source in the agent's report against the cached page before the report reaches you.
 
@@ -49,7 +49,7 @@ Ask in your own words. Name the site or product if you know it, or paste a Sales
 Go scan the developer.salesforce.com docs on the current release's governors and limits
 ```
 
-Part of what came back, in 89 seconds. The session was on Opus 5.5, and the agent is set to Sonnet 5.5:
+Part of what came back:
 
 > I read the Apex Developer Guide page **Execution Governors and Limits**. I spot-checked several of the quotes against the cached copy of the page and they match.
 >
@@ -72,7 +72,7 @@ It covers developer.salesforce.com, architect.salesforce.com, help.salesforce.co
 2. **Reads the cleanest copy.** Where Salesforce publishes a `.md` copy of a page (the new developer docs, architect, SLDS 2), it reads that. Help, admin and some older guides have none, so it renders them in a headless browser. No fake user agent, no stealth plugin.
 3. **Picks lines, not prose.** The model reads the cached page in the agent's own context and picks line numbers. A script copies those lines, each with its official URL.
 4. **Names what it missed.** A page it did not read, or a link it did not follow, comes back as a gap.
-5. **Reads each page once a day.** Pages are cached on your machine for 24 hours, by URL, and every session and project shares the cache. Ask again in another session and the page comes from disk: no network call, no browser. On a Help question that took a median of 27 seconds instead of 46; a developer `.md` page loads in about a second anyway, so there the cache saved nothing measurable ([runs](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md#a-second-session-on-a-warm-cache)).
+5. **Reads each page once a day.** Pages are cached on your machine for 24 hours, by URL, and every session and project shares the cache. Ask again in another session and the page comes from disk: no network call, no browser. That makes rendered Help pages faster the second time ([runs](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md#a-second-session-on-a-warm-cache)).
 
 To check a line, replace `<cache path>` (the agent's Sources name it) and `<quote>` below. Apostrophes are safe, and the cache saves curly quotes as straight ones, so a quote you retype still matches. Keep one quote on one line with no blank line around it, since grep counts a blank line as matching every line. Any count above 0 means the line is on the page.
 
@@ -88,15 +88,13 @@ Every site, and how it reads each one: [docs/how-it-works.md](https://github.com
 
 Salesforce has two official options for the same job. I ran both on the same 10 questions.
 
-**[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 83% fewer tokens to your session and used 41% fewer tokens overall. sf-docs-agent got 40 of 40 runs right, and platform-docs-get 39 of 40.
+**[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 83% fewer tokens to your session and used 41% fewer tokens overall, and was at least as accurate.
 
-**[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. It is the same trade-off you accept with [Context7](https://github.com/upstash/context7), whose README says its parsing and crawling engines are private: you can't see what the index holds or when it was taken. In my runs it returned no page from admin.salesforce.com or SLDS 2. In a subagent it got 24 of 30 right against sf-docs-agent's 30 of 30, and only 135 of its 177 quotes were on today's page, against 135 of 136. Called from the main session it got 28 of 30, but added 10 times as many tokens to your session.
+**[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. It is the same trade-off you accept with [Context7](https://github.com/upstash/context7), whose README says its parsing and crawling engines are private: you can't see what the index holds or when it was taken. In my runs it returned no page from admin.salesforce.com or SLDS 2. It got more answers wrong than sf-docs-agent, and fewer of its quotes were on today's page. Called from the main session it did better, but added 10 times as many tokens to your session.
 
-**Where sf-docs-agent loses:** the MCP in a subagent is faster and cheaper: 218 seconds against 510 for all 10 questions, and 22% fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
+**Where sf-docs-agent loses:** the MCP in a subagent is more than twice as fast and uses fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
 
-My numbers are from a rerun on 4 November 2026. The other tools ran on 30 and 31 October 2026 and were not rerun, and the docs changed in between.
-
-Every number, per question, with the method: [docs/benchmarks.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
+Every number, per question, with the dates and method: [docs/benchmarks.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
 ## Limitations
 
