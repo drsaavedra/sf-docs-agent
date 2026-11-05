@@ -72,6 +72,7 @@ It covers developer.salesforce.com, architect.salesforce.com, help.salesforce.co
 2. **Reads the cleanest copy.** Where Salesforce publishes a `.md` copy of a page (the new developer docs, architect, SLDS 2), it reads that. Help, admin and some older guides have none, so it renders them in a headless browser. No fake user agent, no stealth plugin.
 3. **Picks lines, not prose.** The model reads the cached page in the agent's own context and picks line numbers. A script copies those lines, each with its official URL.
 4. **Names what it missed.** A page it did not read, or a link it did not follow, comes back as a gap.
+5. **Reads each page once a day.** Pages are cached on your machine for 24 hours, by URL, and every session and project shares the cache. Ask again in another session and the page comes from disk: no network call, no browser. On a Help question that took a median of 27 seconds instead of 46; a developer `.md` page loads in about a second anyway, so there the cache saved nothing measurable ([runs](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md#a-second-session-on-a-warm-cache)).
 
 To check a line, replace `<cache path>` (the agent's Sources name it) and `<quote>` below. Apostrophes are safe, and the cache saves curly quotes as straight ones, so a quote you retype still matches. Keep one quote on one line with no blank line around it, since grep counts a blank line as matching every line. Any count above 0 means the line is on the page.
 

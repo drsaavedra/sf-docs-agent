@@ -128,6 +128,21 @@ Three answers changed, each from partial to right, and none went the other way: 
 which quoted a different official Help article with the same editions, and two MCP main-session answers on question
 8, which reached the right conclusion from a nearby SLDS page. sf-docs-agent's count is the same either way.
 
+## A second session on a warm cache
+
+On 5 November 2026, with 0.1.5, two questions were asked again within the day, so every page came from the cache
+(checked in the agent's output: each page line says `(cached)`). Cold runs are the four 4 November rounds above plus
+one 0.1.5 round on 5 November, each round started with an empty cache.
+
+| Question | Seconds, cold (5 runs) | Seconds, warm (3 runs) | Right answers, warm |
+|---|---|---|---|
+| 1. Scratch org editions (developer `.md`) | 27, 27, 29, 33, 35: median **29** | 28, 30, 31: median **30** | 3 of 3 |
+| 6. Flow version limits (Help, rendered) | 35, 36, 46, 52, 59: median **46** | 20, 27, 47: median **27** | 3 of 3 |
+
+The cache skips the network and the headless browser, not the agent's reading. A `.md` page is fetched in about a
+second, so there the cache changes nothing measurable; a Help page waits for its content to render, so there it saves
+most of a render.
+
 ## What changed on 4 November
 
 On 2 November 2026 sf-docs-agent used 34% fewer session tokens than platform-docs-get, and only 0.7%, 1.0% and 4.1%
