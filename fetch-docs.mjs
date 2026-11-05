@@ -26,8 +26,11 @@ const bi = args.indexOf('--budget');
 const deadline = bi >= 0 ? Date.now() + Number(args.splice(bi, 2)[1]) * 1000 : Infinity;
 // Curly quotes are saved straight: a model that retypes a quote writes ' and ", and the grep check must still match.
 const plain = text => text.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"');
+// _ and - between letters or digits match a space, so a slug-shaped term finds the words. Same length, so positions hold;
+// a term like __c or - keeps its separators and matches the page as written.
+const fold = text => text.replace(/(?<=[\p{L}\p{N}])[-_]+(?=[\p{L}\p{N}])/gu, m => ' '.repeat(m.length));
 // --terms a,b: after the fetch, print each saved page's lines that hold a term, so the caller needs no grep.
-const termsOf = v => plain(v ?? '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); // the cache holds straight quotes
+const termsOf = v => plain(v ?? '').split(',').map(s => fold(s.trim().toLowerCase())).filter(Boolean); // the cache holds straight quotes
 const ti = args.indexOf('--terms');
 const terms = ti >= 0 ? termsOf(args.splice(ti, 2)[1]) : [];
 // --expanded: set only by expand() on its child run, so an index there is listed, not expanded again.
@@ -89,8 +92,9 @@ const slash = p => p.split(sep).join('/');
 const MAX_HITS = 20, MAX_LINKS = 10, SHORT_LINES = 40, SHORT_CHARS = 4000, PER_FILE = 3;
 const matches = (name, text, t) => text.split('\n').flatMap((line, i, ls) => {
   // plain(): a sidecar and a page cached before quotes were saved straight still hold curly ones.
-  const low = i || !ls[0].startsWith('Source: ') ? plain(line).toLowerCase() : '', hit = t.filter(s => low.includes(s)); // a page's line 1 is its Source line; a sidecar has none
-  return hit.length ? [{ name, n: i + 1, line, hit, at: Math.min(...hit.map(s => low.indexOf(s))) }] : [];
+  const raw = i || !ls[0].startsWith('Source: ') ? plain(line).toLowerCase() : '', low = fold(raw), at = s => Math.max(low.indexOf(s), raw.indexOf(s));
+  const hit = t.filter(s => at(s) >= 0); // a page's line 1 is its Source line; a sidecar has none
+  return hit.length ? [{ name, n: i + 1, line, hit, at: Math.min(...hit.map(at)) }] : [];
 });
 const scorer = ms => {
   const df = Object.create(null); // a term like 'constructor' must not read Object.prototype
