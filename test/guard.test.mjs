@@ -280,3 +280,10 @@ test('a reference in prose passes when it names a line the Evidence block holds,
   assert.equal(handback(good.replace('Gaps: none.', 'Gaps: the wording "250,000" in [1:4] is the default allocation.')).status, 0);
   assert.equal(handback(good.replace('Gaps: none.', 'Gaps: the wording "999,000" in [1:3] is the default allocation.')).status, 2);
 });
+
+test('a report with no blocks that holds a line reference gets the advice for a stray quote', () => {
+  const r = handback('Not found. See [1:4] on the page.\n\nGaps: none');
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /a quote or source outside the --quote blocks/);
+  assert.doesNotMatch(r.stderr, /could not check the report/);
+});
