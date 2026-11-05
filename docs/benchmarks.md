@@ -10,6 +10,10 @@ gained `.md` copies on 31 October 2026. [What changed on 4 November](#what-chang
 before and after it started to follow two links. [Graded blind](#graded-blind) regrades every answer with the tool
 hidden from the grader.
 
+On 5 November 2026, one cold round of the 20-question eval on `main` (`8e229b4`) got 20 of 20 right answers. It ran in
+a clean Claude Code config with a Sonnet caller and a Sonnet grader, and cost $1.36. The guard found all 84 quotes on
+the cached pages.
+
 ## 83% less in your context, 41% fewer tokens than platform-docs-get
 
 On 10 questions against Salesforce's own platform-docs-get skill, the agent
