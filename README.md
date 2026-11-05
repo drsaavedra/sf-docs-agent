@@ -121,6 +121,8 @@ npm test
 
 `agents/sf-docs.md` names its script and cache as `/path/to/sf-docs-agent`. The `sed` line writes your copy with your clone's path. Run it again after you edit the agent.
 
+**Eval:** `node evals/run.mjs --cold` asks your installed agent the 20 regression questions in [evals/questions.json](evals/questions.json) and grades each report. The agent's guard checks every quote against the cached page, and a model with no tools judges the answer against the key. It takes about 5 minutes and $1.30 on Sonnet, and runs on your own Claude Code login, so it is on demand rather than in CI. Run it from a folder that config has trusted, since the agent's hook does not fire in an untrusted one, and on a plan with auto mode, which the agent's calls run under. `--only 5,10` runs a few questions, `--judge` picks the grading model, and `--config` points at another Claude config dir: use a clean one for numbers you will compare, since your own rules and plugins load otherwise. It needs macOS or Linux, and exits 1 if any question is not right. An outage or a stale key counts as could not run, not as a wrong answer. `--cold` empties the agent's page cache first. Reports land in `evals/results/`.
+
 **Release:** open a PR that only bumps the version (`npm version patch --no-git-tag-version`, which changes `package.json` and `package-lock.json`). Merging it runs [`release.yml`](.github/workflows/release.yml): the tests, an install of the packed tarball, `npm publish` through npm trusted publishing (no token), a check that npm holds the tarball that was tested, then the `v<version>` tag and GitHub Release.
 
 ## License
