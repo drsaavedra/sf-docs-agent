@@ -459,7 +459,9 @@ const lean = text => {
   return ls.map((l, i) => {
     if (code[i]) return l;
     l = l.replace(/!\[([^\]]*)\]\(https?:\/\/[^)\s]+\)/g, '![$1]');
-    return /^\s*\|/.test(l) ? l.replace(/ {2,}/g, ' ') : l;
+    // A table cell can only break its lines with HTML: <br> becomes a space, and each <li> a bullet, so a list in
+    // a cell still reads as items.
+    return /^\s*\|/.test(l) ? l.replace(/<li\s*>/gi, ' • ').replace(/<\/?(?:br|ul|ol|li)\s*\/?>/gi, ' ').replace(/ {2,}/g, ' ') : l;
   }).join('\n');
 };
 // Each page is saved and printed as it lands, so a call stopped part way keeps every page before the stop.
