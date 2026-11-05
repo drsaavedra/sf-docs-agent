@@ -497,7 +497,7 @@ const emit = r => {
       // The page is saved either way; a marker left behind only means it is fetched again next time.
       try { if (!r.fallback && !werr) rmSync(`${file}.fallback`, { force: true }); }
       catch (e) { console.error(`fallback marker not removed for ${p}: ${e.code || e.message}`); }
-      try { if (links && !werr) put(`${file}.links.txt`, `${links}\n`); }
+      try { if (links && !werr) put(`${file}.links.txt`, `${links}\n`); else if (!werr) rmSync(`${file}.links.txt`, { force: true }); }
       catch (e) { console.error(`links not saved for ${p}: ${e.code || e.message}`); }
     }
     const rel = slash(relative(out, file));
@@ -579,6 +579,30 @@ try {
     let navErr = '';
     const nav = await page.goto(u.href, { waitUntil: 'load', timeout: 45000 }).catch(e => { navErr = e.message.split('\n')[0]; return null; });
     if (navErr) { emit({ p: u.href, status: 0, body: `error: ${navErr}`, key: u.href, note: '' }); await page.close(); continue; }
+    // Old atlas URLs (and the LDS home) redirect to pages that have a .md twin: true once it is emitted. Any failure
+    // (late navigation, body error, 15 s hang) keeps the rendered text and sets the note that says why.
+    let failed = '', tried = '';
+    const readTwin = async (to, links) => {
+      const moved = !sameDoc(to, u) && twinOf(to);
+      if (!moved || moved.href !== tried) failed = ''; // a note from load does not describe a page the render ended on
+      if (!moved || noTwin(moved) || moved.href === tried) return false;
+      tried = moved.href;
+      // 15 s, not RAW_TIMEOUT_MS: a rendered page's budget has to hold this read, once per URL it ends on.
+      const tw = await page.evaluate(p => fetch(p, { signal: AbortSignal.timeout(15000) })
+        .then(async r => ({ status: r.status, body: await r.text() })).catch(e => ({ why: e.name })), moved.pathname)
+        .catch(e => ({ why: e.message.split('\n')[0] }));
+      const gone = !tw.why && missingTwin(tw.status, tw.body);
+      if (gone) markMissing(moved);
+      if (!tw.why && !gone && tw.status === 200) {
+        emit({ p: u.href, status: 200, body: tw.body, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]` });
+        return true;
+      }
+      failed = ` [twin failed: ${tw.why || (gone ? (tw.status === 404 ? 'status 404' : isShell(tw.body) ? 'shell' : 'empty') : `status ${tw.status}`)}]`;
+      return false;
+    };
+    // An atlas redirect is known at load, so the 20 s render is only the fallback; the page loses its nav links, not the
+    // .md's inline ones. The LDS home keeps the render: its rendered links are how its pages are found.
+    if (guide(u.pathname) && await readTwin(new URL(page.url()))) { await page.close(); continue; }
     // Poll from Node: waitForFunction needs string eval, which some sites' CSP refuses (zeroheight does).
     let got = { sel: 'body', text: '' }, mainAt = 0, matchAt = 0, last = '', same = 0;
     const peak = {};
@@ -601,24 +625,7 @@ try {
     // A redirect is shown and cited: a mistyped atlas topic lands on its guide's landing page with status 200 (a 404 in
     // a guide that moved to the new docs), and a Help article can move to another ?id= on the same path.
     const to = new URL(page.url()), hop = sameDoc(to, u) ? '' : ` [redirected ${to.href}]`;
-    // Old atlas URLs (and the LDS home) redirect to pages that have a .md twin: keep the rendered links, read the twin.
-    const moved = hop && twinOf(to);
-    const tryTwin = moved && !noTwin(moved);
-    // Any failure (late navigation, body error, 15 s hang) keeps the rendered text, and the output line says why.
-    // 15 s, not RAW_TIMEOUT_MS: this runs after a full render, so it counts against a rendered page's budget.
-    const tw = tryTwin ? await page.evaluate(p => fetch(p, { signal: AbortSignal.timeout(15000) })
-      .then(async r => ({ status: r.status, body: await r.text() })).catch(e => ({ why: e.name })), moved.pathname)
-      .catch(e => ({ why: e.message.split('\n')[0] })) : {};
-    const gone = !tw.why && missingTwin(tw.status, tw.body);
-    const md = !tw.why && !gone && tw.status === 200 ? tw.body : '';
-    const why = tw.why || (gone ? (tw.status === 404 ? 'status 404' : isShell(tw.body) ? 'shell' : 'empty') : `status ${tw.status}`);
-    if (tryTwin && gone) markMissing(moved);
-    const failed = tryTwin && !md ? ` [twin failed: ${why}]` : '';
-    if (md) {
-      emit({ p: u.href, status: 200, body: md, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]` });
-      await page.close();
-      continue;
-    }
+    if (await readTwin(to, links)) { await page.close(); continue; }
     // A mistyped atlas topic lands on another topic of its guide at 200, and a rename looks the same: never cached under the asked name.
     const within = hop && /\.html?$/.test(u.pathname) && guide(u.pathname) && guide(u.pathname) === guide(to.pathname);
     // A shell (no container, extract failed, or API docs still not loaded at 20 s) is reported but never cached.

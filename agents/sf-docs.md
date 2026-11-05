@@ -45,7 +45,7 @@ that, the printed output is the limit, not time.
 
 - A `.md`, `.txt` or `.xml` URL is fetched raw. A new developer docs, architect or LDS page given as `.html` or a bare
   path is fetched as its `.md` twin, and rendered only if the twin is missing. Any other URL is rendered and its main content saved as `.txt`; the page's
-  same-site links go to a sidecar `<file>.links.txt`.
+  same-site links go to a sidecar `<file>.links.txt`. An atlas URL that redirects to new docs is read as its `.md` and has no sidecar.
 - One line per URL: `<status> <chars> <url> [<selector>] -> <file>`, with `<file>` relative to the cache dir.
   `duplicate-of <url>` means the body matches an earlier URL: read only the first copy. `same <url> as <url>` means
   two arguments are one page, fetched once. `(cached)` means it came from disk. Status `0` carries the error.
