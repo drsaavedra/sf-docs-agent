@@ -218,7 +218,7 @@ test('an old guard, no agent or no claude stops the run before the cache is touc
   assert.match(n.main([]).stderr, /no installed sf-docs agent/);
   const c = setup();
   rmSync(join(c.dir, 'claude'));
-  const miss = c.main(['--cold'], { PATH: dirname(process.execPath) });
+  const miss = c.main(['--cold'], { PATH: mkdtempSync(join(tmpdir(), 'sf-docs-nopath-')) });
   assert.equal(miss.status, 2, miss.stdout + miss.stderr);
   assert.match(miss.stderr, /claude is not on the PATH/);
   assert.equal(existsSync(c.page), true);
