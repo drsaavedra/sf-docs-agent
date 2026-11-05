@@ -7,7 +7,8 @@ in one call, and it asks the caller to wait for its report. The platform-docs-ge
 from their runs on 30 and 31 October 2026, which were not repeated, and the docs changed in between: the Apex guides
 gained `.md` copies on 31 October 2026. [What changed on 4 November](#what-changed-on-4-november) gives the
 2 November numbers and the cause of each change. [One link against two](#one-link-against-two) compares the agent
-before and after it started to follow two links.
+before and after it started to follow two links. [Graded blind](#graded-blind) regrades every answer with the tool
+hidden from the grader.
 
 ## 83% less in your context, 41% fewer tokens than platform-docs-get
 
@@ -110,6 +111,37 @@ Metadata API and Object Reference still have none.
 | 10. Pub/Sub fetch limit | 652 / 3,161 / 284 | 42 / 20 / 16 | 3 / 3 / 3 |
 
 </details>
+
+## Graded blind
+
+The grader behind the right-answer counts above could see which tool wrote each answer. On 4 November 2026 the same
+grader regraded all 140 of those answers with the tool hidden: tool names, cache paths, `[n:line]` markers and fetch
+tallies removed, the answers shuffled under random ids, and each one graded on its page and its answer only. Two
+answers with a wrong number planted in them were mixed in as a control, and both were graded wrong.
+
+| Right answers | sf-docs-agent | platform-docs-get | a. MCP in main session | b. MCP in a subagent |
+|---|---|---|---|---|
+| Grader could see the tool | 40 of 40 | 39 of 40 | 28 of 30 | 24 of 30 |
+| Grader blind | **40 of 40** | **40 of 40** | **30 of 30** | 24 of 30 |
+
+Three answers changed, each from partial to right, and none went the other way: platform-docs-get on question 5,
+which quoted a different official Help article with the same editions, and two MCP main-session answers on question
+8, which reached the right conclusion from a nearby SLDS page. sf-docs-agent's count is the same either way.
+
+## A second session on a warm cache
+
+On 5 November 2026, with 0.1.5, two questions were asked again within the day, so every page came from the cache
+(checked in the agent's output: each page line says `(cached)`). Cold runs are the four 4 November rounds above plus
+one 0.1.5 round on 5 November, each round started with an empty cache.
+
+| Question | Seconds, cold (5 runs) | Seconds, warm (3 runs) | Right answers, warm |
+|---|---|---|---|
+| 1. Scratch org editions (developer `.md`) | 27, 27, 29, 33, 35: median **29** | 28, 30, 31: median **30** | 3 of 3 |
+| 6. Flow version limits (Help, rendered) | 35, 36, 46, 52, 59: median **46** | 20, 27, 47: median **27** | 3 of 3 |
+
+The cache skips the network and the headless browser, not the agent's reading. A `.md` page is fetched in about a
+second, so there the cache changes nothing measurable; a Help page waits for its content to render, so there it saves
+most of a render.
 
 ## What changed on 4 November
 
