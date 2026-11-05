@@ -102,8 +102,8 @@ runs:
       run: |
         v=${{ steps.v.outputs.check }}
         remote=
-        for i in 1 2 3 4 5 6; do remote=$(npm view "sf-docs-agent@$v" dist.shasum 2>/dev/null) && [ -n "$remote" ] && break; sleep 20; done
-        [ -n "$remote" ] || { echo "::error::npm still shows no $v after 2 minutes"; exit 1; }
+        for i in $(seq 30); do remote=$(npm view "sf-docs-agent@$v" dist.shasum 2>/dev/null) && [ -n "$remote" ] && break; sleep 20; done
+        [ -n "$remote" ] || { echo "::error::npm still shows no $v after 10 minutes"; exit 1; }
         tested=${{ steps.pack.outputs.shasum }}
         echo "registry $remote, tested $tested"
         # On a later commit this means an earlier release of $v published but never tagged: rerun that release's run.
