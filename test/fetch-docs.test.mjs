@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,8 +34,11 @@ export const chromium = { launch: async () => ({ close: async () => {}, newPage:
     if (a.length === 3) return a[0].map(p => ({ p, status: 200, body: raw[p] }));
     return { sel: 'div.body', text: pages[at].text, links: '', pending: 0 };
   } }; } }) };`;
+const stubDirs = [];
+process.on('exit', () => stubDirs.forEach(d => rmSync(d, { recursive: true, force: true })));
 function fetched(stub, ...args) {
   const dir = mkdtempSync(join(tmpdir(), 'sf-docs-stub-')), mod = join(dir, 'node_modules/playwright-core'), out = join(dir, 'cache');
+  stubDirs.push(dir);
   mkdirSync(mod, { recursive: true });
   writeFileSync(join(mod, 'package.json'), '{"name":"playwright-core","type":"module","main":"index.mjs"}');
   writeFileSync(join(mod, 'index.mjs'), STUB);
