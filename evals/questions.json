@@ -1,0 +1,162 @@
+[
+ {
+  "n": 5,
+  "site": "developer.salesforce.com",
+  "kind": "fact",
+  "question": "Which kinds of objects does the LWC framework not observe mutations on?",
+  "key": "objects inheriting from Object, class instances, Date, Set, Map",
+  "keylines": "dev/platform/lwc/guide/reactivity-fields.md:48"
+ },
+ {
+  "n": 10,
+  "site": "developer.salesforce.com",
+  "kind": "fact",
+  "question": "What are the valid values for edition in a scratch org definition file?",
+  "key": "Developer, Enterprise, Group, Professional, Partner Developer, Partner Enterprise, Partner Group, Partner Professional (all eight)",
+  "keylines": "dev/platform/sfdx-dev/guide/sfdx-dev-scratch-orgs-def-file.md:35"
+ },
+ {
+  "n": 15,
+  "site": "developer.salesforce.com",
+  "kind": "fact",
+  "question": "Is lightning-datatable supported on mobile, and does it support timestamps?",
+  "key": "not supported on mobile; timestamps not supported (date objects and ISO8601 strings are)",
+  "keylines": "dev/platform/lightning-component-reference/guide/lightning-datatable.md:22,458"
+ },
+ {
+  "n": 20,
+  "site": "developer.salesforce.com",
+  "kind": "nav",
+  "question": "What is the hourly platform event publishing allocation for Enterprise Edition and for Developer Edition?",
+  "key": "250,000 Enterprise (Performance/Unlimited also 250,000); 50,000 Developer Edition",
+  "keylines": "dev/platform/platform-events/guide/platform-events-limits-default.md:27"
+ },
+ {
+  "n": 25,
+  "site": "developer.salesforce.com (Apex guide, Apex Reference, Metadata API or Object Reference)",
+  "kind": "fact",
+  "question": "What are the per-transaction Apex limits on SOQL queries and CPU time, synchronous versus asynchronous?",
+  "key": "SOQL 100 / 200; CPU 10,000 ms / 60,000 ms",
+  "keylines": "dev/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm.txt:24,38"
+ },
+ {
+  "n": 30,
+  "site": "developer.salesforce.com (Apex guide, Apex Reference, Metadata API or Object Reference)",
+  "kind": "fact",
+  "question": "With a QueryLocator start method, what is the maximum batch scope, and how many records can the QueryLocator return?",
+  "key": "scope max 2,000 (higher is chunked); 50 million records, else the job fails",
+  "keylines": "dev/atlas.en-us.apexcode.meta/apexcode/apex_batch_interface.htm.txt:171,172"
+ },
+ {
+  "n": 35,
+  "site": "developer.salesforce.com (Apex guide, Apex Reference, Metadata API or Object Reference)",
+  "kind": "fact",
+  "question": "How do you delete components before versus after the other components in a Metadata API deploy, and when are post-deletions processed relative to tests?",
+  "key": "destructiveChangesPre.xml before; destructiveChangesPost.xml after; post deletions processed before tests run",
+  "keylines": "dev/atlas.en-us.api_meta.meta/api_meta/meta_deploy_deleting_files.htm.txt:24,25,33"
+ },
+ {
+  "n": 40,
+  "site": "developer.salesforce.com (Apex guide, Apex Reference, Metadata API or Object Reference)",
+  "kind": "fact",
+  "question": "In Apex, what is the difference between String.isBlank and String.isEmpty?",
+  "key": "isBlank: true for white space, empty or null; isEmpty: true for empty or null only",
+  "keylines": "apexref-full/string.txt:117,119"
+ },
+ {
+  "n": 45,
+  "site": "architect.salesforce.com",
+  "kind": "fact",
+  "question": "What are the pillars of the Salesforce Well-Architected Framework?",
+  "key": "five: Trust, Reliability, Operational Excellence, Resource and Cost Optimization, Fairness (memory says Trusted/Easy/Adaptable: the page wins)",
+  "keylines": "arch/well-architected/guide/framework.md:8"
+ },
+ {
+  "n": 50,
+  "site": "architect.salesforce.com",
+  "kind": "fact",
+  "question": "Which integration patterns does the architect Integration Patterns guide list?",
+  "key": "six: Remote Process Invocation Request and Reply; RPI Fire and Forget; Batch Data Synchronization; Remote Call-In; UI Update Based on Data Changes; Data Virtualization",
+  "keylines": "arch/fundamentals/guide/integration-patterns.md:78,82,86,90,94,98"
+ },
+ {
+  "n": 55,
+  "site": "help.salesforce.com",
+  "kind": "fact",
+  "question": "In what order does Salesforce process validation, assignment, auto-response, workflow and escalation rules?",
+  "key": "validation, assignment, auto-response, workflow (immediate actions), escalation",
+  "keylines": "help/platform.fields_validation_considerations:18,20,21,22,23,24"
+ },
+ {
+  "n": 60,
+  "site": "help.salesforce.com",
+  "kind": "fact",
+  "question": "Which editions include the Salesforce Connect cross-org adapter?",
+  "key": "Developer Edition; extra cost in Enterprise, Performance, Unlimited",
+  "keylines": "help/platform.xorg_considerations:17,19"
+ },
+ {
+  "n": 65,
+  "site": "help.salesforce.com",
+  "kind": "fact",
+  "question": "Can the Flow Transform element sort or filter a collection?",
+  "key": "no; use Collection Filter or Collection Sort",
+  "keylines": "help/platform.flow_ref_elements_transform:44"
+ },
+ {
+  "n": 70,
+  "site": "admin.salesforce.com",
+  "kind": "conflict",
+  "question": "In the Spring '26 release dates post, refreshing your sandbox by January 8 gets you early access to which release?",
+  "key": "the post says \"Summer '26\" at line 36, which contradicts its own Spring '26 subject; pass = quotes it verbatim and flags the inconsistency in Gaps",
+  "keylines": "admin/2025/admin-spring-26-release-dates-countdown:14,36"
+ },
+ {
+  "n": 75,
+  "site": "admin.salesforce.com",
+  "kind": "fact",
+  "question": "What three technologies is Salesforce Headless 360 built on, and does it replace the Lightning UI?",
+  "key": "APIs, Salesforce CLI, MCP; no, it does not replace the UI",
+  "keylines": "admin/2026/introduction-to-salesforce-headless-360-for-admins:14,26"
+ },
+ {
+  "n": 80,
+  "site": "lightningdesignsystem.com",
+  "kind": "fact",
+  "question": "Should you put an SLDS tooltip on a non-interactive element?",
+  "key": "no: don't use tooltips for non-interactive, focusable elements",
+  "keylines": "lds-full/tooltip.txt:51"
+ },
+ {
+  "n": 85,
+  "site": "lightningdesignsystem.com",
+  "kind": "fact",
+  "question": "What minimum contrast ratios does SLDS require for text?",
+  "key": "4.5:1 regular text and icons; 3:1 large text (18pt, or 14pt bold)",
+  "keylines": "lds/99d436-text-and-color-contrast:47,49"
+ },
+ {
+  "n": 90,
+  "site": "developer.salesforce.com",
+  "kind": "scan",
+  "question": "How many records fit in one Bulk API batch, and in one sObject Collections create request?",
+  "key": "Bulk API 10,000 per batch; sObject Collections 200",
+  "keylines": "dev/platform/salesforce-app-limits-cheatsheet/guide/salesforce-app-limits-platform-bulkapi.md:34; dev/platform/api-rest/guide/resources-composite-sobjects-collections-create.md:6"
+ },
+ {
+  "n": 95,
+  "site": "help.salesforce.com",
+  "kind": "fact",
+  "question": "How many schedule-triggered flow interviews can run per 24 hours?",
+  "key": "250,000, or user licenses x 200, whichever is greater",
+  "keylines": "help/platform.flow_considerations_limit:34"
+ },
+ {
+  "n": 100,
+  "site": "developer.salesforce.com",
+  "kind": "fact",
+  "question": "How many events can a Pub/Sub API client request across all FetchRequests in one Subscribe call?",
+  "key": "100",
+  "keylines": "dev/platform/pub-sub-api/guide/allocations.md:34"
+ }
+]
