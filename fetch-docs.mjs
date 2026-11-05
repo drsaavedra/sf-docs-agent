@@ -333,6 +333,8 @@ for (const a of args) {
   if (u && SITES.includes(u.host)) { u.protocol = 'https:'; given.push(u); } // all https: one key, one Source line
   else refused.push(u ? `${u.href}: not an official doc site` : `${a}: not a URL`);
 }
+// The guide of an atlas path, with or without a topic after it, whichever version it names.
+const guide = p => p.match(/^\/docs\/atlas\.[^/]+\/([^/]+)(?:\/|$)/)?.[1];
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.
 const twinOf = u => {
   const p = u.pathname.replace(/\.html$/, '').replace(/\/$/, '');
@@ -467,7 +469,7 @@ const lean = text => {
 // Each page is saved and printed as it lands, so a call stopped part way keeps every page before the stop.
 const emit = r => {
   results.push(r);
-  const { p, status, links, key, src, note, cached, shell, offsite } = r;
+  const { p, status, links, key, src, note, cached, shell, offsite, within } = r;
   // Markdown only (a .md URL, or a twin read as r.md): rendered text has no code fences, so lean could reach a code
   // sample. Cached pages are lean already.
   const md = r.md || /\.md$/.test(new URL(key).pathname);
@@ -479,6 +481,7 @@ const emit = r => {
   if (status === 0) tail = ` ${body}`;
   else if (offsite) tail = ' not saved: left the doc sites'; // a redirect to a login page or another domain
   else if (shell) tail = ' not saved: shell, login or missing page';
+  else if (within && status === 200) tail = ' not saved: moved within its guide, fetch the [redirected] URL if that is the page you want';
   else if (status === 200) {
     ok++;
     // Duplicates are written too, so a later run for that URL finds it; written whole (temp then rename), and one
@@ -616,9 +619,11 @@ try {
       await page.close();
       continue;
     }
+    // A mistyped atlas topic lands on another topic of its guide at 200, and a rename looks the same: never cached under the asked name.
+    const within = hop && /\.html?$/.test(u.pathname) && guide(u.pathname) && guide(u.pathname) === guide(to.pathname);
     // A shell (no container, extract failed, or API docs still not loaded at 20 s) is reported but never cached.
     emit({ p: u.origin + u.pathname + u.search, status: nav?.status() ?? 0, body: text, links, key: u.href,
-      src: hop && to.href, note: ` [${sel}]${hold ? ' [api docs did not load]' : ''}${hop}${failed}`, offsite: !SITES.includes(to.host), shell: sel === 'body' || hold, fallback: sel === 'fallback' });
+      src: hop && to.href, note: ` [${sel}]${hold ? ' [api docs did not load]' : ''}${hop}${failed}`, offsite: !SITES.includes(to.host), shell: sel === 'body' || hold, within, fallback: sel === 'fallback' });
     await page.close();
   }
 

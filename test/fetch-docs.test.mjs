@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +23,30 @@ const run = (out, ...args) => {
   const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8' });
   return { code: r.status, out: r.stdout, err: r.stderr };
 };
+// A fresh fetch offline: the script's copy beside a stub playwright-core, which resolves first.
+// pages: URL given -> { text, status, to } (to: where it landed); raw: path -> .md body.
+const STUB = `const { pages = {}, raw = {} } = JSON.parse(process.env.STUB);
+export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = ''; return {
+  goto: async u => { at = u; return { status: () => pages[u]?.status ?? 200 }; },
+  url: () => pages[at]?.to ?? at,
+  waitForTimeout: async () => {}, close: async () => {},
+  evaluate: async (f, a) => {
+    if (a.length === 3) return a[0].map(p => ({ p, status: 200, body: raw[p] }));
+    return { sel: 'div.body', text: pages[at].text, links: '', pending: 0 };
+  } }; } }) };`;
+const stubDirs = [];
+process.on('exit', () => stubDirs.forEach(d => rmSync(d, { recursive: true, force: true })));
+function fetched(stub, ...args) {
+  const dir = mkdtempSync(join(tmpdir(), 'sf-docs-stub-')), mod = join(dir, 'node_modules/playwright-core'), out = join(dir, 'cache');
+  stubDirs.push(dir);
+  mkdirSync(mod, { recursive: true });
+  writeFileSync(join(mod, 'package.json'), '{"name":"playwright-core","type":"module","main":"index.mjs"}');
+  writeFileSync(join(mod, 'index.mjs'), STUB);
+  copyFileSync(SCRIPT, join(dir, 'fetch-docs.mjs'));
+  const r = spawnSync(process.execPath, [join(dir, 'fetch-docs.mjs'), '--out', out, ...args],
+    { encoding: 'utf8', env: { ...process.env, STUB: JSON.stringify(stub) } });
+  return { code: r.status, out: r.stdout, err: r.stderr, cache: out };
+}
 const lines = (n, f) => Array.from({ length: n }, (_, i) => f(i + 1)).join('\n');
 
 test('a cached page is served from disk', () => {
@@ -615,4 +639,55 @@ test('a line of inline code in backticks opens no fence', () => {
     '## Items', '', lines(5, i => `- item ${i}${i === 1 ? ' target' : ''}`), '', '```', 'code', '```', '', lines(30, i => `after ${i}`)]) });
   const r = run(out, '--terms', 'target', '/docs/a/b/c/inline.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': - item 5')), r);
+});
+
+const ATLAS = 'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta';
+const atlasFile = (r, topic) => join(r.cache, `developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/${topic}.htm.txt`);
+
+test('an atlas topic that lands on another topic of its guide is shown but not cached', () => {
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text of the guide.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`);
+  assert.match(r.out, /\[redirected .*meta_intro\.htm\] not saved: moved within its guide, fetch the \[redirected\] URL/);
+  assert.equal(existsSync(atlasFile(r, 'nope')), false);
+});
+
+test('an atlas topic that lands on its guide root, or on another version of the guide, is not cached', () => {
+  const versioned = 'https://developer.salesforce.com/docs/atlas.en-us.216.0.api_meta.meta/api_meta/nope.htm';
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text.', to: `${ATLAS}/` }, [`${ATLAS}/nada.htm`]: { text: 'Landing page, no slash.', to: ATLAS }, [`${ATLAS}/typo.html`]: { text: 'Landing page, typed html.', to: `${ATLAS}/meta_intro.htm` },
+    [versioned]: { text: 'Landing page text two.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`, `${ATLAS}/nada.htm`, `${ATLAS}/typo.html`, versioned);
+  assert.equal(r.out.match(/not saved: moved within its guide/g)?.length, 4, r.out);
+});
+
+test('a guide root asked for itself is cached on the topic it opens', () => {
+  const r = fetched({ pages: { [ATLAS]: { text: 'The guide entry page.', to: `${ATLAS}/meta_intro.htm` } } }, ATLAS);
+  assert.match(r.out, / -> developer\.salesforce\.com/, r.out);
+});
+
+test('a topic that moves within its guide to a page that fails is not told to fetch it', () => {
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Service unavailable here.', status: 503, to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`);
+  assert.doesNotMatch(r.out, /moved within its guide/, r.out);
+});
+
+test('a non-atlas page that redirects on its host is cached', () => {
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/old.htm': { text: 'The moved page text.', to: 'https://developer.salesforce.com/docs/new.htm' } } }, 'https://developer.salesforce.com/docs/old.htm');
+  assert.match(r.out, / -> developer\.salesforce\.com/, r.out);
+});
+
+test('a Help article that moves to another id on the same path is cached', () => {
+  const help = 'https://help.salesforce.com/s/articleView?id=sf.old.htm&type=5';
+  const r = fetched({ pages: { [help]: { text: 'The moved article text.', to: 'https://help.salesforce.com/s/articleView?id=sf.new.htm&type=5' } } }, help);
+  assert.match(r.out, /\[redirected .*sf\.new\.htm.*\] -> /, r.out);
+});
+
+test('an atlas topic that stays put, or moves to another guide, is cached', () => {
+  const other = 'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/moved.htm';
+  const r = fetched({ pages: { [`${ATLAS}/real.htm`]: { text: 'The topic itself, long enough.' }, [`${ATLAS}/old.htm`]: { text: 'The topic in its new guide.', to: other } } },
+    `${ATLAS}/real.htm`, `${ATLAS}/old.htm`);
+  assert.equal(existsSync(atlasFile(r, 'real')), true, r.out);
+  assert.equal(existsSync(atlasFile(r, 'old')), true, r.out);
+});
+
+test('a fresh page is saved with straight quotes', () => {
+  const p = '/docs/a/b/c/page.md';
+  const r = fetched({ raw: { [p]: '# Page\n\nThe \u201Corg\u201D and the \u2018user\u2019.' } }, p);
+  assert.match(readFileSync(join(r.cache, `developer.salesforce.com${p}`), 'utf8'), /The "org" and the 'user'\./, r.out + r.err);
 });
