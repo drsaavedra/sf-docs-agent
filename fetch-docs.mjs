@@ -620,7 +620,7 @@ try {
       continue;
     }
     // A mistyped atlas topic lands on another topic of its guide at 200, and a rename looks the same: never cached under the asked name.
-    const within = hop && to.host === u.host && u.pathname.endsWith('.htm') && guide(u.pathname) && guide(u.pathname) === guide(to.pathname);
+    const within = hop && /\.html?$/.test(u.pathname) && guide(u.pathname) && guide(u.pathname) === guide(to.pathname);
     // A shell (no container, extract failed, or API docs still not loaded at 20 s) is reported but never cached.
     emit({ p: u.origin + u.pathname + u.search, status: nav?.status() ?? 0, body: text, links, key: u.href,
       src: hop && to.href, note: ` [${sel}]${hold ? ' [api docs did not load]' : ''}${hop}${failed}`, offsite: !SITES.includes(to.host), shell: sel === 'body' || hold, within, fallback: sel === 'fallback' });

@@ -652,14 +652,14 @@ test('an atlas topic that lands on another topic of its guide is shown but not c
 
 test('an atlas topic that lands on its guide root, or on another version of the guide, is not cached', () => {
   const versioned = 'https://developer.salesforce.com/docs/atlas.en-us.216.0.api_meta.meta/api_meta/nope.htm';
-  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text.', to: `${ATLAS}/` }, [`${ATLAS}/nada.htm`]: { text: 'Landing page, no slash.', to: ATLAS },
-    [versioned]: { text: 'Landing page text two.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`, `${ATLAS}/nada.htm`, versioned);
-  assert.equal(r.out.match(/not saved: moved within its guide/g)?.length, 3, r.out);
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text.', to: `${ATLAS}/` }, [`${ATLAS}/nada.htm`]: { text: 'Landing page, no slash.', to: ATLAS }, [`${ATLAS}/typo.html`]: { text: 'Landing page, typed html.', to: `${ATLAS}/meta_intro.htm` },
+    [versioned]: { text: 'Landing page text two.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`, `${ATLAS}/nada.htm`, `${ATLAS}/typo.html`, versioned);
+  assert.equal(r.out.match(/not saved: moved within its guide/g)?.length, 4, r.out);
 });
 
 test('a guide root asked for itself is cached on the topic it opens', () => {
   const r = fetched({ pages: { [ATLAS]: { text: 'The guide entry page.', to: `${ATLAS}/meta_intro.htm` } } }, ATLAS);
-  assert.doesNotMatch(r.out, /not saved/, r.out);
+  assert.match(r.out, / -> developer\.salesforce\.com/, r.out);
 });
 
 test('a topic that moves within its guide to a page that fails is not told to fetch it', () => {
@@ -669,7 +669,7 @@ test('a topic that moves within its guide to a page that fails is not told to fe
 
 test('a non-atlas page that redirects on its host is cached', () => {
   const r = fetched({ pages: { 'https://developer.salesforce.com/docs/old.htm': { text: 'The moved page text.', to: 'https://developer.salesforce.com/docs/new.htm' } } }, 'https://developer.salesforce.com/docs/old.htm');
-  assert.doesNotMatch(r.out, /not saved/, r.out);
+  assert.match(r.out, / -> developer\.salesforce\.com/, r.out);
 });
 
 test('a Help article that moves to another id on the same path is cached', () => {
