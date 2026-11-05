@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +23,24 @@ const run = (out, ...args) => {
   const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8' });
   return { code: r.status, out: r.stdout, err: r.stderr };
 };
+// A fresh fetch offline: a copy of the script beside a stub playwright-core, which resolves first. Pages are keyed by
+// the URL given: { text, to } is a rendered page and where it landed; raw maps a path to its .md body.
+const STUB = `const { pages = {}, raw = {} } = JSON.parse(process.env.STUB);
+export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = ''; return {
+  goto: async u => { at = u; return { status: () => 200 }; }, url: () => pages[at]?.to ?? at,
+  waitForTimeout: async () => {}, close: async () => {},
+  evaluate: async (f, a) => a.length === 3 ? a[0].map(p => ({ p, status: 200, body: raw[p] }))
+    : { sel: 'div.body', text: pages[at].text, links: '', pending: 0 } }; } }) };`;
+function fetched(stub, ...args) {
+  const dir = mkdtempSync(join(tmpdir(), 'sf-docs-stub-')), mod = join(dir, 'node_modules/playwright-core'), out = join(dir, 'cache');
+  mkdirSync(mod, { recursive: true });
+  writeFileSync(join(mod, 'package.json'), '{"name":"playwright-core","type":"module","main":"index.mjs"}');
+  writeFileSync(join(mod, 'index.mjs'), STUB);
+  copyFileSync(SCRIPT, join(dir, 'fetch-docs.mjs'));
+  const r = spawnSync(process.execPath, [join(dir, 'fetch-docs.mjs'), '--out', out, ...args],
+    { encoding: 'utf8', env: { ...process.env, STUB: JSON.stringify(stub) } });
+  return { code: r.status, out: r.stdout, err: r.stderr, cache: out };
+}
 const lines = (n, f) => Array.from({ length: n }, (_, i) => f(i + 1)).join('\n');
 
 test('a cached page is served from disk', () => {
@@ -615,4 +633,10 @@ test('a line of inline code in backticks opens no fence', () => {
     '## Items', '', lines(5, i => `- item ${i}${i === 1 ? ' target' : ''}`), '', '```', 'code', '```', '', lines(30, i => `after ${i}`)]) });
   const r = run(out, '--terms', 'target', '/docs/a/b/c/inline.md').out;
   assert.ok(shown(r).some(l => l.endsWith(': - item 5')), r);
+});
+
+test('a fresh page is saved with straight quotes', () => {
+  const p = '/docs/a/b/c/page.md';
+  const r = fetched({ raw: { [p]: '# Page\n\nThe \u201Corg\u201D and the \u2018user\u2019.' } }, p);
+  assert.match(readFileSync(join(r.cache, `developer.salesforce.com${p}`), 'utf8'), /The "org" and the 'user'\./, r.out + r.err);
 });
