@@ -2,16 +2,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, existsSync, mkdirSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', 'fetch-docs.mjs');
+import { NO_BROWSER, SCRIPT, tempDir, withStub } from './harness.mjs';
 
 // files: { '<host>/<path>': '<body without the Source line>' }; each is saved as the script saves a page.
 function cache(files) {
-  const out = mkdtempSync(join(tmpdir(), 'sf-docs-test-'));
+  const out = tempDir('sf-docs-test-');
   for (const [rel, body] of Object.entries(files)) {
     const f = join(out, rel);
     mkdirSync(dirname(f), { recursive: true });
@@ -20,11 +17,11 @@ function cache(files) {
   return out;
 }
 const run = (out, ...args) => {
-  const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
   return { code: r.status, out: r.stdout, err: r.stderr };
 };
-// A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL given -> { text, links, status, to, first }
-// (first: the URL before the render); raw: path -> .md body; twin: path -> { status, body } or { reject }. stderr logs each read.
+// A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL -> { text, links, status, sel, to, first } (first: URL
+// before the render); raw: path -> body or { status, body }; twin: path -> { status, body } or { reject }; seed: cache file -> age in minutes.
 const STUB = `const { pages = {}, raw = {}, twin = {} } = JSON.parse(process.env.STUB);
 export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = '', seen = false; return {
   goto: async u => { at = u; return { status: () => pages[u]?.status ?? 200 }; },
@@ -32,23 +29,19 @@ export const chromium = { launch: async () => ({ close: async () => {}, newPage:
   waitForTimeout: async () => {}, close: async () => {},
   evaluate: async (f, a) => {
     if (typeof a === 'string') { console.error('twin read'); if (twin[a].reject) throw new Error(twin[a].reject); return twin[a]; }
-    if (a.length === 3) return a[0].map(p => ({ p, status: 200, body: raw[p] }));
+    if (a.length === 3) return a[0].map(p => ({ p, ...(typeof raw[p] === 'object' ? raw[p] : { status: 200, body: raw[p] }) }));
     console.error('rendered'); seen = true;
-    return { sel: 'div.body', text: pages[at].text, links: pages[at].links ?? '', pending: 0 };
+    return { sel: pages[at].sel ?? 'div.body', text: pages[at].text, links: pages[at].links ?? '', pending: 0 };
   } }; } }) };`;
-const stubDirs = [];
-process.on('exit', () => stubDirs.forEach(d => rmSync(d, { recursive: true, force: true })));
 function fetched(stub, ...args) {
-  const dir = mkdtempSync(join(tmpdir(), 'sf-docs-stub-')), mod = join(dir, 'node_modules/playwright-core'), out = join(dir, 'cache');
-  stubDirs.push(dir);
-  for (const f of stub.seed ?? []) { mkdirSync(dirname(join(out, f)), { recursive: true }); writeFileSync(join(out, f), ''); }
-  mkdirSync(mod, { recursive: true });
-  writeFileSync(join(mod, 'package.json'), '{"name":"playwright-core","type":"module","main":"index.mjs"}');
-  writeFileSync(join(mod, 'index.mjs'), STUB);
-  copyFileSync(SCRIPT, join(dir, 'fetch-docs.mjs'));
-  const r = spawnSync(process.execPath, [join(dir, 'fetch-docs.mjs'), '--out', out, ...args],
-    { encoding: 'utf8', env: { ...process.env, STUB: JSON.stringify(stub) } });
-  return { code: r.status, out: r.stdout, err: r.stderr, cache: out };
+  return withStub(STUB, { ...stub.env, STUB: JSON.stringify(stub) }, out => {
+    for (const [f, age] of Object.entries(stub.seed ?? {})) {
+      mkdirSync(dirname(join(out, f)), { recursive: true });
+      writeFileSync(join(out, f), 'Source: https://developer.salesforce.com/docs/seeded.html\nseeded');
+      utimesSync(join(out, f), new Date(), new Date(Date.now() - age * 60_000));
+    }
+    for (const d of stub.dirs ?? []) mkdirSync(join(out, d), { recursive: true });
+  }, ...args);
 }
 const lines = (n, f) => Array.from({ length: n }, (_, i) => f(i + 1)).join('\n');
 
@@ -249,7 +242,7 @@ test('an index still expands when SF_DOCS_EXPANDED is set in the caller environm
   const out = cache({ 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_platform.txt':
     '<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&#38;producttype=platform</loc>' });
   const r = spawnSync(process.execPath, [SCRIPT, '--out', out, '--budget', '0', '--terms', 'flow',
-    'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform'], { encoding: 'utf8', env: { ...process.env, SF_DOCS_EXPANDED: '1' } });
+    'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=platform'], { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER, SF_DOCS_EXPANDED: '1' } });
   assert.match(r.stdout, /its 1 sitemaps fetched, matches only/, r.stdout);
 });
 
@@ -312,7 +305,7 @@ test('a page the fallback read is fetched again, never served from cache', () =>
 
 test('a spent budget skips pages without starting the browser', () => {
   const r = spawnSync(process.execPath, [SCRIPT, '--out', cache({}), '--budget', '0', '/docs/a/b/c/uncached.md'],
-    { encoding: 'utf8', env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: join(tmpdir(), 'no-browser-here') } });
+    { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
   assert.doesNotMatch(r.stderr, /BLOCKED/);
   assert.match(r.stdout, /^not fetched \(time limit\) /m);
 });
@@ -749,7 +742,7 @@ test('a twin read that rejects, or times out in the page, keeps the rendered tex
 });
 
 test('a twin already marked missing is not read', () => {
-  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: 'no' } }, seed: [`developer.salesforce.com${MOVED_MD}.missing`] }, `${ATLAS}/old.htm`);
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: 'no' } }, seed: { [`developer.salesforce.com${MOVED_MD}.missing`]: 0 } }, `${ATLAS}/old.htm`);
   assert.doesNotMatch(r.err, /twin read/, r.out + r.err);
 });
 
@@ -766,6 +759,109 @@ test('a failure at load is not printed against a different page the render ends 
 
 test('a twin read at load removes the sidecar of the render it replaces', () => {
   const side = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/old.htm.txt.links.txt';
-  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'Rendered.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '# Moved\n\nThe twin text.' } }, seed: [side] }, `${ATLAS}/old.htm`);
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'Rendered.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '# Moved\n\nThe twin text.' } }, seed: { [side]: 0 } }, `${ATLAS}/old.htm`);
   assert.equal(existsSync(join(r.cache, side)), false, r.out);
+});
+
+const PAGE = 'https://developer.salesforce.com/docs/a/b/c/page.html', PAGE_MD = '/docs/a/b/c/page.md', DEV = 'developer.salesforce.com';
+
+test('a page that leaves the doc sites is shown but not saved', () => {
+  const u = `${ATLAS}/old.htm`;
+  const r = fetched({ pages: { [u]: { text: 'Sign in to continue.', to: 'https://login.salesforce.com/' } } }, u);
+  assert.match(r.out, /not saved: left the doc sites/, r.out);
+  assert.equal(existsSync(atlasFile(r, 'old')), false);
+});
+
+test('a .md path that answers an HTML shell is not saved', () => {
+  const r = fetched({ raw: { [PAGE_MD]: '<!doctype html><html><body></body></html>' } }, PAGE_MD);
+  assert.match(r.out, /not saved: shell, login or missing page/, r.out);
+  assert.equal(existsSync(join(r.cache, DEV, PAGE_MD)), false);
+});
+
+test('a twin that answers 404 falls back to the page as given and leaves a marker', () => {
+  const r = fetched({ raw: { [PAGE_MD]: { status: 404, body: 'nope' } }, pages: { [PAGE]: { text: 'The rendered page text.' } } }, PAGE);
+  assert.match(readFileSync(join(r.cache, DEV, `${PAGE_MD.replace('.md', '.html')}.txt`), 'utf8'), /The rendered page text\./, r.out);
+  assert.equal(existsSync(join(r.cache, DEV, `${PAGE_MD}.missing`)), true);
+});
+
+test('a twin that answers 500 falls back too, and leaves no marker, so it is tried again', () => {
+  const r = fetched({ raw: { [PAGE_MD]: { status: 500, body: 'error' } }, pages: { [PAGE]: { text: 'The rendered page text.' } } }, PAGE);
+  assert.match(r.out, /div\.body/, r.out);
+  assert.equal(existsSync(join(r.cache, DEV, `${PAGE_MD}.missing`)), false);
+});
+
+test('a saved .md page drops image URLs and table padding, and leaves code alone', () => {
+  const body = '# T\n\n![Diagram](https://s3.example.com/a.png?sig=abc)\n\n| a<br>b   | <ul><li>x</li><li>y</li></ul> |\n\n```\n| keep<br>this   |\n![c](https://x.io/i.png)\n```\n';
+  const saved = readFileSync(join(fetched({ raw: { [PAGE_MD]: body } }, PAGE_MD).cache, DEV, PAGE_MD), 'utf8');
+  assert.match(saved, /^!\[Diagram\]$/m);
+  assert.match(saved, /^\| a b \| • x • y \|$/m);
+  assert.match(saved, /^\| keep<br>this {3}\|$/m);
+  assert.match(saved, /^!\[c\]\(https:\/\/x\.io\/i\.png\)$/m);
+});
+
+test('rendered text is saved as read, since a code sample in it has no fence to protect it', () => {
+  const u = `${ATLAS}/real.htm`, text = '| keep<br>this   |\n![c](https://x.io/i.png)';
+  assert.ok(readFileSync(atlasFile(fetched({ pages: { [u]: { text } } }, u), 'real'), 'utf8').includes(text));
+});
+
+test('a links sidecar prints at most 10 lines and counts the rest', () => {
+  const out = cache({ 'help.salesforce.com/s/articleView_id_x.htm_type_5.txt': lines(50, i => `filler ${i}`) });
+  writeFileSync(join(out, 'help.salesforce.com/s/articleView_id_x.htm_type_5.txt.links.txt'), lines(15, i => `/s/articleView?id=toast_${i}.htm Toast ${i}`));
+  const r = run(out, '--terms', 'toast', 'https://help.salesforce.com/s/articleView?id=x.htm&type=5').out;
+  assert.equal(r.match(/\/s\/articleView\?id=toast_/g).length, 10, r);
+  assert.match(r, /5 more/, r);
+});
+
+test('a very long matching line is cut around the match', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/long.md': `${'a '.repeat(500)}needle${' b'.repeat(500)}` });
+  const line = run(out, '--search', 'needle').out.split('\n')[0];
+  assert.match(line, /\.\.\.[a ]+needle[ b]+\.\.\./);
+  assert.ok(line.length < 400, `${line.length} chars`);
+});
+
+test('--search counts the lines past its cap', () => {
+  const files = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`developer.salesforce.com/docs/a/b/c/p${i}.md`, lines(5, n => `needle ${n}`)]));
+  assert.match(run(cache(files), '--search', 'needle').out, /\(20 more lower-ranked lines: add a term or --site to narrow\)/);
+});
+
+test('--budget that is not a number and --out with no value are usage errors', () => {
+  const r = run(cache({}), '--budget', 'soon', PAGE_MD);
+  assert.equal(r.code, 2);
+  assert.match(r.err, /^usage:/);
+  const s = spawnSync(process.execPath, [SCRIPT, PAGE_MD, '--out'], { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
+  assert.equal(s.status, 2);
+  assert.match(s.stderr, /^usage:/);
+});
+
+test('a save does not collide with the temp file of another run', () => {
+  const r = fetched({ raw: { [PAGE_MD]: '# Page\n\nThe text.' }, dirs: [`${DEV}${PAGE_MD}.tmp`] }, PAGE_MD);
+  assert.match(readFileSync(join(r.cache, DEV, PAGE_MD), 'utf8'), /The text\./, r.out + r.err);
+});
+
+test('a page past the cache window is pruned and a fresh one is kept', () => {
+  const old = `${DEV}/docs/a/b/c/old.md`, fresh = `${DEV}/docs/a/b/c/fresh.md`;
+  const r = fetched({ raw: { [PAGE_MD]: '# Page' }, seed: { [old]: 25 * 60, [fresh]: 23 * 60 } }, PAGE_MD);
+  assert.equal(existsSync(join(r.cache, old)), false, r.err);
+  assert.equal(existsSync(join(r.cache, fresh)), true);
+  assert.match(r.err, /removed 1 expired cache files/);
+});
+
+test('with no cache window, pages under 10 minutes old survive the prune', () => {
+  const old = `${DEV}/docs/a/b/c/old.md`, fresh = `${DEV}/docs/a/b/c/fresh.md`;
+  const r = fetched({ raw: { [PAGE_MD]: '# Page' }, seed: { [old]: 11, [fresh]: 5 }, env: { SF_DOCS_CACHE_HOURS: '0' } }, PAGE_MD);
+  assert.equal(existsSync(join(r.cache, old)), false, r.err);
+  assert.equal(existsSync(join(r.cache, fresh)), true);
+});
+
+test('the summary counts refused URLs', () => {
+  const out = cache({ 'developer.salesforce.com/docs/a/b/c/page.md': '# Page' });
+  assert.match(run(out, PAGE_MD, 'https://example.com/x').out, /, refused 1/);
+});
+
+test('a fallback read leaves its marker, and a full read clears it', () => {
+  const u = `${ATLAS}/real.htm`, marker = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/real.htm.txt.fallback';
+  const a = fetched({ pages: { [u]: { text: 'A long fallback read.', sel: 'fallback' } } }, u);
+  assert.equal(existsSync(join(a.cache, marker)), true, a.out);
+  const b = fetched({ pages: { [u]: { text: 'The full topic text.' } }, seed: { [marker]: 0 } }, u);
+  assert.equal(existsSync(join(b.cache, marker)), false, b.out);
 });

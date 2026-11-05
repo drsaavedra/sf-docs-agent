@@ -32,6 +32,6 @@
     "playwright"
   ],
   "scripts": {
-    "test": "node --test --test-reporter=spec"
+    "test": "node --test --test-reporter=spec 'test/*.test.mjs'"
   }
 }
