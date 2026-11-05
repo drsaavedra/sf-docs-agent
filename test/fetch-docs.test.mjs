@@ -23,14 +23,17 @@ const run = (out, ...args) => {
   const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8' });
   return { code: r.status, out: r.stdout, err: r.stderr };
 };
-// A fresh fetch offline: a copy of the script beside a stub playwright-core, which resolves first. Pages are keyed by
-// the URL given: { text, to } is a rendered page and where it landed; raw maps a path to its .md body.
+// A fresh fetch offline: the script's copy beside a stub playwright-core, which resolves first.
+// pages: URL given -> { text, status, to } (to: where it landed); raw: path -> .md body.
 const STUB = `const { pages = {}, raw = {} } = JSON.parse(process.env.STUB);
 export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = ''; return {
-  goto: async u => { at = u; return { status: () => 200 }; }, url: () => pages[at]?.to ?? at,
+  goto: async u => { at = u; return { status: () => pages[u]?.status ?? 200 }; },
+  url: () => pages[at]?.to ?? at,
   waitForTimeout: async () => {}, close: async () => {},
-  evaluate: async (f, a) => a.length === 3 ? a[0].map(p => ({ p, status: 200, body: raw[p] }))
-    : { sel: 'div.body', text: pages[at].text, links: '', pending: 0 } }; } }) };`;
+  evaluate: async (f, a) => {
+    if (a.length === 3) return a[0].map(p => ({ p, status: 200, body: raw[p] }));
+    return { sel: 'div.body', text: pages[at].text, links: '', pending: 0 };
+  } }; } }) };`;
 function fetched(stub, ...args) {
   const dir = mkdtempSync(join(tmpdir(), 'sf-docs-stub-')), mod = join(dir, 'node_modules/playwright-core'), out = join(dir, 'cache');
   mkdirSync(mod, { recursive: true });
@@ -640,8 +643,36 @@ const atlasFile = (r, topic) => join(r.cache, `developer.salesforce.com/docs/atl
 
 test('an atlas topic that lands on another topic of its guide is shown but not cached', () => {
   const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text of the guide.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`);
-  assert.match(r.out, /\[redirected .*meta_intro\.htm\] not saved: shell, login or missing page/);
+  assert.match(r.out, /\[redirected .*meta_intro\.htm\] not saved: moved within its guide, fetch the \[redirected\] URL/);
   assert.equal(existsSync(atlasFile(r, 'nope')), false);
+});
+
+test('an atlas topic that lands on its guide root, or on another version of the guide, is not cached', () => {
+  const versioned = 'https://developer.salesforce.com/docs/atlas.en-us.216.0.api_meta.meta/api_meta/nope.htm';
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text.', to: `${ATLAS}/` }, [`${ATLAS}/nada.htm`]: { text: 'Landing page, no slash.', to: ATLAS },
+    [versioned]: { text: 'Landing page text two.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`, `${ATLAS}/nada.htm`, versioned);
+  assert.equal(r.out.match(/not saved: moved within its guide/g)?.length, 3, r.out);
+});
+
+test('a guide root asked for itself is cached on the topic it opens', () => {
+  const r = fetched({ pages: { [ATLAS]: { text: 'The guide entry page.', to: `${ATLAS}/meta_intro.htm` } } }, ATLAS);
+  assert.doesNotMatch(r.out, /not saved/, r.out);
+});
+
+test('a topic that moves within its guide to a page that fails is not told to fetch it', () => {
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Service unavailable here.', status: 503, to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`);
+  assert.doesNotMatch(r.out, /moved within its guide/, r.out);
+});
+
+test('a non-atlas page that redirects on its host is cached', () => {
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/old.htm': { text: 'The moved page text.', to: 'https://developer.salesforce.com/docs/new.htm' } } }, 'https://developer.salesforce.com/docs/old.htm');
+  assert.doesNotMatch(r.out, /not saved/, r.out);
+});
+
+test('a Help article that moves to another id on the same path is cached', () => {
+  const help = 'https://help.salesforce.com/s/articleView?id=sf.old.htm&type=5';
+  const r = fetched({ pages: { [help]: { text: 'The moved article text.', to: 'https://help.salesforce.com/s/articleView?id=sf.new.htm&type=5' } } }, help);
+  assert.match(r.out, /\[redirected .*sf\.new\.htm.*\] -> /, r.out);
 });
 
 test('an atlas topic that stays put, or moves to another guide, is cached', () => {
