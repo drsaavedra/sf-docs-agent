@@ -10,11 +10,11 @@ Go scan the developer.salesforce.com docs on the current release's governors and
 
 The sample prompt is broad on purpose: I wanted to see the agent decide what "governors and limits" covers, and whether it could find everything in a broad question.
 
-Here are the results of that prompt, one run each on Opus 5.5 and Sonnet 5.5 at effort high. Each session called sf-docs-agent, which returned quotes with their
+Here are the results of that prompt, one run each from an Opus 5.5 and a Sonnet 5.5 session at effort high. Each session called sf-docs-agent (set to Sonnet 5.5), which returned quotes with their
 official URLs, and the session turned them into the answer.
 
 <details>
-<summary><b>Sonnet 5.5, effort high, through the agent</b>: 86 seconds, 34k agent tokens</summary>
+<summary><b>Sonnet 5.5 session, effort high, through the agent</b>: 86 seconds, 34k agent tokens</summary>
 <br>
 
 > The `sf-docs` agent finished scanning the Apex governors and limits pages. All limit values below are quoted from the cached concept page, `apex_gov_limits.htm`. The release version is an inference, not a stated fact.
@@ -83,7 +83,7 @@ official URLs, and the session turned them into the answer.
 </details>
 
 <details>
-<summary><b>Opus 5.5, effort high, through the agent</b>: 89 seconds, 39k agent tokens</summary>
+<summary><b>Opus 5.5 session, effort high, through the agent</b>: 89 seconds, 39k agent tokens</summary>
 <br>
 
 > I read the Apex Developer Guide page **Execution Governors and Limits**. I spot-checked several of the quotes against the cached copy of the page and they match.

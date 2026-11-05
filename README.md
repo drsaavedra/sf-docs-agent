@@ -49,7 +49,7 @@ Ask in your own words. Name the site or product if you know it, or paste a Sales
 Go scan the developer.salesforce.com docs on the current release's governors and limits
 ```
 
-Part of what came back (Opus 5.5, 89 seconds):
+Part of what came back, in 89 seconds. The session was on Opus 5.5, and the agent is set to Sonnet 5.5:
 
 > I read the Apex Developer Guide page **Execution Governors and Limits**. I spot-checked several of the quotes against the cached copy of the page and they match.
 >
