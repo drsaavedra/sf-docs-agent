@@ -88,7 +88,7 @@ Every site, and how it reads each one: [docs/how-it-works.md](https://github.com
 
 Salesforce has two official options for the same job. I ran both on the same 10 questions.
 
-**[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 83% fewer tokens to your session and used 41% fewer tokens overall, with the same accuracy.
+**[platform-docs-get](https://github.com/forcedotcom/sf-skills/tree/main/skills/platform-docs-get)**, a skill in Salesforce's sf-skills library, pulls every page it reads into your session. Against it, sf-docs-agent added 83% fewer tokens to your session and used 41% fewer tokens overall, and was at least as accurate.
 
 **[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. It is the same trade-off you accept with [Context7](https://github.com/upstash/context7), whose README says its parsing and crawling engines are private: you can't see what the index holds or when it was taken. In my runs it returned no page from admin.salesforce.com or SLDS 2. It got more answers wrong than sf-docs-agent, and fewer of its quotes were on today's page. Called from the main session it did better, but added 10 times as many tokens to your session.
 
