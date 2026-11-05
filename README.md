@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/sf-docs-agent)](https://www.npmjs.com/package/sf-docs-agent)
 
-**83% fewer tokens** added to your session than Salesforce's own docs skill · **135 of 136** quotes found word for word on the live docs page · **every line** checkable with one `grep`
+**The model picks the lines, a script copies them** word for word from the official page · **No third-party API**: pages come straight from Salesforce's sites to your machine · **83% fewer tokens** added to your session than Salesforce's own docs skill
 
 [Install](#install) · [Use](#use) · [How it works](#how-it-works) · [How it compares](#how-it-compares) · [Limitations](#limitations) · [Benchmarks](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
