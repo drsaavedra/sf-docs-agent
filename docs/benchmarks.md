@@ -2,7 +2,8 @@
 
 [Back to the README](../README.md)
 
-The sf-docs-agent numbers below come from a rerun on 4 November 2026. That agent reads a Help or admin sitemap index
+The sf-docs-agent numbers below come from a rerun on 4 November 2026, except its seconds against the MCP, which come
+from a rerun on 6 November 2026. That agent reads a Help or admin sitemap index
 in one call, and it asks the caller to wait for its report. The platform-docs-get and Salesforce Docs MCP numbers are
 from their runs on 30 and 31 October 2026, which were not repeated, and the docs changed in between: the Apex guides
 gained `.md` copies on 31 October 2026. [What changed on 4 November](#what-changed-on-4-november) gives the
@@ -63,13 +64,14 @@ a. MCP in main session: the main agent calls the MCP tools directly
 
 b. MCP in a subagent: a subagent whose only tools are the MCP's, with the same report format as sf-docs-agent
 
-Three rounds each, medians, same model.
+Three rounds each, medians, same model. sf-docs-agent's seconds are from three cold rounds of 0.1.7 on 6 November
+2026, which also got 30 of 30 right.
 
 | | sf-docs-agent | a. MCP in main session | b. MCP in a subagent |
 |---|---|---|---|
 | Tokens added to context | **4,560** | 45,636 | 5,327 |
 | Session token usage | 1,202,023 | 1,052,673 | **937,229** |
-| Seconds, all 10 | 510 | 239 | **218** |
+| Seconds, all 10 | 350 | 239 | **218** |
 | Right answers, of 30 | **30** | 28 | 24 |
 | Quotes that match the text the tools returned, all runs | **135 of 136** | 173 of 188 | 172 of 177 |
 | Quotes on today's page, checked with sf-docs-agent's fetcher, all runs | **135 of 136** | 159 of 188 | 135 of 177 |
@@ -95,7 +97,8 @@ median 26.5 seconds, against 20.5 for the MCP subagent on the same questions and
 Apex Developer Guide had no `.md` copy, so sf-docs-agent rendered them in a headless browser, and the 12 runs that
 rendered every page took a median 68.5 seconds, against 20 for the MCP subagent. The Apex Developer Guide and Apex
 Reference had `.md` copies by 31 October 2026, and in the 2 November 2026 rerun sf-docs-agent's total for all 10 fell from 433
-to 346 seconds. In the 4 November 2026 rerun it rose to 510 seconds, and the cause is not known. Help, admin,
+to 346 seconds. In the 4 November 2026 rerun it rose to 510 seconds, and the cause is not known. The 6 November 2026 rerun took 350
+seconds, so the 510 did not repeat. Help, admin,
 Metadata API and Object Reference still have none.
 
 <details>
@@ -103,16 +106,16 @@ Metadata API and Object Reference still have none.
 
 | Question | Tokens added to context | Seconds | Right answers, of 3 |
 |---|---|---|---|
-| 1. Scratch org editions | 242 / 5,011 / 421 | 29 / 22 / 18 | 3 / 3 / 3 |
-| 2. Platform event allocation | 514 / 6,177 / 713 | 37 / 28 / 21 | 3 / 3 / 3 |
-| 3. QueryLocator batch limits | 482 / 8,304 / 531 | 51 / 18 / 20 | 3 / 3 / 3 |
-| 4. Integration patterns | 740 / 4,863 / 788 | 40 / 21 / 22 | 3 / 3 / 3 |
-| 5. Salesforce Connect editions | 306 / 3,556 / 381 | 106 / 17 / 18 | 3 / 3 / 3 |
-| 6. Flow version limits | 315 / 2,817 / 291 | 46 / 20 / 19 | 3 / 3 / 3 |
-| 7. Headless 360 | 384 / 4,232 / 772 | 62 / 31 / 31 | 3 / 3 / 0 |
-| 8. SLDS tooltips | 446 / 1,231 / 617 | 44 / 40 / 33 | 3 / 1 / 0 |
-| 9. Bulk API batch size | 479 / 6,284 / 529 | 53 / 22 / 20 | 3 / 3 / 3 |
-| 10. Pub/Sub fetch limit | 652 / 3,161 / 284 | 42 / 20 / 16 | 3 / 3 / 3 |
+| 1. Scratch org editions | 242 / 5,011 / 421 | 28 / 22 / 18 | 3 / 3 / 3 |
+| 2. Platform event allocation | 514 / 6,177 / 713 | 26 / 28 / 21 | 3 / 3 / 3 |
+| 3. QueryLocator batch limits | 482 / 8,304 / 531 | 36 / 18 / 20 | 3 / 3 / 3 |
+| 4. Integration patterns | 740 / 4,863 / 788 | 27 / 21 / 22 | 3 / 3 / 3 |
+| 5. Salesforce Connect editions | 306 / 3,556 / 381 | 75 / 17 / 18 | 3 / 3 / 3 |
+| 6. Flow version limits | 315 / 2,817 / 291 | 29 / 20 / 19 | 3 / 3 / 3 |
+| 7. Headless 360 | 384 / 4,232 / 772 | 30 / 31 / 31 | 3 / 3 / 0 |
+| 8. SLDS tooltips | 446 / 1,231 / 617 | 36 / 40 / 33 | 3 / 1 / 0 |
+| 9. Bulk API batch size | 479 / 6,284 / 529 | 37 / 22 / 20 | 3 / 3 / 3 |
+| 10. Pub/Sub fetch limit | 652 / 3,161 / 284 | 26 / 20 / 16 | 3 / 3 / 3 |
 
 </details>
 

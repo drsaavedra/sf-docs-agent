@@ -92,7 +92,7 @@ Salesforce has two official options for the same job. I ran both on the same 10 
 
 **[Salesforce Docs MCP](https://labs.agentforce.com/docs/salesforce-docs-mcp)** searches a closed index with no dates on its results. It is the same trade-off you accept with [Context7](https://github.com/upstash/context7), whose README says its parsing and crawling engines are private: you can't see what the index holds or when it was taken. In my runs it returned no page from admin.salesforce.com or SLDS 2. It got more answers wrong than sf-docs-agent, and fewer of its quotes were on today's page. Called from the main session it did better, but added 10 times as many tokens to your session.
 
-**Where sf-docs-agent loses:** the MCP in a subagent is more than twice as fast and uses fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
+**Where sf-docs-agent loses:** the MCP in a subagent is faster and uses fewer tokens. If you are fine trusting the index, it is a good choice. I wanted something I control and can check against the live sites.
 
 Every number, per question, with the dates and method: [docs/benchmarks.md](https://github.com/drsaavedra/sf-docs-agent/blob/main/docs/benchmarks.md)
 
