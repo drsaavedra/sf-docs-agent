@@ -357,8 +357,7 @@ const landsElsewhere = (u, to) => {
 const twinOf = u => {
   const p = u.pathname.replace(/\.html$/, '').replace(/\/$/, '');
   // A component reference page opens on a ?type= tab, and its .md holds every tab; any other query names a part of a page.
-  const tab = u.host === 'developer.salesforce.com' && p.startsWith('/docs/platform/lightning-component-reference/')
-    && [...u.searchParams.keys()].every(k => k === 'type');
+  const tab = p.startsWith('/docs/platform/lightning-component-reference/') && [...u.searchParams.keys()].every(k => k === 'type');
   const has = (!u.search || tab) && !/\.(md|txt|xml|htm)$/.test(p) && (
     u.host === 'developer.salesforce.com' ? /^\/docs\/(?!atlas\.|component-library\/)[^/]+\/[^/]+\/[^/]+\/./.test(p)
       : u.host === 'architect.salesforce.com' ? /^\/docs\/architect\/./.test(p)
