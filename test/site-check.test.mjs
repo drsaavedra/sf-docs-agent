@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { drifted, parse, retry, unfit } from '../site-check/site-check.mjs';
+import { drifted, moved, parse, retry, unfit } from '../site-check/site-check.mjs';
 import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -149,4 +149,20 @@ test('a redirect that lands on a different page is drift, though kinds and size 
   assert.equal(drifted(was, at('object-topic')), false);
   assert.equal(drifted(was, at('sforce-api-objects-list')), true);
   assert.equal(parse([u], `200 5000 ${u} [div.body] -> a.txt`)[u].to, undefined); // no redirect, no field
+});
+
+test('the set of per-product indexes in llms.txt is pinned, its descriptions are not', () => {
+  const out = mkdtempSync(join(tmpdir(), 'site-check-test-')), u = 'https://developer.salesforce.com/docs/llms.txt';
+  mkdirSync(join(out, 'developer.salesforce.com/docs'), { recursive: true });
+  const read = text => { writeFileSync(join(out, 'developer.salesforce.com/docs/llms.txt'), text);
+    return parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/llms.txt', out)[u]; };
+  const was = read('- [Apex](https://developer.salesforce.com/docs/llms-apex.txt): Apex\n- [LWC](/docs/llms-lwc.txt): LWC\n');
+  assert.deepEqual(was.indexes, ['/docs/llms-apex.txt', '/docs/llms-lwc.txt']);
+  assert.equal(drifted(was, read('- [LWC](/docs/llms-lwc.txt): Lightning Web Components\n- [Apex](https://developer.salesforce.com/docs/llms-apex.txt): The Apex guide\n')), false);
+  assert.equal(drifted(was, read('- [Apex](/docs/llms-apex.txt)\n- [LWC](/docs/llms-lwc.txt)\n- [Obj](/docs/llms-platform-obj.txt)\n')), true);
+  assert.equal(drifted(was, read('- [Apex](/docs/llms-apex.txt)\n')), true);
+  assert.equal(moved(was, read('- [Apex](/docs/llms-apex.txt)\n- [Obj](/docs/llms-platform-obj.txt)\n')), '+/docs/llms-platform-obj.txt -/docs/llms-lwc.txt');
+  const none = read('# Salesforce Developers\n');
+  assert.deepEqual([none.indexes, unfit(none, u)], [[], true]); // an index list gone empty is never a baseline
+  rmSync(out, { recursive: true, force: true });
 });

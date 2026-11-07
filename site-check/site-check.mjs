@@ -80,6 +80,12 @@ export const parse = (urls, stdout, out) => {
     const file = / -> (\S+)/.exec(m[4])?.[1], to = /\[redirected ([^\]\s]+)\]/.exec(m[4])?.[1];
     // Where a redirect lands: a move to another page of about the same size changes nothing else in the line.
     got[url] = { status: +m[1], chars: +m[2], kinds, saved: !!file, ...(to && { to }) };
+    // The per-product indexes llms.txt lists: a new or dropped one barely moves its size.
+    if (out && file && /\/llms\.txt$/.test(url)) {
+      let text = '';
+      try { text = readFileSync(join(out, file), 'utf8'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+      got[url].indexes = [...new Set(text.match(/\/docs\/llms-[\w.-]+\.txt/g))].sort();
+    }
     if (out && file && HELP_ARTICLE.test(url)) {
       let links = '';
       try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); }
@@ -92,13 +98,17 @@ export const parse = (urls, stdout, out) => {
   return got;
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
-  + `${r.to ? ` to ${r.to}` : ''}` : none;
+  + `${r.to ? ` to ${r.to}` : ''}${r.indexes ? `, ${r.indexes.length} indexes` : ''}` : none;
+// Which indexes came or went, since a count alone does not say.
+export const moved = (was, now) => { const a = new Set(was?.indexes), b = new Set(now?.indexes);
+  return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)].join(' '); };
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
-  || now.kinds.includes('fallback') || now.links === 0 || now.to !== was.to
+  || now.kinds.includes('fallback') || now.links === 0 || now.to !== was.to || String(now.indexes) !== String(was.indexes)
   || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
-export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || (!r.saved && !SHELLS.has(u));
+export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes?.length === 0
+  || (!r.saved && !SHELLS.has(u));
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
 // then 3 more minutes. A URL with no result line keeps its earlier read, so it stays drifted.
@@ -130,7 +140,8 @@ const base = JSON.parse(readFileSync(BASE, 'utf8'));
 const first = run(URLS);
 const { now, bad } = await retry(base, first, URLS, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
-  ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``])].join('\n')
+  ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``,
+    ...(base[u]?.indexes && now[u]?.indexes && moved(base[u], now[u]) ? [`  - indexes: \`${moved(base[u], now[u])}\``] : [])])].join('\n')
   : `All ${URLS.length} doc pages read as in the baseline.`);
 process.exit(bad.length ? 1 : 0);
 }
