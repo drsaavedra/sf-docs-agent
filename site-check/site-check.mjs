@@ -15,7 +15,9 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 // Every llms index agents/sf-docs.md names by path (a test holds this), and one Help child sitemap (the route with no
 // ?id=), are here so a 404 or an emptied file is drift. The llms.txt pin sees an index added, dropped or renamed in the
-// list, not a listed one that 404s.
+// list, not a listed one that 404s. The Help index must also keep listing the child, and both are in URLS from here.
+const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
+const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
   'https://developer.salesforce.com/docs/llms-product-docs.txt',
@@ -27,8 +29,8 @@ export const URLS = [
   'https://architect.salesforce.com/llms.txt',
   'https://developer.salesforce.com/docs/platform/lwc/guide/create-light-dom.md',
   'https://architect.salesforce.com/docs/architect/well-architected/guide/trust.md',
-  'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai',
-  'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai',
+  HELP_INDEX,
+  HELP_CHILD,
   'https://admin.salesforce.com/sitemap_index.xml',
   'https://www.lightningdesignsystem.com/2e1ef8501/p/216f79-toast.md',
   'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket',
@@ -83,8 +85,6 @@ const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.sear
 // filter showed before this check existed, when every Help sidecar held only nav links.
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
-const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
-const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
