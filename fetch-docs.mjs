@@ -347,7 +347,11 @@ const landsElsewhere = (u, to) => {
   if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.get('id')) return false;
   const w = words(u.pathname).at(-1), ws = words(to.pathname);
   // Consecutive slug words joined can spell it (content-document), with or without an s (apis).
-  return !ws.some((_, i) => { let s = ''; return ws.slice(i).some(x => (s += x) === w || s === `${w}s` || `${s}s` === w); });
+  for (let i = 0; i < ws.length; i++) {
+    let s = '';
+    for (const x of ws.slice(i)) { s += x; if (s === w || s === `${w}s` || `${s}s` === w) return false; }
+  }
+  return true;
 };
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.
 const twinOf = u => {
