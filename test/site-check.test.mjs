@@ -209,7 +209,7 @@ test('the Help sitemap index must keep listing the child sitemap the check fetch
   const renamed = read(`<loc>${enc(as(x => { x.pathname += 'V2'; }))}</loc>\n`.repeat(2));
   assert.deepEqual([renamed.lists, drifted(was, renamed), unfit(renamed, u)], [false, true, true]);
   const outage = read('<html>Help is down for maintenance</html>'); // no <loc> at all: an outage, not a rename
-  assert.deepEqual([outage.lists, drifted(was, outage), unfit(outage, u)], [null, true, true]);
+  assert.deepEqual([outage.lists, drifted(was, outage), unfit(outage, u)], [0, true, true]); // not null: a missing file
   const gone = parse([u], `200 3137 ${raw} -> help.salesforce.com/gone.txt`, out)[u];
   assert.deepEqual([gone.lists, drifted(was, gone), unfit(gone, u)], [null, true, true]);
 });

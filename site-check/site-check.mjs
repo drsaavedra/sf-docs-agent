@@ -108,7 +108,7 @@ export const parse = (urls, stdout, out) => {
     // Each <loc> is read with fetch-docs' expand regex and entity decode; the scheme and the query order do not count.
     if (out && file && url === HELP_INDEX) {
       try { const locs = [...readFileSync(join(out, file), 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)];
-        got[url].lists = locs.length ? locs.some(l => isChild(l[1].replace(/&(#38|amp);/g, '&'))) : null; }
+        got[url].lists = locs.length ? locs.some(l => isChild(l[1].replace(/&(#38|amp);/g, '&'))) : 0; }
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].lists = null; }
     }
     if (out && file && HELP_ARTICLE.test(url)) {
@@ -124,7 +124,7 @@ export const parse = (urls, stdout, out) => {
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
   + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}`
-  + `${r.lists === false ? ', HELP_CHILD not listed: if Help renamed it, change HELP_CHILD, not a rerun' : r.lists === null ? ', saved index missing or lists no sitemaps' : ''}` : none;
+  + `${r.lists === false ? ', HELP_CHILD not listed: if Help renamed it, change HELP_CHILD, not a rerun' : r.lists === 0 ? ', index lists no sitemaps (an outage page?)' : r.lists === null ? ', saved index missing' : ''}` : none;
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
   const a = new Set(was.indexes), b = new Set(now.indexes);
@@ -138,7 +138,7 @@ export const drifted = (was, now) => !was || !now || now.status !== was.status |
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
 export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
-  || r.lists === false || r.lists === null || (!r.saved && !SHELLS.has(u));
+  || r.lists === false || r.lists === 0 || r.lists === null || (!r.saved && !SHELLS.has(u));
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
 // then 3 more minutes. A URL with no result line keeps its earlier read, so it stays drifted.
