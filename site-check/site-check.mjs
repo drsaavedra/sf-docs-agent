@@ -69,7 +69,8 @@ export const run = urls => {
 const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.search || (!x.search && p === `${x.pathname.replace(/\.html$|\/$/, '')}.md`); };
 // With the run's out dir, a saved Help article also counts the article links in its sidecar: 0 is how a broken link
 // filter showed before this check existed, when every Help sidecar held only nav links.
-const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/, LLMS = 'https://developer.salesforce.com/docs/llms.txt';
+const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
+const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
@@ -102,7 +103,8 @@ export const parse = (urls, stdout, out) => {
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
   + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}` : none;
 // Which indexes came or went, since a count alone does not say.
-export const moved = (was, now) => { const a = new Set(was?.indexes), b = new Set(now?.indexes);
+export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
+  const a = new Set(was.indexes), b = new Set(now.indexes);
   return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)].join(' '); };
 // The page a landing URL names: host, path and query, without a trailing slash, a fragment or Help's ?language=.
 const page = to => { if (!to || !URL.canParse(to)) return to ?? ''; const x = new URL(to); x.searchParams.delete('language');
@@ -145,7 +147,7 @@ const base = JSON.parse(readFileSync(BASE, 'utf8'));
 const first = run(URLS);
 const { now, bad } = await retry(base, first, URLS, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
-  ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => { const d = base[u]?.indexes && now[u]?.indexes && moved(base[u], now[u]);
+  ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => { const d = moved(base[u], now[u]);
     return [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``, ...(d ? [`  - indexes: \`${d}\``] : [])]; })].join('\n')
   : `All ${URLS.length} doc pages read as in the baseline.`);
 process.exit(bad.length ? 1 : 0);
