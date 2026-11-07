@@ -99,7 +99,8 @@ rendered every page took a median 68.5 seconds, against 20 for the MCP subagent.
 Reference had `.md` copies by 31 October 2026, and in the 2 November 2026 rerun sf-docs-agent's total for all 10 fell from 433
 to 346 seconds. In the 4 November 2026 rerun it rose to 510 seconds, and the cause is not known. The 6 November 2026 rerun took 350
 seconds, so the 510 did not repeat. Help, admin,
-Metadata API and Object Reference still have none.
+Metadata API and Object Reference had none when this was written. By 7 November 2026 Metadata API and Object Reference had
+`.md` copies too.
 
 <details>
 <summary>Per question, sf-docs-agent / a. MCP in main session / b. MCP in a subagent</summary>

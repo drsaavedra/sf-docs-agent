@@ -43,8 +43,8 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 | Site | How | Where it finds pages |
 |---|---|---|
 | developer.salesforce.com, new docs | the `.md` copy Salesforce publishes | `/docs/llms.txt` and one index per product |
-| developer.salesforce.com, Apex Developer Guide and Apex Reference | the `.md` copy (atlas URLs redirect to the new docs, by 31 October 2026) | `/docs/llms-product-docs.txt` |
-| developer.salesforce.com, atlas docs (Metadata API, Object Reference) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, atlas docs that moved (Apex, Object Reference, Metadata API, Tooling API and more) | the `.md` copy of the new page (the atlas URL redirects to it, by 7 November 2026) | the product's index, or `/docs/llms-product-docs.txt` |
+| developer.salesforce.com, atlas docs that still render (UI API) | renders the page, code samples included | `/docs/llms-product-docs.txt` |
 | developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
 | architect.salesforce.com | the `.md` copy | `/llms.txt` |
 | help.salesforce.com, articles and knowledge articles | renders the page | links in other docs and articles, and Help's product sitemaps |
@@ -54,8 +54,7 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 
 ## Limitations
 
-- On help, admin, SLDS 1, API reference pages and the atlas guides that still render (Metadata API, Object Reference and
-  more), the agent finds the article text by where it sits on the page. If Salesforce changes a layout, it reads the
+- On help, admin, SLDS 1, API reference pages and the atlas guides that still render (UI API), the agent finds the article text by where it sits on the page. If Salesforce changes a layout, it reads the
   largest block of text instead, which can be one section of the article, and an article under 1,500 characters can't
   be read. A daily check in this repo flags the change.
 - A rendered page can take up to 80 seconds before the agent gives up on it (45 s to load, 20 s for content, 15 s for the
