@@ -12,8 +12,13 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // One URL per site and page type, the shells and redirects included: those must keep failing the same way.
 // On 2026-11-07 UI API was the only atlas guide found still rendering (div.body), and none read through doc-content.
 // When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
+// The indexes agents/sf-docs.md names by path are here so a rename or a 404 of one is drift.
 const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
+  'https://developer.salesforce.com/docs/llms-product-docs.txt',
+  'https://developer.salesforce.com/docs/llms-platform.txt',
+  'https://developer.salesforce.com/docs/llms-salesforcedx.txt',
+  'https://architect.salesforce.com/llms.txt',
   'https://developer.salesforce.com/docs/platform/lwc/guide/create-light-dom.md',
   'https://architect.salesforce.com/docs/architect/well-architected/guide/trust.md',
   'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai',

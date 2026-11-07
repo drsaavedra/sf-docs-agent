@@ -196,5 +196,29 @@
     "chars": 8634,
     "kinds": "doc-amf-reference",
     "saved": true
+  },
+  "https://developer.salesforce.com/docs/llms-product-docs.txt": {
+    "status": 200,
+    "chars": 1951584,
+    "kinds": "",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/llms-platform.txt": {
+    "status": 200,
+    "chars": 410133,
+    "kinds": "",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/llms-salesforcedx.txt": {
+    "status": 200,
+    "chars": 118082,
+    "kinds": "",
+    "saved": true
+  },
+  "https://architect.salesforce.com/llms.txt": {
+    "status": 200,
+    "chars": 46094,
+    "kinds": "",
+    "saved": true
   }
 }
