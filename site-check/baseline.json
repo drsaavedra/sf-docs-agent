@@ -1,7 +1,7 @@
 {
   "https://developer.salesforce.com/docs/llms.txt": {
     "status": 200,
-    "chars": 16755,
+    "chars": 16853,
     "kinds": "",
     "saved": true
   },
@@ -13,7 +13,7 @@
   },
   "https://architect.salesforce.com/docs/architect/well-architected/guide/trust.md": {
     "status": 200,
-    "chars": 94469,
+    "chars": 94547,
     "kinds": "",
     "saved": true
   },
@@ -43,21 +43,24 @@
   },
   "https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm": {
     "status": 200,
-    "chars": 28007,
+    "chars": 27968,
     "kinds": "twin redirected",
-    "saved": true
+    "saved": true,
+    "to": "https://developer.salesforce.com/docs/platform/apex-dev/references/apex-dev/apex-gov-limits.html"
   },
   "https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_string.htm": {
     "status": 200,
-    "chars": 113099,
+    "chars": 113135,
     "kinds": "twin redirected",
-    "saved": true
+    "saved": true,
+    "to": "https://developer.salesforce.com/docs/platform/apex-ref/references/apex-ref/apex-methods-system-string.html"
   },
   "https://developer.salesforce.com/docs/atlas.en-us.life_sciences_dev_guide.meta/life_sciences_dev_guide/sforce_api_objects_mergerequest.htm": {
     "status": 200,
     "chars": 5836,
     "kinds": "twin redirected",
-    "saved": true
+    "saved": true,
+    "to": "https://developer.salesforce.com/docs/industries/life-sciences-dev-guide/guide/sforce-api-objects-mergerequest.html"
   },
   "https://developer.salesforce.com/docs/atlas.en-us.uiapi.meta/uiapi/ui_api_resources_record_get.htm": {
     "status": 200,
@@ -69,13 +72,15 @@
     "status": 200,
     "chars": 1684,
     "kinds": "twin redirected",
-    "saved": true
+    "saved": true,
+    "to": "https://developer.salesforce.com/docs/platform/mobile-sdk/guide/android-unauthenticated-rest-requests.html"
   },
   "https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm": {
     "status": 404,
     "chars": 38,
     "kinds": "body redirected twin failed:",
-    "saved": false
+    "saved": false,
+    "to": "https://developer.salesforce.com/docs/platform/apex-dev/references/apex-dev/apex-no-such-topic-xyz.html"
   },
   "https://developer.salesforce.com/docs/apis": {
     "status": 200,
@@ -88,7 +93,7 @@
     "chars": 7027,
     "kinds": ".slds-text-longform",
     "saved": true,
-    "links": 1403
+    "links": 1406
   },
   "https://help.salesforce.com/s/articleView?id=001096524&type=1": {
     "status": 200,
@@ -102,7 +107,8 @@
     "chars": 1142,
     "kinds": ".slds-text-longform redirected",
     "saved": true,
-    "links": 1140
+    "to": "https://help.salesforce.com/s/articleView?id=platform.ev_relay_intro.htm&type=5",
+    "links": 1142
   },
   "https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5": {
     "status": 200,
@@ -120,7 +126,8 @@
     "status": 200,
     "chars": 3639,
     "kinds": "twin redirected",
-    "saved": true
+    "saved": true,
+    "to": "https://www.lightningdesignsystem.com/2e1ef8501/p/85bd85-lightning-design-system-2"
   },
   "https://v1.lightningdesignsystem.com/components/toast/": {
     "status": 200,

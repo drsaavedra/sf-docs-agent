@@ -140,3 +140,13 @@ test('a later run that fetches cleanly drops the failure the first one recorded'
   run([HELP]);
   assert.equal(failure(), '');
 });
+
+test('a redirect that lands on a different page is drift, though kinds and size match', () => {
+  const u = 'https://developer.salesforce.com/docs/atlas.en-us.x.meta/x/topic.htm';
+  const at = to => parse([u], `200 1203 ${u} [twin /docs/p/${to}.md] [redirected https://developer.salesforce.com/docs/p/${to}.html] -> a.txt`)[u];
+  const was = at('object-topic');
+  assert.equal(was.to, 'https://developer.salesforce.com/docs/p/object-topic.html');
+  assert.equal(drifted(was, at('object-topic')), false);
+  assert.equal(drifted(was, at('sforce-api-objects-list')), true);
+  assert.equal(parse([u], `200 5000 ${u} [div.body] -> a.txt`)[u].to, undefined); // no redirect, no field
+});
