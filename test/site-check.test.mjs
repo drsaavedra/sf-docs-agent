@@ -205,6 +205,8 @@ test('the Help sitemap index must keep listing the child sitemap the check fetch
   assert.equal(drifted(was, read(`${loc(1)}\n${loc(2)}\n${loc(3)}\n`)), false); // a new page is growth, not drift
   const renamed = read('<loc>https://help.salesforce.com/apex/Help_SiteMapV2?page=1&#38;producttype=ai</loc>\n'.repeat(2));
   assert.deepEqual([renamed.lists, drifted(was, renamed), unfit(renamed, u)], [false, true, true]);
+  const outage = read('<html>Help is down for maintenance</html>'); // no <loc> at all: an outage, not a rename
+  assert.deepEqual([outage.lists, drifted(was, outage), unfit(outage, u)], [null, true, true]);
   const gone = parse([u], '200 3137 /apex/Help_SiteMapIndexExternal?producttype=ai -> help.salesforce.com/gone.txt', out)[u];
   assert.deepEqual([gone.lists, drifted(was, gone), unfit(gone, u)], [null, true, true]);
 });

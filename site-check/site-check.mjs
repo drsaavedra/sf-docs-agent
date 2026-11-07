@@ -107,8 +107,8 @@ export const parse = (urls, stdout, out) => {
     // The index must still list the child fetched above, or a renamed child route passes while the old URL answers.
     // Each <loc> is read with fetch-docs' expand and parse regexes; the scheme and the query order do not count.
     if (out && file && url === HELP_INDEX) {
-      try { got[url].lists = readFileSync(join(out, file), 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)
-        .some(l => sameUrl(l[1].replace(/&(#38|amp);/g, '&'), HELP_CHILD)); }
+      try { const locs = [...readFileSync(join(out, file), 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)];
+        got[url].lists = locs.length ? locs.some(l => sameUrl(l[1].replace(/&(#38|amp);/g, '&'), HELP_CHILD)) : null; }
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].lists = null; }
     }
     if (out && file && HELP_ARTICLE.test(url)) {
@@ -124,7 +124,7 @@ export const parse = (urls, stdout, out) => {
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
   + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}`
-  + `${r.lists === false ? ', HELP_CHILD not listed: if Help renamed it, change HELP_CHILD, not a rerun' : r.lists === null ? ', saved index missing' : ''}` : none;
+  + `${r.lists === false ? ', HELP_CHILD not listed: if Help renamed it, change HELP_CHILD, not a rerun' : r.lists === null ? ', saved index missing or lists no sitemaps' : ''}` : none;
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
   const a = new Set(was.indexes), b = new Set(now.indexes);
@@ -160,7 +160,7 @@ if (process.argv.includes('--update')) {
   const got = run(URLS);
   const missing = URLS.filter(u => !got[u]), bad = URLS.filter(u => got[u] && unfit(got[u], u));
   if (missing.length) { console.error(`no result for:\n${missing.join('\n')}`); process.exit(1); }
-  if (bad.length) { console.error(`not written, rerun later:\n${bad.map(u => `${u}: ${show(got[u])}`).join('\n')}`); process.exit(1); }
+  if (bad.length) { console.error(`not written, rerun later unless a line names a fix:\n${bad.map(u => `${u}: ${show(got[u])}`).join('\n')}`); process.exit(1); }
   writeFileSync(BASE, JSON.stringify(got, null, 2) + '\n');
   console.log(`baseline written: ${URLS.length} URLs`);
   process.exit(0);
