@@ -502,8 +502,8 @@ const emit = r => {
   else if (shell) tail = ' not saved: shell, login or missing page';
   else if ((within || elsewhere) && status === 200) {
     tail = ` not saved: ${within ? 'moved within its guide' : 'landed on another page'}, fetch the [redirected] URL if that is the page you want`;
-    // A copy cached under this name before the refusal would still answer --search: remove it and its links.
-    for (const f of [file, `${file}.links.txt`]) {
+    // A copy cached under this name before the refusal would still answer --search: remove it, its links and marker.
+    for (const f of [file, `${file}.links.txt`, `${file}.fallback`]) {
       try { rmSync(f, { force: true }); } catch (e) { console.error(`refused copy not removed: ${slash(f)}: ${e.code || e.message}`); }
     }
   }

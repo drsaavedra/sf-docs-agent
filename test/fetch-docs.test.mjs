@@ -641,7 +641,8 @@ const ATLAS = 'https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/a
 const atlasFile = (r, topic) => join(r.cache, `developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/${topic}.htm.txt`);
 
 test('an atlas topic that lands on another topic of its guide is shown but not cached', () => {
-  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text of the guide.', to: `${ATLAS}/meta_intro.htm` } } }, `${ATLAS}/nope.htm`);
+  const f = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/nope.htm.txt'; // a stale copy, removed by the refusal
+  const r = fetched({ pages: { [`${ATLAS}/nope.htm`]: { text: 'Landing page text of the guide.', to: `${ATLAS}/meta_intro.htm` } }, seed: { [f]: 0, [`${f}.fallback`]: 0 } }, `${ATLAS}/nope.htm`);
   assert.match(r.out, /\[redirected .*meta_intro\.htm\] not saved: moved within its guide, fetch the \[redirected\] URL/);
   assert.equal(existsSync(atlasFile(r, 'nope')), false);
 });
@@ -770,7 +771,9 @@ test('an atlas topic renamed on the new docs is read as its twin', () => {
 
 test('an atlas topic that renders on another guide under a different topic is not saved', () => {
   const other = 'https://developer.salesforce.com/docs/atlas.en-us.object_reference.meta/object_reference/sforce_api_objects_list.htm';
-  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The objects list.', to: other } } }, `${ATLAS}/old.htm`);
+  // The seeded copy is stale (fallback), so the page renders live and its refusal removes the copy.
+  const f = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/old.htm.txt';
+  const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The objects list.', to: other } }, seed: { [f]: 0, [`${f}.fallback`]: 0 } }, `${ATLAS}/old.htm`);
   assert.match(r.out, /not saved: landed on another page/, r.out);
   assert.equal(existsSync(atlasFile(r, 'old')), false, r.out);
 });
@@ -780,6 +783,7 @@ test('an atlas topic that moved to a Help article is cached', () => {
   const r = fetched({ pages: { [`${ATLAS}/security_overview.htm`]: { text: 'The Help article on securing an org.', to: help } } }, `${ATLAS}/security_overview.htm`);
   assert.equal(existsSync(atlasFile(r, 'security_overview')), true, r.out);
   // Only an article is trusted: the Help home page names no topic.
+  // The home page and a bare articleView fail on the path or a missing id; id= left empty is the case get('id') adds.
   for (const to of ['https://help.salesforce.com/s/', 'https://help.salesforce.com/s/articleView', 'https://help.salesforce.com/s/articleView?id=&type=5']) {
     const r2 = fetched({ pages: { [`${ATLAS}/security_overview.htm`]: { text: 'A Help page that names no article.', to } } }, `${ATLAS}/security_overview.htm`);
     assert.match(r2.out, /not saved: landed on another page/, r2.out);
@@ -808,8 +812,8 @@ test('a live refusal removes a copy cached before the check', () => {
   const r = fetched({ pages: { [u]: { text: 'Rendered.', to: index } }, twin: { '/docs/platform/object-reference/references/standard-objects/sforce-api-objects-list.md': { status: 200, body: '# Standard Objects' } },
     seed: { [f]: 0, [`${f}.fallback`]: 0, [`${f}.links.txt`]: 0 } }, u);
   assert.match(r.out, /not saved: landed on another page/, r.out);
-  assert.equal(existsSync(join(r.cache, f)), false, r.out);
-  assert.equal(existsSync(join(r.cache, `${f}.links.txt`)), false, r.out);
+  assert.doesNotMatch(r.out, /\(cached\)/, r.out);
+  for (const x of [f, `${f}.links.txt`, `${f}.fallback`]) assert.equal(existsSync(join(r.cache, x)), false, `${x}\n${r.out}`);
 });
 
 test('a twin that answers a shell says so', () => {
