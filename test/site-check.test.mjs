@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { drifted, moved, parse, retry, unfit } from '../site-check/site-check.mjs';
+import { URLS, drifted, moved, parse, retry, unfit } from '../site-check/site-check.mjs';
 import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -179,4 +179,12 @@ test('the set of per-product indexes in llms.txt is pinned, its descriptions are
   const gone = parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/gone.txt', out)[u];
   assert.deepEqual([gone.indexes, drifted(was, gone), unfit(gone, u), moved(was, gone)], [null, true, true, '']); // drift, never 54 removals
   assert.deepEqual(read('[a](http://developer.salesforce.com/docs/llms-apex.txt) [b](/docs/llms-lwc.txt)').indexes, was.indexes); // one index, any scheme
+});
+
+test('every llms index the agent prompt names by path is in the site check', async () => {
+  const { readFileSync } = await import('node:fs');
+  const prompt = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../agents/sf-docs.md'), 'utf8');
+  const named = [...new Set(prompt.match(/(?:developer|architect)\.salesforce\.com\/[\w./-]*llms[\w-]*\.txt/g))];
+  assert.ok(named.length >= 8, `only ${named.length} index paths found in the prompt`); // the regex still matches
+  assert.deepEqual(named.filter(p => !URLS.includes(`https://${p}`)), []);
 });

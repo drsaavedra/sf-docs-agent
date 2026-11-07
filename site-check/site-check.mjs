@@ -15,7 +15,7 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 // Every index agents/sf-docs.md names by path, and one Help child sitemap (the route with no ?id=), so a 404 or an
 // emptied file is drift: the llms.txt pin only sees an index dropped from the list.
-const URLS = [
+export const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
   'https://developer.salesforce.com/docs/llms-product-docs.txt',
   'https://developer.salesforce.com/docs/llms-platform.txt',
