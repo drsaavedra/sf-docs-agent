@@ -787,14 +787,26 @@ test('an atlas topic that moved to a Help article is cached', () => {
 test('an atlas topic cached on another page before the check is shown as not saved', () => {
   const dir = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta', std = 'https://developer.salesforce.com/docs/platform/object-reference/references/standard-objects';
   const files = { robot: `${std}/sforce-api-objects-list.html`, account: `${std}/object-account.html` };
-  const out = cache(Object.fromEntries(Object.keys(files).map(t => [`${dir}/sforce_api_objects_${t}.htm.txt`, ''])));
+  const out = cache({ ...Object.fromEntries(Object.keys(files).map(t => [`${dir}/sforce_api_objects_${t}.htm.txt`, ''])), [`${dir}/sforce_api_objects_robot.htm.txt.links.txt`]: '' });
   for (const [t, src] of Object.entries(files)) writeFileSync(join(out, `${dir}/sforce_api_objects_${t}.htm.txt`), `Source: ${src}\n# Page`);
   const r = run(out, `${ATLAS}/sforce_api_objects_robot.htm`, `${ATLAS}/sforce_api_objects_account.htm`);
   assert.match(r.out, /robot\.htm \(cached\) \[redirected .*\] not saved: landed on another page/, r.out);
   assert.match(r.out, /account\.htm \(cached\) \[redirected .*object-account\.html\] -> /, r.out);
   // The refused copy leaves the cache, so --search cannot find it under the topic's name.
   assert.equal(existsSync(join(out, `${dir}/sforce_api_objects_robot.htm.txt`)), false, r.out);
+  assert.equal(existsSync(join(out, `${dir}/sforce_api_objects_robot.htm.txt.links.txt`)), false, r.out);
   assert.equal(existsSync(join(out, `${dir}/sforce_api_objects_account.htm.txt`)), true, r.out);
+});
+
+test('a live refusal removes a copy cached before the check', () => {
+  const index = 'https://developer.salesforce.com/docs/platform/object-reference/references/standard-objects/sforce-api-objects-list.html';
+  const u = `${ATLAS}/sforce_api_objects_robot.htm`, f = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/sforce_api_objects_robot.htm.txt';
+  // A fallback marker makes the cached copy stale, so the page is fetched live and refused.
+  const r = fetched({ pages: { [u]: { text: 'Rendered.', to: index } }, twin: { '/docs/platform/object-reference/references/standard-objects/sforce-api-objects-list.md': { status: 200, body: '# Standard Objects' } },
+    seed: { [f]: 0, [`${f}.fallback`]: 0, [`${f}.links.txt`]: 0 } }, u);
+  assert.match(r.out, /not saved: landed on another page/, r.out);
+  assert.equal(existsSync(join(r.cache, f)), false, r.out);
+  assert.equal(existsSync(join(r.cache, `${f}.links.txt`)), false, r.out);
 });
 
 test('a twin that answers a shell says so', () => {

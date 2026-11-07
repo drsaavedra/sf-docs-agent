@@ -458,13 +458,9 @@ const fromCache = u => {
   const m = t.match(SOURCE);
   if (!m) return null;
   const src = m[0].slice(8).trim(), to = URL.canParse(src) && new URL(src), hop = to && !sameDoc(to, new URL(official(u)));
-  const elsewhere = hop && landsElsewhere(u, to);
-  // Cached on another page before that was refused: shown as refused, and removed so --search cannot find it.
-  if (elsewhere) for (const f of [fileFor(u), `${fileFor(u)}.links.txt`]) {
-    try { rmSync(f, { force: true }); } catch (e) { console.error(`refused copy not removed: ${slash(f)}: ${e.code || e.message}`); }
-  }
+  // Cached on another page before that was refused: refused again here, and emit removes the copy.
   return { p: u.origin + u.pathname + u.search, status: 200, body: t.slice(m[0].length), key: u.href, cached: true,
-    note: ` (cached)${hop ? ` [redirected ${src}]` : ''}`, elsewhere };
+    note: ` (cached)${hop ? ` [redirected ${src}]` : ''}`, elsewhere: hop && landsElsewhere(u, to) };
 };
 // A reader never sees half a file: write a temp copy, then rename it into place. The pid in its name keeps two runs
 // saving one page from renaming each other's copy.
@@ -500,8 +496,13 @@ const emit = r => {
   if (status === 0) tail = ` ${body}`;
   else if (offsite) tail = ' not saved: left the doc sites'; // a redirect to a login page or another domain
   else if (shell) tail = ' not saved: shell, login or missing page';
-  else if ((within || elsewhere) && status === 200)
+  else if ((within || elsewhere) && status === 200) {
     tail = ` not saved: ${within ? 'moved within its guide' : 'landed on another page'}, fetch the [redirected] URL if that is the page you want`;
+    // A copy cached under this name before the refusal would still answer --search: remove it and its links.
+    for (const f of [file, `${file}.links.txt`]) {
+      try { rmSync(f, { force: true }); } catch (e) { console.error(`refused copy not removed: ${slash(f)}: ${e.code || e.message}`); }
+    }
+  }
   else if (status === 200) {
     ok++;
     // Duplicates are written too, so a later run for that URL finds it; written whole (temp then rename), and one
