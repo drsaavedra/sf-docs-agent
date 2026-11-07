@@ -220,5 +220,11 @@
     "chars": 46094,
     "kinds": "",
     "saved": true
+  },
+  "https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai": {
+    "status": 200,
+    "chars": 276068,
+    "kinds": "",
+    "saved": true
   }
 }
