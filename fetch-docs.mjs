@@ -339,16 +339,15 @@ for (const a of args) {
 }
 // The guide of an atlas path, with or without a topic after it, whichever version it names.
 const guide = p => p.match(/^\/docs\/atlas\.[^/]+\/([^/]+)(?:\/|$)/)?.[1];
-// A moved atlas topic keeps its last word (sforce_api_objects_account -> object-account, index-api -> apis-overview);
-// one with no new page lands on an index instead, which must never be saved under the asked name. Help keeps the
-// article name in ?id=, and renames it (security_overview -> security_secure_your_org), so a move to Help is trusted.
+// A moved atlas topic keeps its last word (object-account, index-api -> apis-overview); one with no new page lands on
+// an index, never saved under its name. A Help article renames it in ?id=, so only an article is trusted there.
 const words = p => p.replace(/\/$/, '').split('/').pop().replace(/\.(html?|md)$/, '').toLowerCase().split(/[_.-]+/).filter(Boolean);
 const landsElsewhere = (u, to) => {
+  if (!/\.html?$/.test(u.pathname) || !guide(u.pathname)) return false;
+  if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.has('id')) return false;
   const w = words(u.pathname).at(-1), ws = words(to.pathname);
-  // The new slug can split the word into consecutive words (contentdocument -> content-document) or add an s (api -> apis).
-  const runs = ws.flatMap((_, i) => ws.slice(i).map((__, j) => ws.slice(i, i + j + 1).join('')));
-  return /\.html?$/.test(u.pathname) && !!guide(u.pathname) && to.host !== 'help.salesforce.com'
-    && !runs.some(x => x === w || x === `${w}s` || `${x}s` === w);
+  // Consecutive slug words joined can spell it (content-document), with or without an s (apis).
+  return !ws.some((_, i) => { let s = ''; return ws.slice(i).some(x => (s += x) === w || s === `${w}s` || `${s}s` === w); });
 };
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.
 const twinOf = u => {
