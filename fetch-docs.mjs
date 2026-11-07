@@ -497,8 +497,8 @@ const emit = r => {
   if (status === 0) tail = ` ${body}`;
   else if (offsite) tail = ' not saved: left the doc sites'; // a redirect to a login page or another domain
   else if (shell) tail = ' not saved: shell, login or missing page';
-  else if (within && status === 200) tail = ' not saved: moved within its guide, fetch the [redirected] URL if that is the page you want';
-  else if (elsewhere && status === 200) tail = ' not saved: landed on another page, fetch the [redirected] URL if that is the page you want';
+  else if ((within || elsewhere) && status === 200)
+    tail = ` not saved: ${within ? 'moved within its guide' : 'landed on another page'}, fetch the [redirected] URL if that is the page you want`;
   else if (status === 200) {
     ok++;
     // Duplicates are written too, so a later run for that URL finds it; written whole (temp then rename), and one
