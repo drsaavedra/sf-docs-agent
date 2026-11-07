@@ -11,6 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.json');
 // One URL per site and page type, the shells and redirects included: those must keep failing the same way.
 // No atlas topic renders through doc-content any more: 16 of 16 guides tried on 2026-11-07 redirect to a .md twin.
+// UI API is the one atlas guide left that renders (div.body); when it moves, its URL drifts to a twin.
 const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
   'https://developer.salesforce.com/docs/platform/lwc/guide/create-light-dom.md',
@@ -23,6 +24,7 @@ const URLS = [
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_string.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.life_sciences_dev_guide.meta/life_sciences_dev_guide/sforce_api_objects_mergerequest.htm',
+  'https://developer.salesforce.com/docs/atlas.en-us.uiapi.meta/uiapi/ui_api_resources_record_get.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.mobile_sdk.meta/mobile_sdk/android_unauthenticated_rest_requests.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm',
   'https://developer.salesforce.com/docs/apis',

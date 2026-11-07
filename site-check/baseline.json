@@ -59,6 +59,12 @@
     "kinds": "twin redirected",
     "saved": true
   },
+  "https://developer.salesforce.com/docs/atlas.en-us.uiapi.meta/uiapi/ui_api_resources_record_get.htm": {
+    "status": 200,
+    "chars": 4883,
+    "kinds": "div.body",
+    "saved": true
+  },
   "https://developer.salesforce.com/docs/atlas.en-us.mobile_sdk.meta/mobile_sdk/android_unauthenticated_rest_requests.htm": {
     "status": 200,
     "chars": 1684,
