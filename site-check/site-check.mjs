@@ -10,8 +10,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.json');
 // One URL per site and page type, the shells and redirects included: those must keep failing the same way.
-// No atlas topic renders through doc-content any more: 16 of 16 guides tried on 2026-11-07 redirect to a .md twin.
-// UI API is the one atlas guide left that renders (div.body); when it moves, its URL drifts to a twin.
+// On 2026-11-07 UI API was the only atlas guide found still rendering (div.body), and none read through doc-content.
+// When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
   'https://developer.salesforce.com/docs/platform/lwc/guide/create-light-dom.md',
