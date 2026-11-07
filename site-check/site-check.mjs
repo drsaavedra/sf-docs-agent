@@ -83,6 +83,8 @@ const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.sear
 // filter showed before this check existed, when every Help sidecar held only nav links.
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
+const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
+const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
@@ -100,6 +102,12 @@ export const parse = (urls, stdout, out) => {
         .map(x => x.replace(/^https?:\/\/developer\.salesforce\.com/, '')))].sort(); }
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].indexes = null; }
     }
+    // The index must still list the child fetched above, or a renamed child route passes while the old URL answers.
+    if (out && file && url === HELP_INDEX) {
+      try { got[url].lists = [...readFileSync(join(out, file), 'utf8').replace(/&#38;|&amp;/g, '&').matchAll(/<loc>\s*([^<\s]+)/g)]
+        .some(l => l[1] === HELP_CHILD); }
+      catch (e) { if (e.code !== 'ENOENT') throw e; got[url].lists = null; }
+    }
     if (out && file && HELP_ARTICLE.test(url)) {
       let links = '';
       try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); }
@@ -112,7 +120,8 @@ export const parse = (urls, stdout, out) => {
   return got;
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
-  + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}` : none;
+  + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}`
+  + `${r.lists === false ? ', child sitemap not listed' : r.lists === null ? ', saved index missing' : ''}` : none;
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
   const a = new Set(was.indexes), b = new Set(now.indexes);
@@ -122,11 +131,11 @@ export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return 
 const page = to => { const x = to && URL.canParse(to) && new URL(to); return x ? `${x.host}${x.pathname.replace(/\/$/, '')}?id=${x.searchParams.get('id') ?? ''}` : to ?? ''; };
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
   || now.kinds.includes('fallback') || now.links === 0 || page(now.to) !== page(was.to) || String(now.indexes) !== String(was.indexes)
-  || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
+  || now.lists !== was.lists || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
 export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
-  || (!r.saved && !SHELLS.has(u));
+  || r.lists === false || r.lists === null || (!r.saved && !SHELLS.has(u));
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
 // then 3 more minutes. A URL with no result line keeps its earlier read, so it stays drifted.

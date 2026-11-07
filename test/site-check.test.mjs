@@ -188,3 +188,19 @@ test('every llms index the agent prompt names by path is in the site check', asy
   assert.ok(named.length >= 8, `only ${named.length} index paths found in the prompt`); // the regex still matches
   assert.deepEqual(named.filter(p => !URLS.includes(`https://${p}`)), []);
 });
+
+test('the Help sitemap index must keep listing the child sitemap the check fetches', () => {
+  const out = tempDir('site-check-test-'), u = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
+  const file = 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_ai.txt';
+  mkdirSync(join(out, 'help.salesforce.com/apex'), { recursive: true });
+  const loc = n => `<loc>https://help.salesforce.com/apex/Help_SiteMapExternal?page=${n}&#38;producttype=ai\n    </loc>`;
+  const read = text => { writeFileSync(join(out, file), text);
+    return parse([u], `200 3137 /apex/Help_SiteMapIndexExternal?producttype=ai -> ${file}`, out)[u]; };
+  const was = read(`${loc(1)}\n${loc(2)}\n`);
+  assert.equal(was.lists, true);
+  assert.equal(drifted(was, read(`${loc(1)}\n${loc(2)}\n${loc(3)}\n`)), false); // a new page is growth, not drift
+  const renamed = read('<loc>https://help.salesforce.com/apex/Help_SiteMapV2?page=1&#38;producttype=ai</loc>\n'.repeat(2));
+  assert.deepEqual([renamed.lists, drifted(was, renamed), unfit(renamed, u)], [false, true, true]);
+  const gone = parse([u], '200 3137 /apex/Help_SiteMapIndexExternal?producttype=ai -> help.salesforce.com/gone.txt', out)[u];
+  assert.deepEqual([gone.lists, drifted(was, gone), unfit(gone, u)], [null, true, true]);
+});

@@ -77,7 +77,8 @@
     "status": 200,
     "chars": 3137,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "lists": true
   },
   "https://admin.salesforce.com/sitemap_index.xml": {
     "status": 200,
