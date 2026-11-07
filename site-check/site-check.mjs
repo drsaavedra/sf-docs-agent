@@ -140,8 +140,8 @@ const base = JSON.parse(readFileSync(BASE, 'utf8'));
 const first = run(URLS);
 const { now, bad } = await retry(base, first, URLS, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
-  ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``,
-    ...(base[u]?.indexes && now[u]?.indexes && moved(base[u], now[u]) ? [`  - indexes: \`${moved(base[u], now[u])}\``] : [])])].join('\n')
+  ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => { const d = base[u]?.indexes && now[u]?.indexes && moved(base[u], now[u]);
+    return [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``, ...(d ? [`  - indexes: \`${d}\``] : [])]; })].join('\n')
   : `All ${URLS.length} doc pages read as in the baseline.`);
 process.exit(bad.length ? 1 : 0);
 }
