@@ -149,13 +149,12 @@ test('a redirect that lands on a different page is drift, though kinds and size 
   assert.equal(drifted(was, at('object-topic')), false);
   assert.equal(drifted(was, at('sforce-api-objects-list')), true);
   assert.equal(parse([u], `200 5000 ${u} [div.body] -> a.txt`)[u].to, undefined); // no redirect, no field
-  // Help can add a language or a fragment to the same article: only host, path and ?id= name the page, as in fetch-docs.
+  // Help can add a language or a fragment to the same article: only host, path and ?id= name the page, as fetch-docs' sameDoc reads it.
   const help = to => ({ ...was, to });
   assert.equal(drifted(help('https://help.salesforce.com/s/articleView?id=a.htm&type=5'), help('https://help.salesforce.com/s/articleView?id=a.htm&type=5&language=en_US#top')), false);
   assert.equal(drifted(help('https://help.salesforce.com/s/articleView?id=a.htm&type=5'), help('https://help.salesforce.com/s/articleView?id=b.htm&type=5')), true);
-  // A trailing slash or the scheme does not move a page, a different ?meta= section does, and a bad URL is drift, not a crash.
+  // A trailing slash or the scheme does not move a page, and a bad URL is drift, not a crash.
   assert.equal(drifted(help('https://developer.salesforce.com/docs/p/x.html'), help('http://developer.salesforce.com/docs/p/x.html/')), false);
-  assert.equal(drifted(help('https://developer.salesforce.com/docs/r/baskets?meta=getBasket'), help('https://developer.salesforce.com/docs/r/baskets?meta=deleteBasket')), true);
   assert.equal(drifted(help('not a url'), help('https://developer.salesforce.com/docs/p/x.html')), true);
 });
 

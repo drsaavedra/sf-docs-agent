@@ -106,9 +106,9 @@ const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.
 export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
   const a = new Set(was.indexes), b = new Set(now.indexes);
   return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)].join(' '); };
-// The page a landing URL names: host, path and query, without a trailing slash, a fragment or Help's ?language=.
-const page = to => { if (!to || !URL.canParse(to)) return to ?? ''; const x = new URL(to); x.searchParams.delete('language');
-  return x.host + x.pathname.replace(/\/$/, '') + x.search; };
+// The page a landing URL names, as fetch-docs' sameDoc reads it (only a change there prints [redirected]): host, path
+// without a trailing slash, and ?id=. A value that is not a URL compares as text.
+const page = to => { const x = to && URL.canParse(to) && new URL(to); return x ? `${x.host}${x.pathname.replace(/\/$/, '')}?id=${x.searchParams.get('id') ?? ''}` : to ?? ''; };
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
   || now.kinds.includes('fallback') || now.links === 0 || page(now.to) !== page(was.to) || String(now.indexes) !== String(was.indexes)
   || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
