@@ -21,7 +21,7 @@ you do not fill gaps from memory. If the docs do not say it, the answer is "not 
 | Site | How pages are read | Where to find pages |
 |---|---|---|
 | developer.salesforce.com, new docs (`/docs/platform/...` and other paths in a per-product index) | `.md` twin, fetched raw | `developer.salesforce.com/docs/llms.txt` lists one `/docs/llms-<product>.txt` per product (see Find for the two that terms can miss) |
-| developer.salesforce.com, atlas docs (`/docs/atlas.en-us.*`: Metadata API, Object Reference and more) | `.htm` page, rendered. There is no `.md` twin, but an atlas URL that redirects to new docs is read as the new page's `.md` (`[twin ...]` in the output) | `developer.salesforce.com/docs/llms-product-docs.txt` (3 MB, 19,000+ `.htm` links) |
+| developer.salesforce.com, atlas docs (`/docs/atlas.en-us.*`) | most redirect to the new docs and are read as the new page's `.md` (`[twin ...]` in the output); UI API still renders the `.htm` page | `developer.salesforce.com/docs/llms-product-docs.txt` (2 MB, 6,500 `.htm` pages); Apex, Object Reference, Metadata, Tooling and Field Reference have new-docs indexes (see Find) |
 | architect.salesforce.com | `.md`, fetched raw | `https://architect.salesforce.com/llms.txt` |
 | help.salesforce.com | rendered, about 10 s a page | `'https://help.salesforce.com/s/articleView?id=<id>.htm&type=5'`. With an id from the brief, a doc, or a fetched Help page's `.links.txt` (`/s/articleView?id=<id>.htm&language=en_US&type=5` lines; knowledge articles are `?id=<number>&type=1`), fetch it. With no id, use the sitemaps: fetch `'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=<platform|service|xcloud|sales|ai|data|experience|analytics|mktg|commerce|cc|ind|sfdo|slack|release-notes>'` with `--terms '<word_word>'`: the same call fetches every page sitemap the index lists (46 for platform) and prints only the matches, under the sitemap each came from. A sitemap line is a URL with no title, so only the id form matches: words joined by `_`, as specific as the question (`salesforce_connect_xorg`, not `external_object`). Each match prints the article's `<loc>` line, up to 40 a page and about 40 in all; past that, a `(N more matching lines in M more sitemaps ...)` line means the term is too broad: use a more specific one, since the article you need can be in a sitemap not shown. A child article that is not among them is one hop away through the fetched article's `.links.txt`. Do not use Help search: robots.txt disallows `/s/search-result` |
 | admin.salesforce.com | rendered | `admin.salesforce.com/sitemap_index.xml` lists the post sitemaps (`/post-sitemap.xml`, `/post-sitemap2.xml` ...); fetch it with `--terms` and the same call fetches them all and prints the matching `<loc>` URLs. `/blog` shows only the latest 3 posts |
@@ -78,17 +78,21 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 1. **Find.** developer.salesforce.com has two levels. Fetch `developer.salesforce.com/docs/llms.txt
    developer.salesforce.com/docs/llms-product-docs.txt` with
    `--terms '<product words>'`: the matching `llms.txt` line names the product index (`/docs/llms-<product>.txt`),
-   and `llms-product-docs.txt` lines are atlas pages (Apex, Metadata API, Object Reference and more). Two product
+   and `llms-product-docs.txt` lines are atlas pages (UI API, and old URLs of guides that moved). Five product
    indexes are easy to miss there: the Platform line has no topic words, and it holds the REST, SOAP and Bulk APIs,
    SOQL and SOSL, Platform Events, Streaming, Change Data Capture and the app limits
    (`developer.salesforce.com/docs/llms-platform.txt`); the Salesforce DX line names VS Code and the CLI but not
-   scratch orgs or Salesforce DX (`developer.salesforce.com/docs/llms-salesforcedx.txt`).
+   scratch orgs or Salesforce DX (`developer.salesforce.com/docs/llms-salesforcedx.txt`); and three lines have
+   placeholder text instead of topics: Object Reference, Metadata API and Tooling API
+   (`developer.salesforce.com/docs/llms-platform-obj-meta-tool.txt`), the Apex Developer Guide and Apex Reference
+   (`developer.salesforce.com/docs/llms-platform-apex.txt`), and the Field Reference
+   (`developer.salesforce.com/docs/llms-platform-field-ref.txt`).
    Then fetch the product index with `--terms '<topic words>'`. Take
    index paths from those lines or this list, never from memory: a guessed `/docs/llms-<name>.txt` is a 404. Other
    sites: the table's index. When the cache may already hold the page, add
    `&& node "/path/to/sf-docs-agent/fetch-docs.mjs" --search '<a phrase the answer page would contain>'` (it skips indexes). Fetch comes
    first because it clears expired pages. Never Read an index: `/docs/llms.txt` is about 4k tokens and
-   `llms-product-docs.txt` about 780k. Do not guess paths from the site sidebar. A cache hit counts only if its path is
+   `llms-product-docs.txt` about 490k. Do not guess paths from the site sidebar. A cache hit counts only if its path is
    under the site and product the brief names.
 2. **Fetch and locate.** Fetch the pages you picked with `--terms`. On Help or LDS, the `.links.txt` matches name the
    next page.
