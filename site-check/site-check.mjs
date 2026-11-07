@@ -10,11 +10,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.json');
 // One URL per site and page type, the shells and redirects included: those must keep failing the same way. The
-// exception is the indexes below.
+// exceptions are the llms indexes and the Help child sitemap below.
 // On 2026-11-07 UI API was the only atlas guide found still rendering (div.body), and none read through doc-content.
 // When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
-// Every index agents/sf-docs.md names by path, and one Help child sitemap (the route with no ?id=), so a 404 or an
-// emptied file is drift: the llms.txt pin only sees an index dropped from the list.
+// Every llms index agents/sf-docs.md names by path (a test holds this), and one Help child sitemap (the route with no
+// ?id=), are here so a 404 or an emptied file is drift. The llms.txt pin sees an index added, dropped or renamed in the
+// list, not a listed one that 404s.
 export const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
   'https://developer.salesforce.com/docs/llms-product-docs.txt',
