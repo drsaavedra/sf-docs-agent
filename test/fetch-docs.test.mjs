@@ -792,6 +792,9 @@ test('an atlas topic cached on another page before the check is shown as not sav
   const r = run(out, `${ATLAS}/sforce_api_objects_robot.htm`, `${ATLAS}/sforce_api_objects_account.htm`);
   assert.match(r.out, /robot\.htm \(cached\) \[redirected .*\] not saved: landed on another page/, r.out);
   assert.match(r.out, /account\.htm \(cached\) \[redirected .*object-account\.html\] -> /, r.out);
+  // The refused copy leaves the cache, so --search cannot find it under the topic's name.
+  assert.equal(existsSync(join(out, `${dir}/sforce_api_objects_robot.htm.txt`)), false, r.out);
+  assert.equal(existsSync(join(out, `${dir}/sforce_api_objects_account.htm.txt`)), true, r.out);
 });
 
 test('a twin that answers a shell says so', () => {

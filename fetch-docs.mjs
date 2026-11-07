@@ -457,10 +457,14 @@ const fromCache = u => {
   try { t = readFileSync(fileFor(u), 'utf8'); } catch { return null; }
   const m = t.match(SOURCE);
   if (!m) return null;
-  const src = m[0].slice(8).trim(), hop = URL.canParse(src) && !sameDoc(new URL(src), new URL(official(u)));
-  // A page cached on another page before that was refused stays refused until it expires.
+  const src = m[0].slice(8).trim(), to = URL.canParse(src) && new URL(src), hop = to && !sameDoc(to, new URL(official(u)));
+  const elsewhere = hop && landsElsewhere(u, to);
+  // Cached on another page before that was refused: shown as refused, and removed so --search cannot find it.
+  if (elsewhere) for (const f of [fileFor(u), `${fileFor(u)}.links.txt`]) {
+    try { rmSync(f, { force: true }); } catch (e) { console.error(`refused copy not removed: ${slash(f)}: ${e.code || e.message}`); }
+  }
   return { p: u.origin + u.pathname + u.search, status: 200, body: t.slice(m[0].length), key: u.href, cached: true,
-    note: ` (cached)${hop ? ` [redirected ${src}]` : ''}`, elsewhere: hop && landsElsewhere(u, new URL(src)) };
+    note: ` (cached)${hop ? ` [redirected ${src}]` : ''}`, elsewhere };
 };
 // A reader never sees half a file: write a temp copy, then rename it into place. The pid in its name keeps two runs
 // saving one page from renaming each other's copy.
