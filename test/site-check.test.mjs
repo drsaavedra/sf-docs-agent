@@ -156,7 +156,7 @@ test('a redirect that lands on a different page is drift, though kinds and size 
 });
 
 test('the set of per-product indexes in llms.txt is pinned, its descriptions are not', () => {
-  const out = mkdtempSync(join(tmpdir(), 'site-check-test-')), u = 'https://developer.salesforce.com/docs/llms.txt';
+  const out = tempDir('site-check-test-'), u = 'https://developer.salesforce.com/docs/llms.txt';
   mkdirSync(join(out, 'developer.salesforce.com/docs'), { recursive: true });
   const read = text => { writeFileSync(join(out, 'developer.salesforce.com/docs/llms.txt'), text);
     return parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/llms.txt', out)[u]; };
@@ -168,5 +168,10 @@ test('the set of per-product indexes in llms.txt is pinned, its descriptions are
   assert.equal(moved(was, read('- [Apex](/docs/llms-apex.txt)\n- [Obj](/docs/llms-platform-obj.txt)\n')), '+/docs/llms-platform-obj.txt -/docs/llms-lwc.txt');
   const none = read('# Salesforce Developers\n');
   assert.deepEqual([none.indexes, unfit(none, u)], [[], true]); // an index list gone empty is never a baseline
-  rmSync(out, { recursive: true, force: true });
+  // A nested or other-host index counts too, each under its own name.
+  assert.deepEqual(read('[a](/docs/platform/lwc/llms-lwc.txt) [b](https://architect.salesforce.com/llms-arch.txt)').indexes,
+    ['/docs/platform/lwc/llms-lwc.txt', 'https://architect.salesforce.com/llms-arch.txt']);
+  // Only developer llms.txt lists indexes; a missing saved copy is a local failure, not 54 removed indexes.
+  assert.equal(parse(['https://architect.salesforce.com/llms.txt'], '200 900 /llms.txt -> architect.salesforce.com/llms.txt', out)['https://architect.salesforce.com/llms.txt'].indexes, undefined);
+  assert.throws(() => parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/gone.txt', out), /ENOENT/);
 });

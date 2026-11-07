@@ -69,7 +69,7 @@ export const run = urls => {
 const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.search || (!x.search && p === `${x.pathname.replace(/\.html$|\/$/, '')}.md`); };
 // With the run's out dir, a saved Help article also counts the article links in its sidecar: 0 is how a broken link
 // filter showed before this check existed, when every Help sidecar held only nav links.
-const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
+const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/, LLMS = 'https://developer.salesforce.com/docs/llms.txt';
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
@@ -80,12 +80,10 @@ export const parse = (urls, stdout, out) => {
     const file = / -> (\S+)/.exec(m[4])?.[1], to = /\[redirected ([^\]\s]+)\]/.exec(m[4])?.[1];
     // Where a redirect lands: a move to another page of about the same size changes nothing else in the line.
     got[url] = { status: +m[1], chars: +m[2], kinds, saved: !!file, ...(to && { to }) };
-    // The per-product indexes llms.txt lists: a new or dropped one barely moves its size.
-    if (out && file && /\/llms\.txt$/.test(url)) {
-      let text = '';
-      try { text = readFileSync(join(out, file), 'utf8'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-      got[url].indexes = [...new Set(text.match(/\/docs\/llms-[\w.-]+\.txt/g))].sort();
-    }
+    // The per-product indexes developer llms.txt lists: one added or dropped barely moves its size. Any path or host
+    // counts; a saved copy that is missing throws, since that is a local failure, not every index gone.
+    if (out && file && url === LLMS) got[url].indexes = [...new Set((readFileSync(join(out, file), 'utf8')
+      .match(/(?:https?:\/\/[\w.-]+)?\/[\w./-]*llms-[\w.-]+\.txt/g) ?? []).map(x => x.replace(/^https:\/\/developer\.salesforce\.com/, '')))].sort();
     if (out && file && HELP_ARTICLE.test(url)) {
       let links = '';
       try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); }
