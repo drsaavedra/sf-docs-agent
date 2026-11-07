@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { drifted, moved, parse, retry, unfit } from '../site-check/site-check.mjs';
+import { HELP_CHILD, HELP_INDEX, URLS, drifted, moved, parse, retry, unfit } from '../site-check/site-check.mjs';
 import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -179,4 +179,37 @@ test('the set of per-product indexes in llms.txt is pinned, its descriptions are
   const gone = parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/gone.txt', out)[u];
   assert.deepEqual([gone.indexes, drifted(was, gone), unfit(gone, u), moved(was, gone)], [null, true, true, '']); // drift, never 54 removals
   assert.deepEqual(read('[a](http://developer.salesforce.com/docs/llms-apex.txt) [b](/docs/llms-lwc.txt)').indexes, was.indexes); // one index, any scheme
+});
+
+test('every llms index the agent prompt names by path is in the site check', async () => {
+  const { readFileSync } = await import('node:fs');
+  const prompt = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../agents/sf-docs.md'), 'utf8');
+  const named = [...new Set(prompt.match(/(?:developer|architect)\.salesforce\.com\/[\w./-]*llms[\w-]*\.txt/g))];
+  assert.ok(named.length >= 8, `only ${named.length} index paths found in the prompt`); // the regex still matches
+  assert.deepEqual(named.filter(p => !URLS.includes(`https://${p}`)), []);
+});
+
+test('the Help sitemap index must keep listing the child sitemap the check fetches', () => {
+  const out = tempDir('site-check-test-'), u = HELP_INDEX, raw = new URL(u).pathname + new URL(u).search;
+  const file = 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_ai.txt';
+  mkdirSync(join(out, 'help.salesforce.com/apex'), { recursive: true });
+  const as = f => { const x = new URL(HELP_CHILD); f(x); return x.href; }, enc = (s, e = '&#38;') => s.replaceAll('&', e);
+  const loc = n => `<loc>${enc(as(x => x.searchParams.set('page', n)))}\n    </loc>`, child = `<loc>${enc(HELP_CHILD)}\n    </loc>`;
+  const read = text => { writeFileSync(join(out, file), text);
+    return parse([u], `200 3137 ${raw} -> ${file}`, out)[u]; };
+  const was = read(`${child}\n${loc(2)}\n`);
+  assert.equal(was.lists, true);
+  // Read as fetch-docs reads a <loc>: either entity, whitespace inside the tag; the scheme and query order do not count.
+  assert.equal(read(`<loc>\n  ${enc(HELP_CHILD, '&amp;')}</loc>`).lists, true);
+  const swapped = as(x => { x.protocol = 'http:'; x.search = new URLSearchParams([...x.searchParams].reverse()).toString(); });
+  assert.equal(read(`<loc>${enc(swapped)}</loc>`).lists, true);
+  assert.equal(read(`${loc(10)}\n`).lists, false); // another page (a near miss) is not the child
+  assert.equal(read(`<loc>bulk</loc>\n${loc(2)}`).lists, false); // a junk <loc> is not the child, and no crash
+  assert.equal(drifted(was, read(`${child}\n${loc(2)}\n${loc(3)}\n`)), false); // a new page is growth, not drift
+  const renamed = read(`<loc>${enc(as(x => { x.pathname += 'V2'; }))}</loc>\n`.repeat(2));
+  assert.deepEqual([renamed.lists, drifted(was, renamed), unfit(renamed, u)], [false, true, true]);
+  const outage = read('<html>Help is down for maintenance</html>'); // no <loc> at all: an outage, not a rename
+  assert.deepEqual([outage.lists, drifted(was, outage), unfit(outage, u)], [0, true, true]); // not null: a missing file
+  const gone = parse([u], `200 3137 ${raw} -> help.salesforce.com/gone.txt`, out)[u];
+  assert.deepEqual([gone.lists, drifted(was, gone), unfit(gone, u)], [null, true, true]);
 });

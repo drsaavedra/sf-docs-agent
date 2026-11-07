@@ -9,14 +9,27 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.json');
-// One URL per site and page type, the shells and redirects included: those must keep failing the same way.
+// One URL per site and page type, the shells and redirects included: those must keep failing the same way. The
+// exceptions are the llms indexes and the Help child sitemap below.
 // On 2026-11-07 UI API was the only atlas guide found still rendering (div.body), and none read through doc-content.
 // When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
-const URLS = [
+// Every llms index the prompt names (a test holds this) and one Help child sitemap: a 404 or an emptied file is drift,
+// which the llms.txt pin cannot see.
+export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
+export const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
+export const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
+  'https://developer.salesforce.com/docs/llms-product-docs.txt',
+  'https://developer.salesforce.com/docs/llms-platform.txt',
+  'https://developer.salesforce.com/docs/llms-salesforcedx.txt',
+  'https://developer.salesforce.com/docs/llms-platform-obj-meta-tool.txt',
+  'https://developer.salesforce.com/docs/llms-platform-apex.txt',
+  'https://developer.salesforce.com/docs/llms-platform-field-ref.txt',
+  'https://architect.salesforce.com/llms.txt',
   'https://developer.salesforce.com/docs/platform/lwc/guide/create-light-dom.md',
   'https://architect.salesforce.com/docs/architect/well-architected/guide/trust.md',
-  'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai',
+  HELP_INDEX,
+  HELP_CHILD,
   'https://admin.salesforce.com/sitemap_index.xml',
   'https://www.lightningdesignsystem.com/2e1ef8501/p/216f79-toast.md',
   'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket',
@@ -71,6 +84,8 @@ const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.sear
 // filter showed before this check existed, when every Help sidecar held only nav links.
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
+const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
+const CHILD_NORM = norm(HELP_CHILD), isChild = s => URL.canParse(s) && norm(s) === CHILD_NORM;
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
@@ -88,6 +103,13 @@ export const parse = (urls, stdout, out) => {
         .map(x => x.replace(/^https?:\/\/developer\.salesforce\.com/, '')))].sort(); }
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].indexes = null; }
     }
+    // The index must still list the child fetched above, or a renamed child route passes while the old URL answers.
+    // Each <loc> is read with fetch-docs' expand regex and entity decode; the scheme and the query order do not count.
+    if (out && file && url === HELP_INDEX) {
+      try { const locs = [...readFileSync(join(out, file), 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)];
+        got[url].lists = locs.length ? locs.some(l => isChild(l[1].replace(/&(#38|amp);/g, '&'))) : 0; }
+      catch (e) { if (e.code !== 'ENOENT') throw e; got[url].lists = null; }
+    }
     if (out && file && HELP_ARTICLE.test(url)) {
       let links = '';
       try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); }
@@ -100,7 +122,8 @@ export const parse = (urls, stdout, out) => {
   return got;
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
-  + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}` : none;
+  + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}`
+  + `${r.lists === false ? ', HELP_CHILD not listed: if Help renamed it, change HELP_CHILD, not a rerun' : r.lists === 0 ? ', index lists no sitemaps (an outage page?)' : r.lists === null ? ', saved index missing' : ''}` : none;
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
   const a = new Set(was.indexes), b = new Set(now.indexes);
@@ -110,11 +133,11 @@ export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return 
 const page = to => { const x = to && URL.canParse(to) && new URL(to); return x ? `${x.host}${x.pathname.replace(/\/$/, '')}?id=${x.searchParams.get('id') ?? ''}` : to ?? ''; };
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
   || now.kinds.includes('fallback') || now.links === 0 || page(now.to) !== page(was.to) || String(now.indexes) !== String(was.indexes)
-  || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
+  || now.lists !== was.lists || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
 export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
-  || (!r.saved && !SHELLS.has(u));
+  || r.lists === false || r.lists === 0 || r.lists === null || (!r.saved && !SHELLS.has(u));
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
 // then 3 more minutes. A URL with no result line keeps its earlier read, so it stays drifted.
@@ -136,7 +159,7 @@ if (process.argv.includes('--update')) {
   const got = run(URLS);
   const missing = URLS.filter(u => !got[u]), bad = URLS.filter(u => got[u] && unfit(got[u], u));
   if (missing.length) { console.error(`no result for:\n${missing.join('\n')}`); process.exit(1); }
-  if (bad.length) { console.error(`not written, rerun later:\n${bad.map(u => `${u}: ${show(got[u])}`).join('\n')}`); process.exit(1); }
+  if (bad.length) { console.error(`not written, rerun later unless a line names a fix:\n${bad.map(u => `${u}: ${show(got[u])}`).join('\n')}`); process.exit(1); }
   writeFileSync(BASE, JSON.stringify(got, null, 2) + '\n');
   console.log(`baseline written: ${URLS.length} URLs`);
   process.exit(0);
