@@ -339,6 +339,20 @@ for (const a of args) {
 }
 // The guide of an atlas path, with or without a topic after it, whichever version it names.
 const guide = p => p.match(/^\/docs\/atlas\.[^/]+\/([^/]+)(?:\/|$)/)?.[1];
+// A moved atlas topic keeps its last word (object-account, index-api -> apis-overview); one with no new page lands on
+// an index, never saved under its name. A Help article renames it in ?id=, so only an article is trusted there.
+const words = p => p.replace(/\/$/, '').split('/').pop().replace(/\.(html?|md)$/, '').toLowerCase().split(/[_.-]+/).filter(Boolean);
+const landsElsewhere = (u, to) => {
+  if (!/\.html?$/.test(u.pathname) || !guide(u.pathname)) return false;
+  if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.get('id')) return false;
+  const w = words(u.pathname).at(-1), ws = words(to.pathname);
+  // Consecutive slug words joined can spell it (content-document), with or without an s (apis).
+  for (let i = 0; i < ws.length; i++) {
+    let s = '';
+    for (let j = i; j < ws.length; j++) { s += ws[j]; if (s === w || s === `${w}s` || `${s}s` === w) return false; }
+  }
+  return true;
+};
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.
 const twinOf = u => {
   const p = u.pathname.replace(/\.html$/, '').replace(/\/$/, '');
@@ -447,9 +461,10 @@ const fromCache = u => {
   try { t = readFileSync(fileFor(u), 'utf8'); } catch { return null; }
   const m = t.match(SOURCE);
   if (!m) return null;
-  const src = m[0].slice(8).trim();
+  const src = m[0].slice(8).trim(), to = URL.canParse(src) && new URL(src), hop = to && !sameDoc(to, new URL(official(u)));
+  // Cached on another page before that was refused: refused again here, and emit removes the copy.
   return { p: u.origin + u.pathname + u.search, status: 200, body: t.slice(m[0].length), key: u.href, cached: true,
-    note: ` (cached)${URL.canParse(src) && !sameDoc(new URL(src), new URL(official(u))) ? ` [redirected ${src}]` : ''}` };
+    note: ` (cached)${hop ? ` [redirected ${src}]` : ''}`, elsewhere: hop && landsElsewhere(u, to) };
 };
 // A reader never sees half a file: write a temp copy, then rename it into place. The pid in its name keeps two runs
 // saving one page from renaming each other's copy.
@@ -473,7 +488,7 @@ const lean = text => {
 // Each page is saved and printed as it lands, so a call stopped part way keeps every page before the stop.
 const emit = r => {
   results.push(r);
-  const { p, status, links, key, src, note, cached, shell, offsite, within } = r;
+  const { p, status, links, key, src, note, cached, shell, offsite, within, elsewhere } = r;
   // Markdown only (a .md URL, or a twin read as r.md): rendered text has no code fences, so lean could reach a code
   // sample. Cached pages are lean already.
   const md = r.md || /\.md$/.test(new URL(key).pathname);
@@ -485,7 +500,13 @@ const emit = r => {
   if (status === 0) tail = ` ${body}`;
   else if (offsite) tail = ' not saved: left the doc sites'; // a redirect to a login page or another domain
   else if (shell) tail = ' not saved: shell, login or missing page';
-  else if (within && status === 200) tail = ' not saved: moved within its guide, fetch the [redirected] URL if that is the page you want';
+  else if ((within || elsewhere) && status === 200) {
+    tail = ` not saved: ${within ? 'moved within its guide' : 'landed on another page'}, fetch the [redirected] URL if that is the page you want`;
+    // A copy cached under this name before the refusal would still answer --search: remove it, its links and marker.
+    for (const f of [file, `${file}.links.txt`, `${file}.fallback`]) {
+      try { rmSync(f, { force: true }); } catch (e) { console.error(`refused copy not removed: ${slash(f)}: ${e.code || e.message}`); }
+    }
+  }
   else if (status === 200) {
     ok++;
     // Duplicates are written too, so a later run for that URL finds it; written whole (temp then rename), and one
@@ -598,7 +619,8 @@ try {
       const gone = !tw.why && missingTwin(tw.status, tw.body);
       if (gone) markMissing(moved);
       if (!tw.why && !gone && tw.status === 200) {
-        emit({ p: u.href, status: 200, body: tw.body, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]` });
+        emit({ p: u.href, status: 200, body: tw.body, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]`,
+          elsewhere: landsElsewhere(u, to) }); // only once read: a redirect at load can be a stop on the way
         return true;
       }
       failed = ` [twin failed: ${tw.why || (gone ? (tw.status === 404 ? 'status 404' : isShell(tw.body) ? 'shell' : 'empty') : `status ${tw.status}`)}]`;
@@ -634,7 +656,8 @@ try {
     const within = hop && /\.html?$/.test(u.pathname) && guide(u.pathname) && guide(u.pathname) === guide(to.pathname);
     // A shell (no container, extract failed, or API docs still not loaded at 20 s) is reported but never cached.
     emit({ p: u.origin + u.pathname + u.search, status: nav?.status() ?? 0, body: text, links, key: u.href,
-      src: hop && to.href, note: ` [${sel}]${hold ? ' [api docs did not load]' : ''}${hop}${failed}`, offsite: !SITES.includes(to.host), shell: sel === 'body' || hold, within, fallback: sel === 'fallback' });
+      src: hop && to.href, note: ` [${sel}]${hold ? ' [api docs did not load]' : ''}${hop}${failed}`, offsite: !SITES.includes(to.host), shell: sel === 'body' || hold, within,
+      elsewhere: !!hop && landsElsewhere(u, to), fallback: sel === 'fallback' });
     await page.close();
   }
 

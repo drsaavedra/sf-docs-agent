@@ -54,7 +54,7 @@ that, the printed output is the limit, not time.
   Guide, which moved to the new docs, it answers 404 and nothing is saved. That rule also decides a line that adds `[twin <path>]` (the redirected page read as its `.md`) or `[twin failed: <reason>]` (its rendered
   text kept); a cached run shows `(cached) [redirected <url>]` and no `[twin]`. `not saved` means a shell, login wall or missing page (Help
   answers 200 for a missing article), or `[api docs did not load]` on an API reference page: not evidence, but a rerun
-  may work. `not saved: <code>` means the page loaded but the cache write failed: rerun. `not saved: moved within its guide` means a rerun gives the same line: fetch the `[redirected]` URL if that is the page you want. `not saved: left the doc
+  may work. `not saved: <code>` means the page loaded but the cache write failed: rerun. `not saved: moved within its guide` means a rerun gives the same line: fetch the `[redirected]` URL if that is the page you want. `not saved: landed on another page` means the topic has no page of its own under that name any more (an old object page now opens the objects index): find it in the new docs index, or fetch the `[redirected]` URL if that is the page you want. `not saved: left the doc
   sites` means the page redirected to another domain, and `refused <url>` means the URL is not on the sites above:
   neither is evidence. `[fallback]` means the page's layout was not recognised and the text is the largest block on
   it, which can be one section of the article: quote it, but name the page in Gaps if the answer is not there.
