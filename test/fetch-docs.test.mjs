@@ -775,6 +775,12 @@ test('an atlas topic that renders on another guide under a different topic is no
   assert.equal(existsSync(atlasFile(r, 'old')), false, r.out);
 });
 
+test('an atlas topic that moved to a Help article is cached', () => {
+  const help = 'https://help.salesforce.com/s/articleView?id=xcloud.security_secure_your_org.htm&type=5';
+  const r = fetched({ pages: { [`${ATLAS}/security_overview.htm`]: { text: 'The Help article on securing an org.', to: help } } }, `${ATLAS}/security_overview.htm`);
+  assert.equal(existsSync(atlasFile(r, 'security_overview')), true, r.out);
+});
+
 test('a twin that answers a shell says so', () => {
   const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '<!doctype html><html><body></body></html>' } } }, `${ATLAS}/old.htm`);
   assert.match(r.out, /\[twin failed: shell\]/, r.out);
