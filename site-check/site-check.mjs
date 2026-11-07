@@ -124,7 +124,7 @@ export const parse = (urls, stdout, out) => {
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
   + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}`
-  + `${r.lists === false ? ', child sitemap not listed' : r.lists === null ? ', saved index missing' : ''}` : none;
+  + `${r.lists === false ? ', HELP_CHILD not listed: if Help renamed it, change HELP_CHILD, not a rerun' : r.lists === null ? ', saved index missing' : ''}` : none;
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
   const a = new Set(was.indexes), b = new Set(now.indexes);
