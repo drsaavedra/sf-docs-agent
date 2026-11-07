@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { drifted, parse, retry, unfit } from '../site-check/site-check.mjs';
+import { drifted, moved, parse, retry, unfit } from '../site-check/site-check.mjs';
 import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -139,4 +139,44 @@ test('a later run that fetches cleanly drops the failure the first one recorded'
   rmSync(join(dir, 'fail'));
   run([HELP]);
   assert.equal(failure(), '');
+});
+
+test('a redirect that lands on a different page is drift, though kinds and size match', () => {
+  const u = 'https://developer.salesforce.com/docs/atlas.en-us.x.meta/x/topic.htm';
+  const at = to => parse([u], `200 1203 ${u} [twin /docs/p/${to}.md] [redirected https://developer.salesforce.com/docs/p/${to}.html] -> a.txt`)[u];
+  const was = at('object-topic');
+  assert.equal(was.to, 'https://developer.salesforce.com/docs/p/object-topic.html');
+  assert.equal(drifted(was, at('object-topic')), false);
+  assert.equal(drifted(was, at('sforce-api-objects-list')), true);
+  assert.equal(parse([u], `200 5000 ${u} [div.body] -> a.txt`)[u].to, undefined); // no redirect, no field
+  // Help can add a language or a fragment to the same article: only host, path and ?id= name the page, as fetch-docs' sameDoc reads it.
+  const help = to => ({ ...was, to });
+  assert.equal(drifted(help('https://help.salesforce.com/s/articleView?id=a.htm&type=5'), help('https://help.salesforce.com/s/articleView?id=a.htm&type=5&language=en_US#top')), false);
+  assert.equal(drifted(help('https://help.salesforce.com/s/articleView?id=a.htm&type=5'), help('https://help.salesforce.com/s/articleView?id=b.htm&type=5')), true);
+  // A trailing slash or the scheme does not move a page, and a bad URL is drift, not a crash.
+  assert.equal(drifted(help('https://developer.salesforce.com/docs/p/x.html'), help('http://developer.salesforce.com/docs/p/x.html/')), false);
+  assert.equal(drifted(help('not a url'), help('https://developer.salesforce.com/docs/p/x.html')), true);
+});
+
+test('the set of per-product indexes in llms.txt is pinned, its descriptions are not', () => {
+  const out = tempDir('site-check-test-'), u = 'https://developer.salesforce.com/docs/llms.txt';
+  mkdirSync(join(out, 'developer.salesforce.com/docs'), { recursive: true });
+  const read = text => { writeFileSync(join(out, 'developer.salesforce.com/docs/llms.txt'), text);
+    return parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/llms.txt', out)[u]; };
+  const was = read('- [Apex](https://developer.salesforce.com/docs/llms-apex.txt): Apex\n- [LWC](/docs/llms-lwc.txt): LWC\n');
+  assert.deepEqual(was.indexes, ['/docs/llms-apex.txt', '/docs/llms-lwc.txt']);
+  assert.equal(drifted(was, read('- [LWC](/docs/llms-lwc.txt): Lightning Web Components\n- [Apex](https://developer.salesforce.com/docs/llms-apex.txt): The Apex guide\n')), false);
+  assert.equal(drifted(was, read('- [Apex](/docs/llms-apex.txt)\n- [LWC](/docs/llms-lwc.txt)\n- [Obj](/docs/llms-platform-obj.txt)\n')), true);
+  assert.equal(drifted(was, read('- [Apex](/docs/llms-apex.txt)\n')), true);
+  assert.equal(moved(was, read('- [Apex](/docs/llms-apex.txt)\n- [Obj](/docs/llms-platform-obj.txt)\n')), '+/docs/llms-platform-obj.txt -/docs/llms-lwc.txt');
+  const none = read('# Salesforce Developers\n');
+  assert.deepEqual([none.indexes, unfit(none, u)], [[], true]); // an index list gone empty is never a baseline
+  // A nested or other-host index counts too, each under its own name.
+  assert.deepEqual(read('[a](/docs/platform/lwc/llms-lwc.txt) [b](https://architect.salesforce.com/llms-arch.txt)').indexes,
+    ['/docs/platform/lwc/llms-lwc.txt', 'https://architect.salesforce.com/llms-arch.txt']);
+  // Only developer llms.txt lists indexes; a missing saved copy is a local failure, not 54 removed indexes.
+  assert.equal(parse(['https://architect.salesforce.com/llms.txt'], '200 900 /llms.txt -> architect.salesforce.com/llms.txt', out)['https://architect.salesforce.com/llms.txt'].indexes, undefined);
+  const gone = parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/gone.txt', out)[u];
+  assert.deepEqual([gone.indexes, drifted(was, gone), unfit(gone, u), moved(was, gone)], [null, true, true, '']); // drift, never 54 removals
+  assert.deepEqual(read('[a](http://developer.salesforce.com/docs/llms-apex.txt) [b](/docs/llms-lwc.txt)').indexes, was.indexes); // one index, any scheme
 });

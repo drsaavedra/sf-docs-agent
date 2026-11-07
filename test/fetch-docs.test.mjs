@@ -816,6 +816,29 @@ test('a live refusal removes a copy cached before the check', () => {
   for (const x of [f, `${f}.links.txt`, `${f}.fallback`]) assert.equal(existsSync(join(r.cache, x)), false, `${x}\n${r.out}`);
 });
 
+test('a component page that opens on a ?type= tab reads its .md, which holds every tab', () => {
+  const ref = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Develop';
+  const old = 'https://developer.salesforce.com/docs/component-library/bundle/lightning-button/documentation';
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-button.md';
+  const r = fetched({ pages: { [old]: { text: 'The Develop tab only.', to: ref } }, twin: { [md]: { status: 200, body: '# Button\n\nEvery tab.' } } }, old);
+  assert.match(r.out, /\[twin \/docs\/platform\/lightning-component-reference\/guide\/lightning-button\.md\]/, r.out + r.err);
+  // Any other query still names a part of the page the .md does not: an API reference keeps its render.
+  const api = 'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket';
+  const r2 = fetched({ pages: { [api]: { text: 'The getBasket operation.', sel: 'doc-amf-reference' } } }, api);
+  assert.match(r2.out, /\[doc-amf-reference\]/, r2.out + r2.err);
+  const more = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Develop&meta=x';
+  const r3 = fetched({ pages: { [more]: { text: 'The rendered tab.' } } }, more);
+  assert.match(r3.out, /\[div\.body\]/, r3.out + r3.err); // a query beyond ?type= keeps the render
+  const other = 'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?type=X';
+  const r4 = fetched({ pages: { [other]: { text: 'An API reference.', sel: 'doc-amf-reference' } } }, other);
+  assert.match(r4.out, /\[doc-amf-reference\]/, r4.out + r4.err); // ?type= is a tab only on a component page
+  // Given directly, a tab URL is read as its .md without a render.
+  const tab = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Develop';
+  const r5 = fetched({ raw: { '/docs/platform/lightning-component-reference/guide/lightning-input.md': '# Input\n\nEvery tab.' } }, tab);
+  assert.match(r5.out, /^200 \d+ \/docs\/platform\/lightning-component-reference\/guide\/lightning-input\.md -> /m, r5.out + r5.err);
+  assert.doesNotMatch(r5.err, /rendered/, r5.err);
+});
+
 test('a twin that answers a shell says so', () => {
   const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '<!doctype html><html><body></body></html>' } } }, `${ATLAS}/old.htm`);
   assert.match(r.out, /\[twin failed: shell\]/, r.out);
