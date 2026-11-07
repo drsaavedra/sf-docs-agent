@@ -100,8 +100,9 @@ const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { const a = new Set(was?.indexes), b = new Set(now?.indexes);
   return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)].join(' '); };
-// The page a landing URL names, as fetch-docs' sameDoc reads it: Help can add a language or a fragment to one article.
-const page = to => { if (!to) return ''; const x = new URL(to); return x.origin + x.pathname.replace(/\/$/, '') + (x.searchParams.get('id') ?? ''); };
+// The page a landing URL names: host, path and query, without a trailing slash, a fragment or Help's ?language=.
+const page = to => { if (!to || !URL.canParse(to)) return to ?? ''; const x = new URL(to); x.searchParams.delete('language');
+  return x.host + x.pathname.replace(/\/$/, '') + x.search; };
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
   || now.kinds.includes('fallback') || now.links === 0 || page(now.to) !== page(was.to) || String(now.indexes) !== String(was.indexes)
   || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
