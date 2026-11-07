@@ -342,11 +342,13 @@ const guide = p => p.match(/^\/docs\/atlas\.[^/]+\/([^/]+)(?:\/|$)/)?.[1];
 // A moved atlas topic keeps its last word (sforce_api_objects_account -> object-account, index-api -> apis-overview);
 // one with no new page lands on an index instead, which must never be saved under the asked name. Help keeps the
 // article name in ?id=, and renames it (security_overview -> security_secure_your_org), so a move to Help is trusted.
-const words = p => p.split('/').pop().replace(/\.(html?|md)$/, '').toLowerCase().split(/[_.-]+/).filter(Boolean);
+const words = p => p.replace(/\/$/, '').split('/').pop().replace(/\.(html?|md)$/, '').toLowerCase().split(/[_.-]+/).filter(Boolean);
 const landsElsewhere = (u, to) => {
-  const w = words(u.pathname).at(-1);
+  const w = words(u.pathname).at(-1), ws = words(to.pathname);
+  // The new slug can split the word into consecutive words (contentdocument -> content-document) or add an s (api -> apis).
+  const runs = ws.flatMap((_, i) => ws.slice(i).map((__, j) => ws.slice(i, i + j + 1).join('')));
   return /\.html?$/.test(u.pathname) && !!guide(u.pathname) && to.host !== 'help.salesforce.com'
-    && !words(to.pathname).some(x => x === w || x === `${w}s` || `${x}s` === w);
+    && !runs.some(x => x === w || x === `${w}s` || `${x}s` === w);
 };
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.
 const twinOf = u => {
