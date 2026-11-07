@@ -226,5 +226,23 @@
     "chars": 276068,
     "kinds": "",
     "saved": true
+  },
+  "https://developer.salesforce.com/docs/llms-platform-obj-meta-tool.txt": {
+    "status": 200,
+    "chars": 372535,
+    "kinds": "",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/llms-platform-apex.txt": {
+    "status": 200,
+    "chars": 450022,
+    "kinds": "",
+    "saved": true
+  },
+  "https://developer.salesforce.com/docs/llms-platform-field-ref.txt": {
+    "status": 200,
+    "chars": 452048,
+    "kinds": "",
+    "saved": true
   }
 }
