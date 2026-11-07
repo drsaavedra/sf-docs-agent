@@ -349,7 +349,7 @@ const landsElsewhere = (u, to) => {
   // Consecutive slug words joined can spell it (content-document), with or without an s (apis).
   for (let i = 0; i < ws.length; i++) {
     let s = '';
-    for (const x of ws.slice(i)) { s += x; if (s === w || s === `${w}s` || `${s}s` === w) return false; }
+    for (let j = i; j < ws.length; j++) { s += ws[j]; if (s === w || s === `${w}s` || `${s}s` === w) return false; }
   }
   return true;
 };
