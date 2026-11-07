@@ -780,8 +780,11 @@ test('an atlas topic that moved to a Help article is cached', () => {
   const r = fetched({ pages: { [`${ATLAS}/security_overview.htm`]: { text: 'The Help article on securing an org.', to: help } } }, `${ATLAS}/security_overview.htm`);
   assert.equal(existsSync(atlasFile(r, 'security_overview')), true, r.out);
   // Only an article is trusted: the Help home page names no topic.
-  const r2 = fetched({ pages: { [`${ATLAS}/security_overview.htm`]: { text: 'The Help home page with its search box.', to: 'https://help.salesforce.com/s/' } } }, `${ATLAS}/security_overview.htm`);
-  assert.match(r2.out, /not saved: landed on another page/, r2.out);
+  for (const to of ['https://help.salesforce.com/s/', 'https://help.salesforce.com/s/articleView', 'https://help.salesforce.com/s/articleView?id=&type=5']) {
+    const r2 = fetched({ pages: { [`${ATLAS}/security_overview.htm`]: { text: 'A Help page that names no article.', to } } }, `${ATLAS}/security_overview.htm`);
+    assert.match(r2.out, /not saved: landed on another page/, r2.out);
+    assert.equal(existsSync(atlasFile(r2, 'security_overview')), false, r2.out);
+  }
 });
 
 test('an atlas topic cached on another page before the check is shown as not saved', () => {

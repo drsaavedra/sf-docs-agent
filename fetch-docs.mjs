@@ -344,7 +344,7 @@ const guide = p => p.match(/^\/docs\/atlas\.[^/]+\/([^/]+)(?:\/|$)/)?.[1];
 const words = p => p.replace(/\/$/, '').split('/').pop().replace(/\.(html?|md)$/, '').toLowerCase().split(/[_.-]+/).filter(Boolean);
 const landsElsewhere = (u, to) => {
   if (!/\.html?$/.test(u.pathname) || !guide(u.pathname)) return false;
-  if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.has('id')) return false;
+  if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.get('id')) return false;
   const w = words(u.pathname).at(-1), ws = words(to.pathname);
   // Consecutive slug words joined can spell it (content-document), with or without an s (apis).
   return !ws.some((_, i) => { let s = ''; return ws.slice(i).some(x => (s += x) === w || s === `${w}s` || `${s}s` === w); });
