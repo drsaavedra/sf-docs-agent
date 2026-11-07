@@ -781,6 +781,16 @@ test('an atlas topic that moved to a Help article is cached', () => {
   assert.equal(existsSync(atlasFile(r, 'security_overview')), true, r.out);
 });
 
+test('an atlas topic cached on another page before the check is shown as not saved', () => {
+  const dir = 'developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta', std = 'https://developer.salesforce.com/docs/platform/object-reference/references/standard-objects';
+  const files = { robot: `${std}/sforce-api-objects-list.html`, account: `${std}/object-account.html` };
+  const out = cache(Object.fromEntries(Object.keys(files).map(t => [`${dir}/sforce_api_objects_${t}.htm.txt`, ''])));
+  for (const [t, src] of Object.entries(files)) writeFileSync(join(out, `${dir}/sforce_api_objects_${t}.htm.txt`), `Source: ${src}\n# Page`);
+  const r = run(out, `${ATLAS}/sforce_api_objects_robot.htm`, `${ATLAS}/sforce_api_objects_account.htm`);
+  assert.match(r.out, /robot\.htm \(cached\) \[redirected .*\] not saved: landed on another page/, r.out);
+  assert.match(r.out, /account\.htm \(cached\) \[redirected .*object-account\.html\] -> /, r.out);
+});
+
 test('a twin that answers a shell says so', () => {
   const r = fetched({ pages: { [`${ATLAS}/old.htm`]: { text: 'The rendered topic text.', to: MOVED } }, twin: { [MOVED_MD]: { status: 200, body: '<!doctype html><html><body></body></html>' } } }, `${ATLAS}/old.htm`);
   assert.match(r.out, /\[twin failed: shell\]/, r.out);

@@ -458,9 +458,10 @@ const fromCache = u => {
   try { t = readFileSync(fileFor(u), 'utf8'); } catch { return null; }
   const m = t.match(SOURCE);
   if (!m) return null;
-  const src = m[0].slice(8).trim();
+  const src = m[0].slice(8).trim(), hop = URL.canParse(src) && !sameDoc(new URL(src), new URL(official(u)));
+  // A page cached on another page before that was refused stays refused until it expires.
   return { p: u.origin + u.pathname + u.search, status: 200, body: t.slice(m[0].length), key: u.href, cached: true,
-    note: ` (cached)${URL.canParse(src) && !sameDoc(new URL(src), new URL(official(u))) ? ` [redirected ${src}]` : ''}` };
+    note: ` (cached)${hop ? ` [redirected ${src}]` : ''}`, elsewhere: hop && landsElsewhere(u, new URL(src)) };
 };
 // A reader never sees half a file: write a temp copy, then rename it into place. The pid in its name keeps two runs
 // saving one page from renaming each other's copy.
