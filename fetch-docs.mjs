@@ -356,7 +356,9 @@ const landsElsewhere = (u, to) => {
 // New developer docs, architect and LDS pages have a .md twin: fetch it raw rather than render the HTML page.
 const twinOf = u => {
   const p = u.pathname.replace(/\.html$/, '').replace(/\/$/, '');
-  const has = !u.search && !/\.(md|txt|xml|htm)$/.test(p) && (
+  // A component reference page opens on a ?type= tab, and its .md holds every tab; any other query names a part of a page.
+  const tab = p.startsWith('/docs/platform/lightning-component-reference/') && [...u.searchParams.keys()].every(k => k === 'type');
+  const has = (!u.search || tab) && !/\.(md|txt|xml|htm)$/.test(p) && (
     u.host === 'developer.salesforce.com' ? /^\/docs\/(?!atlas\.|component-library\/)[^/]+\/[^/]+\/[^/]+\/./.test(p)
       : u.host === 'architect.salesforce.com' ? /^\/docs\/architect\/./.test(p)
         : u.host === 'www.lightningdesignsystem.com' && /^\/\w+\/(v\/\d+\/)?p\/./.test(p));
