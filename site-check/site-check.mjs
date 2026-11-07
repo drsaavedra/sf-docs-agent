@@ -13,9 +13,8 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // exceptions are the llms indexes and the Help child sitemap below.
 // On 2026-11-07 UI API was the only atlas guide found still rendering (div.body), and none read through doc-content.
 // When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
-// Every llms index agents/sf-docs.md names by path (a test holds this), and one Help child sitemap (the route with no
-// ?id=), are here so a 404 or an emptied file is drift. The llms.txt pin sees an index added, dropped or renamed in the
-// list, not a listed one that 404s.
+// Every llms index the prompt names (a test holds this) and one Help child sitemap: a 404 or an emptied file is drift,
+// which the llms.txt pin cannot see.
 export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
 export const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const URLS = [
@@ -86,7 +85,7 @@ const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.sear
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
 const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
-const CHILD = norm(HELP_CHILD), isChild = s => URL.canParse(s) && norm(s) === CHILD;
+const CHILD_NORM = norm(HELP_CHILD), isChild = s => URL.canParse(s) && norm(s) === CHILD_NORM;
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
