@@ -15,7 +15,7 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 // Every llms index agents/sf-docs.md names by path (a test holds this), and one Help child sitemap (the route with no
 // ?id=), are here so a 404 or an emptied file is drift. The llms.txt pin sees an index added, dropped or renamed in the
-// list, not a listed one that 404s. The Help index must also keep listing the child, and both are in URLS from here.
+// list, not a listed one that 404s.
 export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
 export const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const URLS = [
@@ -86,7 +86,7 @@ const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.sear
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
 const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
-const sameUrl = (a, b) => URL.canParse(a) && norm(a) === norm(b);
+const CHILD = norm(HELP_CHILD), isChild = s => URL.canParse(s) && norm(s) === CHILD;
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
@@ -105,10 +105,10 @@ export const parse = (urls, stdout, out) => {
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].indexes = null; }
     }
     // The index must still list the child fetched above, or a renamed child route passes while the old URL answers.
-    // Each <loc> is read with fetch-docs' expand and parse regexes; the scheme and the query order do not count.
+    // Each <loc> is read with fetch-docs' expand regex and entity decode; the scheme and the query order do not count.
     if (out && file && url === HELP_INDEX) {
       try { const locs = [...readFileSync(join(out, file), 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)];
-        got[url].lists = locs.length ? locs.some(l => sameUrl(l[1].replace(/&(#38|amp);/g, '&'), HELP_CHILD)) : null; }
+        got[url].lists = locs.length ? locs.some(l => isChild(l[1].replace(/&(#38|amp);/g, '&'))) : null; }
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].lists = null; }
     }
     if (out && file && HELP_ARTICLE.test(url)) {
