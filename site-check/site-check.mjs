@@ -102,8 +102,10 @@ const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { const a = new Set(was?.indexes), b = new Set(now?.indexes);
   return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)].join(' '); };
+// The page a landing URL names, as fetch-docs' sameDoc reads it: Help can add a language or a fragment to one article.
+const page = to => { if (!to) return ''; const x = new URL(to); return x.origin + x.pathname.replace(/\/$/, '') + (x.searchParams.get('id') ?? ''); };
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
-  || now.kinds.includes('fallback') || now.links === 0 || now.to !== was.to || String(now.indexes) !== String(was.indexes)
+  || now.kinds.includes('fallback') || now.links === 0 || page(now.to) !== page(was.to) || String(now.indexes) !== String(was.indexes)
   || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
