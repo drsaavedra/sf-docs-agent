@@ -193,18 +193,20 @@ test('the Help sitemap index must keep listing the child sitemap the check fetch
   const out = tempDir('site-check-test-'), u = HELP_INDEX, raw = new URL(u).pathname + new URL(u).search;
   const file = 'help.salesforce.com/apex/Help_SiteMapIndexExternal_producttype_ai.txt';
   mkdirSync(join(out, 'help.salesforce.com/apex'), { recursive: true });
-  const loc = n => `<loc>${HELP_CHILD.replace('page=1', `page=${n}`).replace('&', '&#38;')}\n    </loc>`;
+  const as = f => { const x = new URL(HELP_CHILD); f(x); return x.href; }, enc = (s, e = '&#38;') => s.replaceAll('&', e);
+  const loc = n => `<loc>${enc(as(x => x.searchParams.set('page', n)))}\n    </loc>`, child = `<loc>${enc(HELP_CHILD)}\n    </loc>`;
   const read = text => { writeFileSync(join(out, file), text);
     return parse([u], `200 3137 ${raw} -> ${file}`, out)[u]; };
-  const was = read(`${loc(1)}\n${loc(2)}\n`);
+  const was = read(`${child}\n${loc(2)}\n`);
   assert.equal(was.lists, true);
   // Read as fetch-docs reads a <loc>: either entity, whitespace inside the tag; the scheme and query order do not count.
-  assert.equal(read(`<loc>\n  https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&amp;producttype=ai</loc>`).lists, true);
-  assert.equal(read('<loc>http://help.salesforce.com/apex/Help_SiteMapExternal?producttype=ai&#38;page=1</loc>').lists, true);
-  assert.equal(read(`${loc(10)}\n`).lists, false); // a near miss is not the child
+  assert.equal(read(`<loc>\n  ${enc(HELP_CHILD, '&amp;')}</loc>`).lists, true);
+  const swapped = as(x => { x.protocol = 'http:'; x.search = new URLSearchParams([...x.searchParams].reverse()).toString(); });
+  assert.equal(read(`<loc>${enc(swapped)}</loc>`).lists, true);
+  assert.equal(read(`${loc(10)}\n`).lists, false); // another page (a near miss) is not the child
   assert.equal(read(`<loc>bulk</loc>\n${loc(2)}`).lists, false); // a junk <loc> is not the child, and no crash
-  assert.equal(drifted(was, read(`${loc(1)}\n${loc(2)}\n${loc(3)}\n`)), false); // a new page is growth, not drift
-  const renamed = read('<loc>https://help.salesforce.com/apex/Help_SiteMapV2?page=1&#38;producttype=ai</loc>\n'.repeat(2));
+  assert.equal(drifted(was, read(`${child}\n${loc(2)}\n${loc(3)}\n`)), false); // a new page is growth, not drift
+  const renamed = read(`<loc>${enc(as(x => { x.pathname += 'V2'; }))}</loc>\n`.repeat(2));
   assert.deepEqual([renamed.lists, drifted(was, renamed), unfit(renamed, u)], [false, true, true]);
   const outage = read('<html>Help is down for maintenance</html>'); // no <loc> at all: an outage, not a rename
   assert.deepEqual([outage.lists, drifted(was, outage), unfit(outage, u)], [null, true, true]);
