@@ -16,8 +16,8 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // Every llms index agents/sf-docs.md names by path (a test holds this), and one Help child sitemap (the route with no
 // ?id=), are here so a 404 or an emptied file is drift. The llms.txt pin sees an index added, dropped or renamed in the
 // list, not a listed one that 404s. The Help index must also keep listing the child, and both are in URLS from here.
-const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
-const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
+export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
+export const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const URLS = [
   'https://developer.salesforce.com/docs/llms.txt',
   'https://developer.salesforce.com/docs/llms-product-docs.txt',
