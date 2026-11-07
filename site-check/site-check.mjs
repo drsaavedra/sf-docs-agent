@@ -84,10 +84,9 @@ export const parse = (urls, stdout, out) => {
     // The per-product indexes developer llms.txt lists: one added or dropped barely moves its size. Any path or host
     // counts. A missing saved copy is null: drift that says so, not every index gone.
     if (out && file && url === LLMS) {
-      let text = null;
-      try { text = readFileSync(join(out, file), 'utf8'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-      got[url].indexes = text === null ? null : [...new Set((text.match(/(?:https?:\/\/[\w.-]+)?\/[\w./-]*llms-[\w.-]+\.txt/g) ?? [])
-        .map(x => x.replace(/^https?:\/\/developer\.salesforce\.com/i, '')))].sort();
+      try { got[url].indexes = [...new Set((readFileSync(join(out, file), 'utf8').match(/(?:https?:\/\/[\w.-]+)?\/[\w./-]*llms-[\w.-]+\.txt/g) ?? [])
+        .map(x => x.replace(/^https?:\/\/developer\.salesforce\.com/, '')))].sort(); }
+      catch (e) { if (e.code !== 'ENOENT') throw e; got[url].indexes = null; }
     }
     if (out && file && HELP_ARTICLE.test(url)) {
       let links = '';
