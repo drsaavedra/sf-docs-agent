@@ -85,6 +85,8 @@ const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.sear
 // filter showed before this check existed, when every Help sidecar held only nav links.
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
+const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
+const sameUrl = (a, b) => URL.canParse(a) && norm(a) === norm(b);
 export const parse = (urls, stdout, out) => {
   const got = {};
   for (const line of stdout.split('\n')) {
@@ -103,9 +105,10 @@ export const parse = (urls, stdout, out) => {
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].indexes = null; }
     }
     // The index must still list the child fetched above, or a renamed child route passes while the old URL answers.
+    // Each <loc> is read with fetch-docs' expand and parse regexes; the scheme and the query order do not count.
     if (out && file && url === HELP_INDEX) {
-      try { got[url].lists = [...readFileSync(join(out, file), 'utf8').replace(/&#38;|&amp;/g, '&').matchAll(/<loc>\s*([^<\s]+)/g)]
-        .some(l => l[1] === HELP_CHILD); }
+      try { got[url].lists = readFileSync(join(out, file), 'utf8').matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)
+        .some(l => sameUrl(l[1].replace(/&(#38|amp);/g, '&'), HELP_CHILD)); }
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].lists = null; }
     }
     if (out && file && HELP_ARTICLE.test(url)) {

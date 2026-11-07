@@ -198,6 +198,10 @@ test('the Help sitemap index must keep listing the child sitemap the check fetch
     return parse([u], `200 3137 /apex/Help_SiteMapIndexExternal?producttype=ai -> ${file}`, out)[u]; };
   const was = read(`${loc(1)}\n${loc(2)}\n`);
   assert.equal(was.lists, true);
+  // Read as fetch-docs reads a <loc>: either entity, whitespace inside the tag; the scheme and query order do not count.
+  assert.equal(read(`<loc>\n  https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&amp;producttype=ai</loc>`).lists, true);
+  assert.equal(read('<loc>http://help.salesforce.com/apex/Help_SiteMapExternal?producttype=ai&#38;page=1</loc>').lists, true);
+  assert.equal(read(`${loc(10)}\n`).lists, false); // a near miss is not the child
   assert.equal(drifted(was, read(`${loc(1)}\n${loc(2)}\n${loc(3)}\n`)), false); // a new page is growth, not drift
   const renamed = read('<loc>https://help.salesforce.com/apex/Help_SiteMapV2?page=1&#38;producttype=ai</loc>\n'.repeat(2));
   assert.deepEqual([renamed.lists, drifted(was, renamed), unfit(renamed, u)], [false, true, true]);
