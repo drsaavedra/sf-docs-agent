@@ -177,5 +177,7 @@ test('the set of per-product indexes in llms.txt is pinned, its descriptions are
     ['/docs/platform/lwc/llms-lwc.txt', 'https://architect.salesforce.com/llms-arch.txt']);
   // Only developer llms.txt lists indexes; a missing saved copy is a local failure, not 54 removed indexes.
   assert.equal(parse(['https://architect.salesforce.com/llms.txt'], '200 900 /llms.txt -> architect.salesforce.com/llms.txt', out)['https://architect.salesforce.com/llms.txt'].indexes, undefined);
-  assert.throws(() => parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/gone.txt', out), /ENOENT/);
+  const gone = parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/gone.txt', out)[u];
+  assert.deepEqual([gone.indexes, drifted(was, gone), unfit(gone, u)], [null, true, true]); // drift that says the copy is missing
+  assert.deepEqual(read('[a](http://developer.salesforce.com/docs/llms-apex.txt) [b](/docs/llms-lwc.txt)').indexes, was.indexes); // one index, any scheme
 });

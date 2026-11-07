@@ -81,9 +81,13 @@ export const parse = (urls, stdout, out) => {
     // Where a redirect lands: a move to another page of about the same size changes nothing else in the line.
     got[url] = { status: +m[1], chars: +m[2], kinds, saved: !!file, ...(to && { to }) };
     // The per-product indexes developer llms.txt lists: one added or dropped barely moves its size. Any path or host
-    // counts; a saved copy that is missing throws, since that is a local failure, not every index gone.
-    if (out && file && url === LLMS) got[url].indexes = [...new Set((readFileSync(join(out, file), 'utf8')
-      .match(/(?:https?:\/\/[\w.-]+)?\/[\w./-]*llms-[\w.-]+\.txt/g) ?? []).map(x => x.replace(/^https:\/\/developer\.salesforce\.com/, '')))].sort();
+    // counts. A missing saved copy is null: drift that says so, not every index gone.
+    if (out && file && url === LLMS) {
+      let text = null;
+      try { text = readFileSync(join(out, file), 'utf8'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+      got[url].indexes = text === null ? null : [...new Set((text.match(/(?:https?:\/\/[\w.-]+)?\/[\w./-]*llms-[\w.-]+\.txt/g) ?? [])
+        .map(x => x.replace(/^https?:\/\/developer\.salesforce\.com/i, '')))].sort();
+    }
     if (out && file && HELP_ARTICLE.test(url)) {
       let links = '';
       try { links = readFileSync(join(out, `${file}.links.txt`), 'utf8'); }
@@ -96,7 +100,7 @@ export const parse = (urls, stdout, out) => {
   return got;
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
-  + `${r.to ? ` to ${r.to}` : ''}${r.indexes ? `, ${r.indexes.length} indexes` : ''}` : none;
+  + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}` : none;
 // Which indexes came or went, since a count alone does not say.
 export const moved = (was, now) => { const a = new Set(was?.indexes), b = new Set(now?.indexes);
   return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)].join(' '); };
@@ -108,7 +112,7 @@ export const drifted = (was, now) => !was || !now || now.status !== was.status |
   || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
-export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes?.length === 0
+export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
   || (!r.saved && !SHELLS.has(u));
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
