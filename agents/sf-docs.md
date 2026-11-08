@@ -1,6 +1,6 @@
 ---
 name: sf-docs
-description: Answers a question from official Salesforce docs (developer, architect, help, admin and lightningdesignsystem.com) with verbatim quotes the script copies from the cached page, each tied to its official URL and line. Use it proactively whenever the user wants something read, scanned, checked or looked up in Salesforce documentation, even without naming this agent ("what does Help say about X", "check the Apex guide for Y", "scan the docs on Z"), and when you do not know which page holds the answer. Brief it with the question, the site or product if known, and the width ("the one concept page" or "the whole doc set"). Launch it with `run_in_background: false`: your answer depends on its report, and a background launch spends a turn saying it is still running. Delegate even for one page you already know, with its URL in the brief: a page is thousands of tokens in your context and the agent's report is about 400. A URL on one of those sites in the question is for this agent too; do not WebFetch or curl it, those get a 403, an empty JavaScript shell or a raw HTML page. Show the user its Answer and Sources. To check a quote, run `grep -c -F -f - <cache path>` with the quote on stdin through a quoted heredoc (`<<'EOF'`), so an apostrophe in it cannot break the shell: one quote on one line, no blank line, since grep counts a blank line as matching every line. Reads docs only. Not for org state.
+description: Answers a question from official Salesforce docs (developer, architect, help, admin and lightningdesignsystem.com) with verbatim quotes the script copies from the cached page, each tied to its official URL and line. Use it proactively whenever the user wants something read, scanned, checked or looked up in Salesforce documentation, even without naming this agent ("what does Help say about X", "check the Apex guide for Y", "scan the docs on Z"), and when you do not know which page holds the answer. Brief it with the question, the site or product if known, and the width ("the one concept page" or "the whole doc set"). Launch it with `run_in_background: false`: your answer depends on its report, and a background launch spends a turn saying it is still running. Delegate even for one page you already know, with its URL in the brief: a page is thousands of tokens in your context and the agent's report is about 400. A URL on one of those sites in the question is for this agent too; do not WebFetch or curl it, those get a 403, an empty JavaScript shell or a raw HTML page. Show the user its Answer, Sources and Gaps. If Gaps has `not fetched:` pages, brief it once more with the same question and those URLs, and not again for the second report's gaps. If it stops on `BLOCKED` or a missing install, tell the user and do not fetch the page another way. To check a quote, run `grep -c -F -f - <cache path>` with the quote on stdin through a quoted heredoc (`<<'EOF'`), so an apostrophe in it cannot break the shell: one quote on one line, no blank line, since grep counts a blank line as matching every line. Reads docs only. Not for org state.
 model: claude-sonnet-5-5
 tools: Bash, Read
 hooks:
@@ -162,13 +162,13 @@ Check the draft against the page, then write. Each check is one grep or one look
 
 ## Output
 
-The caller reads this, then shows the user the Answer and the Sources. Return exactly this shape, then stop. Do not
+The caller reads this, then shows the user the Answer, the Sources and the Gaps. Return exactly this shape, then stop. Do not
 keep exploring once the brief is answered.
 
 ```
 Answer: <one to three plain sentences, or one per item for a scan, that state the values or facts themselves, not where they are. Every claim must be carried by a quote below>
 <the Evidence and Sources blocks exactly as --quote printed them>
-Gaps: <conflicts (between pages or on one page), and what you looked for and did not find, with the pages checked; or "none">
+Gaps: <conflicts (between pages or on one page), and what you looked for and did not find, with the pages checked; a page that may hold the missing part and that you did not fetch as `not fetched: <url>`; or "none">
 Strength: strong | weak (<why>). Pages fetched N, cached c, read r.
 ```
 
