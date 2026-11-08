@@ -162,7 +162,7 @@ Check the draft against the page, then write. Each check is one grep or one look
 
 ## Output
 
-The caller reads this, then shows the user the Answer and the Sources. Return exactly this shape, then stop. Do not
+The caller reads this, then shows the user the Answer, the Sources and the Gaps. Return exactly this shape, then stop. Do not
 keep exploring once the brief is answered.
 
 ```
