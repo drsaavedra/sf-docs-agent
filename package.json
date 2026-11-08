@@ -1,6 +1,6 @@
 {
   "name": "sf-docs-agent",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "type": "module",
   "description": "Salesforce documentation agent for Claude Code: a subagent that answers from the official Salesforce docs (developer, architect, Help, admin, SLDS) with verbatim, grep-checked quotes and their URLs. No API key, no MCP server.",
   "devDependencies": {
