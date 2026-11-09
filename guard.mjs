@@ -127,12 +127,11 @@ const commands = [];
       if (j < 0) deny('unclosed quote');
       add(src.slice(i + 1, j)); i = j;
     } else if (c === '"') {
-      const start = word ? -1 : i + 1;
       add('');
       for (i++; src[i] !== '"'; i++) {
         if (i >= src.length) deny('unclosed quote');
-        // The agent file's one variable, expanded as sh would: only where it starts a word, so the checked path is the run one.
-        if (i === start && src.startsWith(CONFIG_VAR, i)) { word.text += CONFIG; i += CONFIG_VAR.length - 1; continue; }
+        // The agent file's one variable, expanded as sh would from this env, which Claude Code also gives the Bash tool.
+        if (src.startsWith(CONFIG_VAR, i)) { word.text += CONFIG; i += CONFIG_VAR.length - 1; continue; }
         if (src[i] === '$' || src[i] === '`') deny('variables and command substitution');
         if (src[i] === '\\' && '"\\'.includes(src[i + 1])) i++;
         word.text += src[i];

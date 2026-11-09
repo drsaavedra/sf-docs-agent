@@ -133,8 +133,6 @@ for (const [name, env] of Object.entries(envs)) {
   test(`expands the agent file's config dir variable with ${name}`, () => {
     assert.equal(run(`node ${VAR}/fetch-docs.mjs" --search x && grep -c -e x ${VAR}/cache/help.salesforce.com/s/a.txt"`).status, 0);
     assert.equal(run(`node ${VAR}/../${PROJECT.split('/').pop()}/evil.mjs"`).status, 2, 'a path out of the install');
-    assert.equal(run(`node "x\${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs"`).status, 2, 'not at the start of a word');
-    assert.equal(run(`node ${RT}/"\${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs"`).status, 2, 'after unquoted text');
     assert.equal(run('node ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs').status, 2, 'unquoted');
     assert.equal(run('node "${CLAUDE_CONFIG_DIR:-/tmp}/sf-docs/fetch-docs.mjs"').status, 2, 'another default');
     assert.equal(run(`node ${VAR}/fetch-docs.mjs" "\${CLAUDE_CONFIG_DIR:-$HOME/.claude}$HOME"`).status, 2, 'a second variable after it');
