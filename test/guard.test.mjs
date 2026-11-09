@@ -118,14 +118,37 @@ test('denies input it cannot parse', () => {
   assert.equal(hook('not json').status, 2);
 });
 
-// The hook line in the agent file, run as Claude Code runs it: a missing guard must deny, not exit 1 (which runs the call).
-test('the agent file hook denies when guard.mjs cannot run', () => {
-  const line = readFileSync(join(dirname(GUARD), 'agents', 'sf-docs.md'), 'utf8').match(/command: '(.+guard\.mjs.*)'/)[1];
-  const run = dir => spawnSync('sh', ['-c', line.replaceAll('/path/to/sf-docs-agent', dir)],
-    { input: JSON.stringify({ tool_name: 'Read', tool_input: { file_path: `${C}/help.salesforce.com/s/a.txt` } }) });
-  assert.equal(run(RT).status, 0);
-  assert.equal(run(PROJECT).status, 2);
-});
+// A config dir and a home whose sf-docs is the install, for the agent file's "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" paths.
+const CFG = realpathSync(mkdtempSync(join(tmpdir(), 'sf-docs-cfg-'))), HOME = realpathSync(mkdtempSync(join(tmpdir(), 'sf-docs-home-')));
+symlinkSync(RT, join(CFG, 'sf-docs'));
+mkdirSync(join(HOME, '.claude'));
+symlinkSync(RT, join(HOME, '.claude', 'sf-docs'));
+const { CLAUDE_CONFIG_DIR: _, ...BASE } = process.env;
+const envs = { 'CLAUDE_CONFIG_DIR': { ...BASE, CLAUDE_CONFIG_DIR: CFG }, 'the ~/.claude fallback': { ...BASE, HOME } };
+const VAR = '"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs';
+
+for (const [name, env] of Object.entries(envs)) {
+  const run = command => spawnSync(process.execPath, [join(RT, 'guard.mjs')],
+    { input: JSON.stringify({ tool_name: 'Bash', tool_input: { command }, cwd: PROJECT }), encoding: 'utf8', env });
+  test(`expands the agent file's config dir variable with ${name}`, () => {
+    assert.equal(run(`node ${VAR}/fetch-docs.mjs" --search x && grep -c -e x ${VAR}/cache/help.salesforce.com/s/a.txt"`).status, 0);
+    assert.equal(run(`node ${VAR}/../${PROJECT.split('/').pop()}/evil.mjs"`).status, 2, 'a path out of the install');
+    assert.equal(run(`node "x\${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs"`).status, 2, 'not at the start of a word');
+    assert.equal(run(`node ${RT}/"\${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs"`).status, 2, 'after unquoted text');
+    assert.equal(run('node ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs').status, 2, 'unquoted');
+    assert.equal(run('node "${CLAUDE_CONFIG_DIR:-/tmp}/sf-docs/fetch-docs.mjs"').status, 2, 'another default');
+    assert.equal(run(`node ${VAR}/fetch-docs.mjs" "\${CLAUDE_CONFIG_DIR:-$HOME/.claude}$HOME"`).status, 2, 'a second variable after it');
+  });
+  // The hook line in the agent file, run as Claude Code runs it: a missing guard must deny, not exit 1 (which runs the call).
+  test(`the agent file hook runs the guard, and denies when guard.mjs is missing, with ${name}`, () => {
+    const line = readFileSync(join(dirname(GUARD), 'agents', 'sf-docs.md'), 'utf8').match(/command: '(.+guard\.mjs.*)'/)[1];
+    const hookRun = (command, e) => spawnSync('sh', ['-c', line], { input: JSON.stringify({ tool_name: 'Bash', tool_input: { command } }), env: e });
+    assert.equal(hookRun(`node ${VAR}/fetch-docs.mjs" --search x`, env).status, 0, 'the control: an allowed call');
+    assert.equal(hookRun('curl https://x', env).status, 2, 'a blocked call');
+    const gone = { ...env, CLAUDE_CONFIG_DIR: env.CLAUDE_CONFIG_DIR && PROJECT, HOME: PROJECT };
+    assert.equal(hookRun(`node ${VAR}/fetch-docs.mjs" --search x`, gone).status, 2, 'no guard at that path');
+  });
+}
 
 test('a long option is denied with a pointer to the short one', () => {
   assert.match(bash(`grep --ignore-case -e x ${A}`).stderr, /grep --ignore-case: use the short option/);

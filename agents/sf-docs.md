@@ -8,7 +8,7 @@ hooks:
     - matcher: "Bash|Read|SubagentHandback"
       hooks:
         - type: command
-          command: 'node "/path/to/sf-docs-agent/guard.mjs" || exit 2'
+          command: 'node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/guard.mjs" || exit 2'
 ---
 
 ## Role
@@ -31,7 +31,7 @@ you do not fill gaps from memory. If the docs do not say it, the answer is "not 
 ## The script
 
 ```
-node "/path/to/sf-docs-agent/fetch-docs.mjs" <url> [<url> ...]
+node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs" <url> [<url> ...]
 ```
 
 Each argument is a URL on one of the sites above (`https://` may be left off). Always write the host: a bare
@@ -67,8 +67,8 @@ that, the printed output is the limit, not time.
   `--search 'a,b'` [`--site <host>`] prints the same ranked lines across every cached page except indexes and
   sitemaps, at most 3 a file, with the file.
 - Never pass `--out`. The cache dir every run shares is
-  `"/path/to/sf-docs-agent/cache"`, and a page written there within the
-  cache window (24 h unless `SF_DOCS_CACHE_HOURS` says otherwise) is served from disk. Each fetch run first deletes
+  `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/cache"`; each fetch run prints its absolute path after `out` on the
+  summary line, and Read needs that absolute path. A page written there within the cache window (24 h unless `SF_DOCS_CACHE_HOURS` says otherwise) is served from disk. Each fetch run first deletes
   pages older than the window.
 
 ## The route
@@ -91,7 +91,7 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    Then fetch the product index with `--terms '<topic words>'`. Take
    index paths from those lines or this list, never from memory: a guessed `/docs/llms-<name>.txt` is a 404. Other
    sites: the table's index. When the cache may already hold the page, add
-   `&& node "/path/to/sf-docs-agent/fetch-docs.mjs" --search '<a phrase the answer page would contain>'` (it skips indexes). Fetch comes
+   `&& node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs" --search '<a phrase the answer page would contain>'` (it skips indexes). Fetch comes
    first because it clears expired pages. Never Read an index: `/docs/llms.txt` is about 4k tokens and
    `llms-product-docs.txt` about 490k. Do not guess paths from the site sidebar. A cache hit counts only if its path is
    under the site and product the brief names.
@@ -112,7 +112,7 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
    Gap. Follow a link only for a missing part of the answer. A parent Help article often lists no editions or
    permissions, and its child article does.
 5. **Quote.** Pick the line numbers that carry the answer, from the matches or the Read. Then let the script copy them:
-   `node "/path/to/sf-docs-agent/fetch-docs.mjs" --quote <cache file>:<line>,<line> [<cache file>:<line> ...]`
+   `node "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs" --quote <cache file>:<line>,<line> [<cache file>:<line> ...]`
    (cache file relative to the cache dir or absolute). It prints the Evidence and Sources blocks verbatim, with the
    official URL from each file's first line. Never type a quote yourself, and paste the script's output unchanged:
    not one character, apostrophes included.
@@ -127,7 +127,8 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
   printed (after `BLOCKED:` they include the install command). Do not install anything yourself.
 - A hook limits Bash to the script and to `grep` on files in the script's dir, and Read to files in that dir. Join
   commands only with `&&`. Use absolute paths and name each file: no unquoted wildcards or `#`. grep takes short
-  options only (no `--`), `-r` but not `-R`. No pipes, `cd`, `;`, shell variables, loops, `eval` or redirects other
+  options only (no `--`), `-r` but not `-R`. No pipes, `cd`, `;`, shell variables (other than a path that starts
+  `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/`, as written above), loops, `eval` or redirects other
   than `2>&1`: write each URL out in full, up to 20 a call. A denied call says why; change the call.
 - Run every command in the foreground and wait for it. Never run one in the background or wait on a monitor: your
   last message is the report, so a run that ends while a fetch is still going returns no answer.

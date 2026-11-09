@@ -22,7 +22,7 @@ test('a run passes only with the right page, a correct answer, honest gaps and c
 });
 
 test('the guard is the one the agent file names', () => {
-  assert.equal(guardOf(readFileSync(join(ROOT, 'agents/sf-docs.md'), 'utf8')), '/path/to/sf-docs-agent/guard.mjs');
+  assert.equal(guardOf(readFileSync(join(ROOT, 'agents/sf-docs.md'), 'utf8'), '/c/$x'), '/c/$x/sf-docs/guard.mjs');
   assert.equal(guardOf('no hook here'), undefined);
 });
 

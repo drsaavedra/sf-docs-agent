@@ -42,7 +42,8 @@ note: one sentence, the evidence for the grade.`;
 export const verdict = (j, quotesOk) => quotesOk && ['right', 'equivalent'].includes(j.page) && j.answer === 'correct' && j.gapsHonest;
 
 // The guard the agent file names: its hook runs on the hand-back, and the cache sits beside it.
-export const guardOf = agent => agent.match(/node "([^"]+\/guard\.mjs)"/)?.[1];
+// The agent names it under "${CLAUDE_CONFIG_DIR:-$HOME/.claude}", which is the config dir the eval runs under.
+export const guardOf = (agent, config) => agent.match(/node "([^"]+\/guard\.mjs)"/)?.[1].replace('${CLAUDE_CONFIG_DIR:-$HOME/.claude}', () => config);
 
 // The guard's own hand-back check on each report, run again here because a hook can be off (an untrusted folder, a changed
 // harness). It lets a report with no quotes through, for a real "not found", so at least one line must be quoted.
@@ -125,7 +126,7 @@ if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[
   const bank = JSON.parse(readFileSync(join(HERE, 'questions.json'), 'utf8')), questions = bank.filter(q => !only || only.includes(q.n));
   if (!Number.isInteger(conc) || conc < 1 || only?.some(n => !bank.some(q => q.n === n))) { console.error('--conc must be a whole number from 1, and --only must name questions in evals/questions.json'); process.exit(2); }
   const agentFile = [resolve('.claude/agents/sf-docs.md'), join(config, 'agents/sf-docs.md')].find(existsSync);
-  const agent = agentFile ? readFileSync(agentFile, 'utf8') : '', guard = guardOf(agent);
+  const agent = agentFile ? readFileSync(agentFile, 'utf8') : '', guard = guardOf(agent, config);
   if (!guard || !existsSync(guard)) { console.error(`no installed sf-docs agent with a guard under ${config}: run npx sf-docs-agent first`); process.exit(2); }
   if (!guardRefuses(guard)) { console.error('the installed agent is older than 0.1.5 and cannot check quotes: run npx sf-docs-agent'); process.exit(2); }
   if (spawnSync('claude', ['--version'], { env: process.env }).status !== 0) { console.error('claude is not on the PATH'); process.exit(2); }
