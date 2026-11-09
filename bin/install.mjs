@@ -9,7 +9,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 
 const pkg = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const config = process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude');
+// $HOME first, as the agent file's "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" does: on Windows homedir() is USERPROFILE.
+const config = process.env.CLAUDE_CONFIG_DIR || join(process.env.HOME || homedir(), '.claude');
 const project = process.argv.includes('--project');
 const runtime = join(config, 'sf-docs');
 const agents = project ? resolve('.claude', 'agents') : join(config, 'agents');
