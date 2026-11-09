@@ -13,7 +13,7 @@ const CONFIG_VAR = '${CLAUDE_CONFIG_DIR:-$HOME/.claude}', CONFIG = process.env.C
 const deny = why => {
   console.error(`sf-docs guard: ${why}. Allowed: node "${SCRIPT.replaceAll('\\', '/')}" <args>, and grep on files under`
     + ` "${ROOT.replaceAll('\\', '/')}" by absolute path, commands joined only by &&, grep with short options only (no -R).`
-    + ` No unquoted wildcards or #, pipes, cd, ;, variables (but a leading "${CONFIG_VAR}"), loops,`
+    + ` No unquoted wildcards or #, pipes, cd, ;, variables (but "${CONFIG_VAR}" inside double quotes), loops,`
     + ' redirects other than 2>&1, or other commands.');
   process.exit(2);
 };
@@ -130,7 +130,7 @@ const commands = [];
       add('');
       for (i++; src[i] !== '"'; i++) {
         if (i >= src.length) deny('unclosed quote');
-        // The agent file's one variable, expanded as sh would from this env, which Claude Code also gives the Bash tool.
+        // The agent file's one variable, expanded as sh would. Assumes the Bash tool's shell has this hook's value of it.
         if (src.startsWith(CONFIG_VAR, i)) { word.text += CONFIG; i += CONFIG_VAR.length - 1; continue; }
         if (src[i] === '$' || src[i] === '`') deny('variables and command substitution');
         // sh reads \$ and \` in "..." as literal text, which the expansion above would not see as such.
