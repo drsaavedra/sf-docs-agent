@@ -137,7 +137,9 @@ for (const [name, env] of Object.entries(envs)) {
     assert.equal(run(`grep -c -e x "${RT}/\\\${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs${'/..'.repeat(3)}/fetch-docs.mjs"`).status, 2, 'escaped, so sh reads it literally');
     assert.equal(run('node "${CLAUDE_CONFIG_DIR:-/tmp}/sf-docs/fetch-docs.mjs"').status, 2, 'another default');
     assert.equal(run(`node ${VAR}/fetch-docs.mjs" "\${CLAUDE_CONFIG_DIR:-$HOME/.claude}$HOME"`).status, 2, 'a bare $HOME after it');
-    assert.equal(run(`grep -c -e root "/x\${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs${'/..'.repeat(20)}/etc/passwd"`).status, 2, 'mid-word, then out of the install');
+    const mid = run(`grep -c -e root "/x\${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs${'/..'.repeat(20)}/etc/passwd"`);
+    assert.equal(mid.status, 2, 'mid-word, then out of the install');
+    assert.match(mid.stderr, /not an absolute path under the install dir/, 'expanded mid-word, then stopped by the path check');
   });
   // The hook line in the agent file, run as Claude Code runs it: a missing guard must deny, not exit 1 (which runs the call).
   test(`the agent file hook runs the guard, and denies when guard.mjs is missing, with ${name}`, () => {
