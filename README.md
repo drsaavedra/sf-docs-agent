@@ -114,11 +114,11 @@ How it reads each site, and the full list: [docs/how-it-works.md](https://github
 git clone https://github.com/drsaavedra/sf-docs-agent && cd sf-docs-agent && npm install
 npx playwright-core install --only-shell chromium
 mkdir -p "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents"
-sed "s|/path/to/sf-docs-agent|$PWD|g" agents/sf-docs.md > "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents/sf-docs.md"
+sed 's|${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs|'"$PWD"'|g' agents/sf-docs.md > "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/agents/sf-docs.md"
 npm test
 ```
 
-On Linux, add `--with-deps` to the Chromium line. `agents/sf-docs.md` names its script and cache as `/path/to/sf-docs-agent`. The `sed` line writes your copy with your clone's path. Run it again after you edit the agent.
+On Linux, add `--with-deps` to the Chromium line. `agents/sf-docs.md` names its script and cache as `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs"`, the folder that `npx sf-docs-agent` installs. The shell expands that path when the agent runs. The `sed` line writes your copy with your clone's path. Run it again after you edit the agent.
 
 **Eval:** `node evals/run.mjs --cold` asks your installed agent the 20 regression questions in [evals/questions.json](evals/questions.json) and grades each report. The agent's guard checks every quote against the cached page, and a model with no tools judges the answer against the key. It takes about 5 minutes and $1.30 on Sonnet, and runs on your own Claude Code login, so it is on demand rather than in CI. Run it from a folder that config has trusted, since the agent's hook does not fire in an untrusted one, and on a plan with auto mode, which the agent's calls run under. `--only 5,10` runs a few questions, `--judge` picks the grading model, and `--config` points at another Claude config dir: use a clean one for numbers you will compare, since your own rules and plugins load otherwise. It needs macOS or Linux, and exits 1 if any question is not right. An outage or a stale key counts as could not run, not as a wrong answer. `--cold` empties the agent's page cache first. Reports land in `evals/results/`.
 
