@@ -80,8 +80,9 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 - A `PreToolUse` hook (`guard.mjs`, named in the agent file) limits Read to the install folder. It limits Bash to the
   script and to `grep` on absolute paths in that folder. grep can use only short options, a command can have no
   unquoted wildcards or `#`, and commands can join only with `&&`. The only redirect it allows is `2>&1`. The only
-  variable it allows is `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}` at the start of a quoted path. The hook expands it as
-  the shell does, then checks the path that results. The hook
+  variable it allows is `${CLAUDE_CONFIG_DIR:-$HOME/.claude}` in a double-quoted path, as in
+  `"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/cache/..."`. The hook expands it as the shell does, then checks the
+  path that results. The hook
   stops all other commands, and each command that it cannot parse. It runs only for this agent and checks the command
   text before the command runs, so it is not an operating system sandbox.
 - On the 20-question regression, the hook ran on 103 Bash and Read calls and stopped 3: a pipe, a `;` and a redirect.
