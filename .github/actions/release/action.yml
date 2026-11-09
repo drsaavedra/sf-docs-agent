@@ -79,6 +79,10 @@ runs:
         agent="$cfg/agents/sf-docs.md"
         grep -c -F '"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs"' "$agent"
         if grep -q -F "$RUNNER_TEMP" "$agent"; then echo "::error::an install path was written into the agent"; exit 1; fi
+        # The agent's own hook line, given a call it allows: exits 2 if its path does not reach the installed guard.
+        hook=$(sed -n "s/^ *command: '\(.*\)'\$/\1/p" "$agent")
+        echo '{"tool_name":"Bash","tool_input":{"command":"node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs\" --search x"}}' \
+          | CLAUDE_CONFIG_DIR="$cfg" sh -c "$hook"
         node -e "require('assert').ok(require('fs').statSync('$cfg/sf-docs/node_modules/playwright-core/package.json'))"
         echo "installed $tgz: agent wired, playwright-core present"
 
