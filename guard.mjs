@@ -133,6 +133,8 @@ const commands = [];
         // The agent file's one variable, expanded as sh would from this env, which Claude Code also gives the Bash tool.
         if (src.startsWith(CONFIG_VAR, i)) { word.text += CONFIG; i += CONFIG_VAR.length - 1; continue; }
         if (src[i] === '$' || src[i] === '`') deny('variables and command substitution');
+        // sh reads \$ and \` in "..." as literal text, which the expansion above would not see as such.
+        if (src[i] === '\\' && '$`'.includes(src[i + 1])) deny('an escaped $ or backtick');
         if (src[i] === '\\' && '"\\'.includes(src[i + 1])) i++;
         word.text += src[i];
       }
