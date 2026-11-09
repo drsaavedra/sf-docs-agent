@@ -77,8 +77,15 @@ runs:
         # Outside the checkout: inside it, npx resolves sf-docs-agent to this package and finds no command.
         (cd "$RUNNER_TEMP" && CLAUDE_CONFIG_DIR="$cfg" npx --yes --package="$tgz" sf-docs-agent < /dev/null)
         agent="$cfg/agents/sf-docs.md"
-        grep -c "$cfg/sf-docs/fetch-docs.mjs" "$agent"
-        if grep -q '/path/to/sf-docs-agent' "$agent"; then echo "::error::placeholder path left in the agent"; exit 1; fi
+        grep -c -F '"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs"' "$agent"
+        if grep -q -F "$RUNNER_TEMP" "$agent"; then echo "::error::an install path was written into the agent"; exit 1; fi
+        # The agent's own hook line: an allowed call exits 0 only if its path reaches the installed guard, and curl must exit 2.
+        hook=$(sed -n "s/^ *command: '\(.*guard\.mjs.*\)'\$/\1/p" "$agent")
+        [ -n "$hook" ] || { echo "::error::no guard hook line in the agent"; exit 1; }
+        echo '{"tool_name":"Bash","tool_input":{"command":"node \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs/fetch-docs.mjs\" --search x"}}' \
+          | CLAUDE_CONFIG_DIR="$cfg" sh -c "$hook"
+        s=0; echo '{"tool_name":"Bash","tool_input":{"command":"curl https://x"}}' | CLAUDE_CONFIG_DIR="$cfg" sh -c "$hook" || s=$?
+        [ "$s" = 2 ] || { echo "::error::the agent's hook gave $s for curl, not 2"; exit 1; }
         node -e "require('assert').ok(require('fs').statSync('$cfg/sf-docs/node_modules/playwright-core/package.json'))"
         echo "installed $tgz: agent wired, playwright-core present"
 

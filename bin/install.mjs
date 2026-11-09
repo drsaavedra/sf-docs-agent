@@ -9,9 +9,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 
 const pkg = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const config = process.env.CLAUDE_CONFIG_DIR || join(homedir(), '.claude');
+const configIn = home => process.env.CLAUDE_CONFIG_DIR || join(home, '.claude');
+const config = configIn(homedir());
 const project = process.argv.includes('--project');
-const runtime = join(config, 'sf-docs');
+// Where the hook's "${CLAUDE_CONFIG_DIR:-$HOME/.claude}" looks: $HOME first, since on Windows homedir() is USERPROFILE.
+const runtime = join(configIn(process.env.HOME || homedir()), 'sf-docs');
 const agents = project ? resolve('.claude', 'agents') : join(config, 'agents');
 
 mkdirSync(runtime, { recursive: true });
@@ -53,14 +55,9 @@ else if (process.argv.includes('--yes') || await ask('Download headless Chromium
   catch { console.error(`\nBrowser download failed (see above). Retry later with:\n  node "${cli}" install --only-shell chromium`); }
 } else console.log(`Skipped the browser download. Before first use, run:\n  node "${cli}" install --only-shell chromium`);
 
-// Point the agent at the installed script. rm first: a symlinked agent file would otherwise be written through.
-// The source names its own checkout dir (script and cache); swap every occurrence for the runtime dir.
-const source = readFileSync(join(pkg, 'agents/sf-docs.md'), 'utf8');
-const devDir = source.match(/node "([^"]+)\/fetch-docs\.mjs"/)[1];
-// Forward slashes: the agent runs these paths in Git Bash on Windows, where a backslash is an escape. A function
-// replacement, so a $ in the path is taken literally.
-const agent = source.replaceAll(devDir, () => runtime.replaceAll('\\', '/'));
+// Copied unchanged: the agent names the runtime as "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/sf-docs", which the shell
+// expands. rm first: a symlinked agent file would otherwise be written through.
 mkdirSync(agents, { recursive: true });
 rmSync(join(agents, 'sf-docs.md'), { force: true });
-writeFileSync(join(agents, 'sf-docs.md'), agent);
+cpSync(join(pkg, 'agents/sf-docs.md'), join(agents, 'sf-docs.md'));
 console.log(`Installed agent: ${join(agents, 'sf-docs.md')}\nUse subagent_type "sf-docs". If it is not listed yet, start a new Claude Code session.`);
