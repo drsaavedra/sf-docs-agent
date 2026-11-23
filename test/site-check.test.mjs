@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { HELP_CHILD, HELP_INDEX, URLS, drifted, moved, parse, retry, unfit } from '../site-check/site-check.mjs';
+import { HELP_CHILD, HELP_INDEX, URLS, drifted, moved, parse, products, retry, unfit } from '../site-check/site-check.mjs';
 import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -179,6 +179,27 @@ test('the set of per-product indexes in llms.txt is pinned, its descriptions are
   const gone = parse([u], '200 16755 /docs/llms.txt -> developer.salesforce.com/docs/gone.txt', out)[u];
   assert.deepEqual([gone.indexes, drifted(was, gone), unfit(gone, u), moved(was, gone)], [null, true, true, '']); // drift, never 54 removals
   assert.deepEqual(read('[a](http://developer.salesforce.com/docs/llms-apex.txt) [b](/docs/llms-lwc.txt)').indexes, was.indexes); // one index, any scheme
+});
+
+test('the guides a product index links to are pinned, its pages are not', () => {
+  const out = tempDir('site-check-test-'), u = 'https://developer.salesforce.com/docs/llms-x.txt';
+  mkdirSync(join(out, 'developer.salesforce.com/docs'), { recursive: true });
+  const read = text => { writeFileSync(join(out, 'developer.salesforce.com/docs/llms-x.txt'), text);
+    return parse([u], '200 900 /docs/llms-x.txt -> developer.salesforce.com/docs/llms-x.txt', out)[u]; };
+  const D = 'https://developer.salesforce.com/docs';
+  const was = read(`- [A](${D}/platform/connect-rest-api/guide/a.md)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/b.htm)\n`);
+  assert.deepEqual(was.guides, ['/docs/atlas.en-us.apexcode.meta', '/docs/platform/connect-rest-api/guide']);
+  // Another page, or a page gone, in a guide already listed is not drift; a guide moved in is.
+  assert.equal(drifted(was, read(`- [A](${D}/platform/connect-rest-api/guide/c.md#x)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/d.htm)\n`)), false);
+  const grown = read(`- [A](${D}/platform/connect-rest-api/guide/a.md)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/b.htm)\n- [U](${D}/platform/user-interface/guide/u.md)\n`);
+  assert.deepEqual([drifted(was, grown), moved(was, grown)], [true, '+/docs/platform/user-interface/guide']);
+  const none = read('# Index\n'); // a prose-only or emptied index is never a baseline
+  assert.deepEqual([none.guides, unfit(none, u)], [[], true]);
+  const gone = parse([u], '200 900 /docs/llms-x.txt -> developer.salesforce.com/docs/gone.txt', out)[u];
+  assert.deepEqual([gone.guides, drifted(was, gone), unfit(gone, u), moved(was, gone)], [null, true, true, '']);
+  // llms.txt itself pins indexes, not guides; each index it lists becomes a URL unless URLS already fetches it.
+  assert.equal(parse([`${D}/llms.txt`], '200 900 /docs/llms.txt -> developer.salesforce.com/docs/llms-x.txt', out)[`${D}/llms.txt`].guides, undefined);
+  assert.deepEqual(products({ indexes: ['/docs/llms-platform.txt', '/docs/llms-x.txt'] }), [`${D}/llms-x.txt`]);
 });
 
 test('every llms index the agent prompt names by path is in the site check', async () => {

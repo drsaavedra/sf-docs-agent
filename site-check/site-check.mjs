@@ -14,7 +14,7 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // On 2026-11-24, after UI API moved, Connect REST API was the only live atlas guide of 15 tried still rendering (div.body).
 // When it moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 // Every llms index the prompt names (a test holds this) and one Help child sitemap: a 404 or an emptied file is drift,
-// which the llms.txt pin cannot see.
+// which the llms.txt pin cannot see. Every other index the baseline's llms.txt lists is fetched too (see products).
 export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
 export const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const URLS = [
@@ -86,6 +86,13 @@ const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.sear
 // filter showed before this check existed, when every Help sidecar held only nav links.
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
 const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index file that lists the per-product ones
+// The per-product indexes an llms.txt read lists, as URLs, less those URLS names: a guide moves without a sampled page.
+export const products = r => (r?.indexes ?? []).map(p => p.startsWith('/') ? `https://developer.salesforce.com${p}` : p)
+  .filter(u => !URLS.includes(u));
+// The guides an index links to: /docs/atlas.<guide>.meta, else the three segments under /docs (platform/lwc/guide). A
+// guide moved in or out changes the set; an edited or added page does not.
+const guidesOf = text => [...new Set([...text.matchAll(/\]\(https?:\/\/developer\.salesforce\.com(\/docs\/[^\s)#?]+)/g)]
+  .map(([, p]) => p.split('/').slice(0, p.startsWith('/docs/atlas.') ? 3 : 5).join('/')))].sort();
 const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
 const CHILD_NORM = norm(HELP_CHILD), isChild = s => URL.canParse(s) && norm(s) === CHILD_NORM;
 export const parse = (urls, stdout, out) => {
@@ -104,6 +111,10 @@ export const parse = (urls, stdout, out) => {
       try { got[url].indexes = [...new Set((readFileSync(join(out, file), 'utf8').match(/(?:https?:\/\/[\w.-]+)?\/[\w./-]*llms-[\w.-]+\.txt/g) ?? [])
         .map(x => x.replace(/^https?:\/\/developer\.salesforce\.com/, '')))].sort(); }
       catch (e) { if (e.code !== 'ENOENT') throw e; got[url].indexes = null; }
+    }
+    if (out && file && url !== LLMS && /\/llms-[\w.-]+\.txt$/.test(new URL(url).pathname)) {
+      try { got[url].guides = guidesOf(readFileSync(join(out, file), 'utf8')); }
+      catch (e) { if (e.code !== 'ENOENT') throw e; got[url].guides = null; }
     }
     // The index must still list the child fetched above, or a renamed child route passes while the old URL answers.
     // Each <loc> is read with fetch-docs' expand regex and entity decode; the scheme and the query order do not count.
@@ -125,20 +136,22 @@ export const parse = (urls, stdout, out) => {
 };
 const show = (r, none) => r ? `${r.status} ${r.chars} ${r.kinds || '(raw)'} ${r.saved ? 'saved' : 'not saved'}${r.links === 0 ? ', 0 article links' : ''}`
   + `${r.to ? ` to ${r.to}` : ''}${r.indexes === null ? ', saved llms.txt missing' : r.indexes ? `, ${r.indexes.length} indexes` : ''}`
+  + `${r.guides === null ? ', saved index missing' : r.guides ? `, ${r.guides.length} guides` : ''}`
   + `${r.lists === false ? ', HELP_CHILD not listed: if Help renamed it, change HELP_CHILD, not a rerun' : r.lists === 0 ? ', index lists no sitemaps (an outage page?)' : r.lists === null ? ', saved index missing' : ''}` : none;
-// Which indexes came or went, since a count alone does not say.
-export const moved = (was, now) => { if (!was?.indexes || !now?.indexes) return '';
-  const a = new Set(was.indexes), b = new Set(now.indexes);
-  return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)].join(' '); };
+// Which indexes or guides came or went, since a count alone does not say.
+export const moved = (was, now) => ['indexes', 'guides'].flatMap(k => { if (!was?.[k] || !now?.[k]) return [];
+  const a = new Set(was[k]), b = new Set(now[k]);
+  return [...[...b].filter(x => !a.has(x)).map(x => `+${x}`), ...[...a].filter(x => !b.has(x)).map(x => `-${x}`)]; }).join(' ');
 // The page a landing URL names, as fetch-docs' sameDoc reads it (only a change there prints [redirected]): host, path
 // without a trailing slash, and ?id=. A value that is not a URL compares as text.
 const page = to => { const x = to && URL.canParse(to) && new URL(to); return x ? `${x.host}${x.pathname.replace(/\/$/, '')}?id=${x.searchParams.get('id') ?? ''}` : to ?? ''; };
 export const drifted = (was, now) => !was || !now || now.status !== was.status || now.kinds !== was.kinds || now.saved !== was.saved
-  || now.kinds.includes('fallback') || now.links === 0 || page(now.to) !== page(was.to) || String(now.indexes) !== String(was.indexes)
+  || now.kinds.includes('fallback') || now.links === 0 || page(now.to) !== page(was.to) || String(now.indexes) !== String(was.indexes) || String(now.guides) !== String(was.guides)
   || now.lists !== was.lists || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
 export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
+  || r.guides === null || r.guides?.length === 0
   || r.lists === false || r.lists === 0 || r.lists === null || (!r.saved && !SHELLS.has(u));
 
 // Help serves a short outage page for minutes at a time (one outlasted a 60 s retry): refetch what drifted at 1 and
@@ -158,21 +171,24 @@ export const retry = async (base, now, urls, refetch, sleep, waits = [60000, 180
 const entry = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return ''; } })(); // no file: imported
 if (import.meta.url === entry) {
 if (process.argv.includes('--update')) {
-  const got = run(URLS);
-  const missing = URLS.filter(u => !got[u]), bad = URLS.filter(u => got[u] && unfit(got[u], u));
+  const got = run(URLS), all = [...URLS, ...products(got[LLMS])];
+  Object.assign(got, run(all.slice(URLS.length))); // the indexes today's llms.txt lists
+  const missing = all.filter(u => !got[u]), bad = all.filter(u => got[u] && unfit(got[u], u));
   if (missing.length) { console.error(`no result for:\n${missing.join('\n')}`); process.exit(1); }
   if (bad.length) { console.error(`not written, rerun later unless a line names a fix:\n${bad.map(u => `${u}: ${show(got[u])}`).join('\n')}`); process.exit(1); }
   writeFileSync(BASE, JSON.stringify(got, null, 2) + '\n');
-  console.log(`baseline written: ${URLS.length} URLs`);
+  console.log(`baseline written: ${all.length} URLs`);
   process.exit(0);
 }
 
 const base = JSON.parse(readFileSync(BASE, 'utf8'));
-const first = run(URLS);
-const { now, bad } = await retry(base, first, URLS, run, ms => new Promise(r => setTimeout(r, ms)));
+// The baseline's index list, not today's: an index added or dropped is already llms.txt's drift.
+const urls = [...URLS, ...products(base[LLMS])];
+const first = run(urls);
+const { now, bad } = await retry(base, first, urls, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
-  ? [`## ${bad.length} of ${URLS.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => { const d = moved(base[u], now[u]);
+  ? [`## ${bad.length} of ${urls.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => { const d = moved(base[u], now[u]);
     return [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``, ...(d ? [`  - indexes: \`${d}\``] : [])]; })].join('\n')
-  : `All ${URLS.length} doc pages read as in the baseline.`);
+  : `All ${urls.length} doc pages read as in the baseline.`);
 process.exit(bad.length ? 1 : 0);
 }
