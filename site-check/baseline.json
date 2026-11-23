@@ -119,9 +119,9 @@
     "saved": true,
     "to": "https://developer.salesforce.com/docs/industries/life-sciences-dev-guide/guide/sforce-api-objects-mergerequest.html"
   },
-  "https://developer.salesforce.com/docs/atlas.en-us.uiapi.meta/uiapi/ui_api_resources_record_get.htm": {
+  "https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_files_information.htm": {
     "status": 200,
-    "chars": 4883,
+    "chars": 6223,
     "kinds": "div.body",
     "saved": true
   },
