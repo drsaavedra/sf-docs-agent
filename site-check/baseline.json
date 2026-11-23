@@ -1,7 +1,7 @@
 {
   "https://developer.salesforce.com/docs/llms.txt": {
     "status": 200,
-    "chars": 16853,
+    "chars": 16881,
     "kinds": "",
     "saved": true,
     "indexes": [
@@ -61,15 +61,124 @@
       "/docs/llms-service-cloud.txt"
     ]
   },
+  "https://developer.salesforce.com/docs/llms-product-docs.txt": {
+    "status": 200,
+    "chars": 1914814,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/atlas.en-us.apexcode.meta",
+      "/docs/atlas.en-us.apexref.meta",
+      "/docs/atlas.en-us.api_meta.meta",
+      "/docs/atlas.en-us.api_tooling.meta",
+      "/docs/atlas.en-us.integration_patterns_and_practices.meta",
+      "/docs/atlas.en-us.mobile_sdk.meta",
+      "/docs/atlas.en-us.object_reference.meta"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-platform.txt": {
+    "status": 200,
+    "chars": 410410,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/ajax/guide",
+      "/docs/platform/api-action/guide",
+      "/docs/platform/api-asynch/guide",
+      "/docs/platform/api-rest-encryption/guide",
+      "/docs/platform/api-rest/guide",
+      "/docs/platform/api-streaming/guide",
+      "/docs/platform/api/guide",
+      "/docs/platform/aura-platform/guide",
+      "/docs/platform/big-object-impl-guide/guide",
+      "/docs/platform/caf-dev/guide",
+      "/docs/platform/canvas-framework/guide",
+      "/docs/platform/case-feed-dev-guide/guide",
+      "/docs/platform/change-data-capture/guide",
+      "/docs/platform/communities-dev/guide",
+      "/docs/platform/data-loader-impl/guide",
+      "/docs/platform/federated-search/guide",
+      "/docs/platform/mobile-offline/guide",
+      "/docs/platform/mobile-push-notifications/guide",
+      "/docs/platform/platform-events/guide",
+      "/docs/platform/salesforce-app-limits-cheatsheet/guide",
+      "/docs/platform/salesforce-developer-environment-dotnet-tipsheet/guide",
+      "/docs/platform/salesforce-developer-environment-tipsheet/guide",
+      "/docs/platform/salesforce-large-data-volumes-bp/guide",
+      "/docs/platform/salesforce-migration-guide/guide",
+      "/docs/platform/salesforce-pages-developers-guide/guide",
+      "/docs/platform/salesforce-soql-sosl/guide",
+      "/docs/platform/sf-connect-dev-guide/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-salesforcedx.txt": {
+    "status": 200,
+    "chars": 118201,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/agentforcevibes/guide",
+      "/docs/platform/code-builder/guide",
+      "/docs/platform/devops-center-dev/guide",
+      "/docs/platform/einstein-for-devs/guide",
+      "/docs/platform/md-visualizer/guide",
+      "/docs/platform/salesforce-cli-plugin/guide",
+      "/docs/platform/salesforce-cli-reference/guide",
+      "/docs/platform/salesforce-skills-plugins/guide",
+      "/docs/platform/sfdx-dev/guide",
+      "/docs/platform/sfdx-setup/guide",
+      "/docs/platform/sfvscode-extensions/guide",
+      "/docs/platform/webconsole/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-platform-obj-meta-tool.txt": {
+    "status": 200,
+    "chars": 399558,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/api-metadata/guide",
+      "/docs/platform/api-metadata/references",
+      "/docs/platform/api-tooling/guide",
+      "/docs/platform/api-tooling/references",
+      "/docs/platform/object-reference/guide",
+      "/docs/platform/object-reference/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-platform-apex.txt": {
+    "status": 200,
+    "chars": 450205,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/apex-dev/references",
+      "/docs/platform/apex-ref/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-platform-field-ref.txt": {
+    "status": 200,
+    "chars": 452048,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/field-reference/references"
+    ]
+  },
   "https://developer.salesforce.com/docs/platform/lwc/guide/create-light-dom.md": {
     "status": 200,
     "chars": 41997,
     "kinds": "",
     "saved": true
   },
+  "https://architect.salesforce.com/llms.txt": {
+    "status": 200,
+    "chars": 46364,
+    "kinds": "",
+    "saved": true
+  },
   "https://architect.salesforce.com/docs/architect/well-architected/guide/trust.md": {
     "status": 200,
-    "chars": 94547,
+    "chars": 97980,
     "kinds": "",
     "saved": true
   },
@@ -80,6 +189,12 @@
     "saved": true,
     "lists": true
   },
+  "https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai": {
+    "status": 200,
+    "chars": 287358,
+    "kinds": "",
+    "saved": true
+  },
   "https://admin.salesforce.com/sitemap_index.xml": {
     "status": 200,
     "chars": 1873,
@@ -88,7 +203,7 @@
   },
   "https://www.lightningdesignsystem.com/2e1ef8501/p/216f79-toast.md": {
     "status": 200,
-    "chars": 10547,
+    "chars": 10559,
     "kinds": "",
     "saved": true
   },
@@ -121,7 +236,7 @@
   },
   "https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_files_information.htm": {
     "status": 200,
-    "chars": 6223,
+    "chars": 6020,
     "kinds": "div.body",
     "saved": true
   },
@@ -147,10 +262,10 @@
   },
   "https://help.salesforce.com/s/articleView?id=platform.flow_ref_elements_transform.htm&type=5": {
     "status": 200,
-    "chars": 7027,
+    "chars": 7055,
     "kinds": ".slds-text-longform",
     "saved": true,
-    "links": 1406
+    "links": 1407
   },
   "https://help.salesforce.com/s/articleView?id=001096524&type=1": {
     "status": 200,
@@ -165,11 +280,11 @@
     "kinds": ".slds-text-longform redirected",
     "saved": true,
     "to": "https://help.salesforce.com/s/articleView?id=platform.ev_relay_intro.htm&type=5",
-    "links": 1142
+    "links": 1144
   },
   "https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5": {
     "status": 200,
-    "chars": 1197,
+    "chars": 1259,
     "kinds": "body",
     "saved": false
   },
@@ -188,7 +303,7 @@
   },
   "https://v1.lightningdesignsystem.com/components/toast/": {
     "status": 200,
-    "chars": 5779,
+    "chars": 5675,
     "kinds": "main",
     "saved": true
   },
@@ -200,55 +315,628 @@
   },
   "https://developer.salesforce.com/docs/platform/user-interface/references/user-interface": {
     "status": 200,
-    "chars": 188121,
+    "chars": 187184,
     "kinds": "main",
     "saved": true
   },
-  "https://developer.salesforce.com/docs/llms-product-docs.txt": {
+  "https://developer.salesforce.com/docs/llms-agentforce-conversation-client.txt": {
     "status": 200,
-    "chars": 1951584,
+    "chars": 2029,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "guides": [
+      "/docs/platform/accsdk/guide"
+    ]
   },
-  "https://developer.salesforce.com/docs/llms-platform.txt": {
+  "https://developer.salesforce.com/docs/llms-agentforce-operations.txt": {
     "status": 200,
-    "chars": 410133,
+    "chars": 611,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "guides": [
+      "/docs/platform/agentforce-operations/guide"
+    ]
   },
-  "https://developer.salesforce.com/docs/llms-salesforcedx.txt": {
+  "https://developer.salesforce.com/docs/llms-agentforce-partners.txt": {
     "status": 200,
-    "chars": 118082,
+    "chars": 1534,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "guides": [
+      "/docs/ai/agentforce-partner/guide"
+    ]
   },
-  "https://architect.salesforce.com/llms.txt": {
+  "https://developer.salesforce.com/docs/llms-analytics.txt": {
     "status": 200,
-    "chars": 46094,
+    "chars": 137096,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "guides": [
+      "/docs/analytics/app-template-framework/guide",
+      "/docs/analytics/bi-dev-guide-bindings/guide",
+      "/docs/analytics/bi-dev-guide-cli-reference/guide",
+      "/docs/analytics/bi-dev-guide-ext-data/guide",
+      "/docs/analytics/bi-dev-guide-json/guide",
+      "/docs/analytics/bi-dev-guide-lwc-in-db/guide",
+      "/docs/analytics/bi-dev-guide-saql/guide",
+      "/docs/analytics/bi-dev-guide-sdk/guide",
+      "/docs/analytics/bi-dev-guide-sql/guide",
+      "/docs/analytics/bi-dev-guide-wave-templates/guide",
+      "/docs/analytics/bi-dev-guide-xmd/guide",
+      "/docs/analytics/dashboard-component/guide",
+      "/docs/analytics/salesforce-analytics-rest-api/guide",
+      "/docs/analytics/sdk/guide",
+      "/docs/analytics/sdk/references",
+      "/docs/analytics/tableau-next-isv-dev/guide",
+      "/docs/analytics/tableau-next-rest-api/guide"
+    ]
   },
-  "https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai": {
+  "https://developer.salesforce.com/docs/llms-api-catalog.txt": {
     "status": 200,
-    "chars": 276068,
+    "chars": 878,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "guides": [
+      "/docs/platform/api-catalog-connectapi/guide"
+    ]
   },
-  "https://developer.salesforce.com/docs/llms-platform-obj-meta-tool.txt": {
+  "https://developer.salesforce.com/docs/llms-backup-recover-api.txt": {
     "status": 200,
-    "chars": 372535,
+    "chars": 914,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "guides": [
+      "/docs/platform/barn-api/guide"
+    ]
   },
-  "https://developer.salesforce.com/docs/llms-platform-apex.txt": {
+  "https://developer.salesforce.com/docs/llms-bot-api.txt": {
     "status": 200,
-    "chars": 450022,
+    "chars": 5211,
     "kinds": "",
-    "saved": true
+    "saved": true,
+    "guides": [
+      "/docs/service/einstein-bot-api/guide",
+      "/docs/service/einstein-bot-api/references"
+    ]
   },
-  "https://developer.salesforce.com/docs/llms-platform-field-ref.txt": {
+  "https://developer.salesforce.com/docs/llms-cms.txt": {
     "status": 200,
-    "chars": 452048,
+    "chars": 8395,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/cms/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-code-analyzer.txt": {
+    "status": 200,
+    "chars": 10433,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/salesforce-code-analyzer/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-commerce-cloud.txt": {
+    "status": 200,
+    "chars": 919334,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/commerce/b2c-commerce/guide",
+      "/docs/commerce/b2c-commerce/references",
+      "/docs/commerce/comm-cli-reference/guide",
+      "/docs/commerce/commerce-api/guide",
+      "/docs/commerce/commerce-api/references",
+      "/docs/commerce/commerce-solutions/guide",
+      "/docs/commerce/commerce-vibes/guide",
+      "/docs/commerce/einstein-api/guide",
+      "/docs/commerce/extensions/guide",
+      "/docs/commerce/lwr-migration/guide",
+      "/docs/commerce/marketplace/guide",
+      "/docs/commerce/marketplace/references",
+      "/docs/commerce/pwa-kit-managed-runtime/guide",
+      "/docs/commerce/pwa-kit-managed-runtime/references",
+      "/docs/commerce/retail-cloud/guide",
+      "/docs/commerce/retail-cloud/references",
+      "/docs/commerce/salesforce-commerce/guide",
+      "/docs/commerce/salesforce-commerce/references",
+      "/docs/commerce/salesforce-order-management/guide",
+      "/docs/commerce/sfnext/guide",
+      "/docs/commerce/sfra/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-connect-rest.txt": {
+    "status": 200,
+    "chars": 15564,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/connect-rest-api/guide",
+      "/docs/platform/connect-rest-api/references",
+      "/docs/platform/crm-analytics/guide",
+      "/docs/platform/data-prep-recipe/guide",
+      "/docs/platform/einstein-discovery/guide",
+      "/docs/platform/user-interface/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-data-ae.txt": {
+    "status": 200,
+    "chars": 7285,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/ai/agentic-enterprise-get-started/guide",
+      "/docs/ai/automate-resume-processing/guide",
+      "/docs/ai/ground-agentforce-on-website/guide",
+      "/docs/ai/loan-agent/guide",
+      "/docs/ai/power-agentforce-visual-data/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-data-cloud.txt": {
+    "status": 200,
+    "chars": 631468,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/data/agentforce-coworker/guide",
+      "/docs/data/agentic-memory-context/guide",
+      "/docs/data/agentic-memory-context/references",
+      "/docs/data/connectapi/guide",
+      "/docs/data/data-cloud-code-ext-cli-reference/guide",
+      "/docs/data/data-cloud-code-ext/guide",
+      "/docs/data/data-cloud-dev/guide",
+      "/docs/data/data-cloud-dmo-mapping/guide",
+      "/docs/data/data-cloud-engagement-mobile-sdk/guide",
+      "/docs/data/data-cloud-int/guide",
+      "/docs/data/data-cloud-int/references",
+      "/docs/data/data-cloud-query-guide/guide",
+      "/docs/data/data-cloud-query-guide/references",
+      "/docs/data/salesforce-interactions-sdk/guide",
+      "/docs/data/semantic-layer/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-dataloader.txt": {
+    "status": 200,
+    "chars": 3189,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/dataloader/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-diagrams.txt": {
+    "status": 200,
+    "chars": 33953,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/data-models/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-einstein-personalization.txt": {
+    "status": 200,
+    "chars": 8887,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/marketing/einstein-personalization/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-einstein-vision-language.txt": {
+    "status": 200,
+    "chars": 7195,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/analytics/einstein-vision-language/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-event-bus.txt": {
+    "status": 200,
+    "chars": 6883,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/pub-sub-api/guide",
+      "/docs/platform/pub-sub-api/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-genai.txt": {
+    "status": 200,
+    "chars": 48728,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/ai/agentforce-mobile-sdk/guide",
+      "/docs/ai/agentforce-mobile-sdk/references",
+      "/docs/ai/agentforce/guide",
+      "/docs/ai/agentforce/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-graphql-api.txt": {
+    "status": 200,
+    "chars": 8857,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/graphql/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-headless-experience-layer.txt": {
+    "status": 200,
+    "chars": 5370,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/hxl/guide",
+      "/docs/platform/hxl/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-headless-three-sixty.txt": {
+    "status": 200,
+    "chars": 792,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/headless-get-started/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-hosted-mcp-servers.txt": {
+    "status": 200,
+    "chars": 8245,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/hosted-mcp-servers/guide",
+      "/docs/platform/hosted-mcp-servers/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-industries-core.txt": {
+    "status": 200,
+    "chars": 134082,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/industries/rcgps-integration-service/guide",
+      "/docs/industries/retail-api/guide",
+      "/docs/industries/retail-execution-platform/guide",
+      "/docs/industries/retail-execution-platform/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-industries-fsc-ins.txt": {
+    "status": 200,
+    "chars": 287599,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/industries/fsc-dev-guide/guide",
+      "/docs/industries/insurance-developer-guide/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-industries-health.txt": {
+    "status": 200,
+    "chars": 275109,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/industries/health-cloud-dev-guide/guide",
+      "/docs/industries/life-sciences-dev-guide/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-industries-integrations.txt": {
+    "status": 200,
+    "chars": 39045,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/industries/automotive/guide",
+      "/docs/industries/communications/guide",
+      "/docs/industries/employeeservice/guide",
+      "/docs/industries/energy/guide",
+      "/docs/industries/fsc/guide",
+      "/docs/industries/health/guide",
+      "/docs/industries/lifesciences/guide",
+      "/docs/industries/loyalty/guide",
+      "/docs/industries/manufacturing/guide",
+      "/docs/industries/media-cloud/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-industries-mfg-auto.txt": {
+    "status": 200,
+    "chars": 59336,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/industries/automotive-cloud/guide",
+      "/docs/industries/mfg-api-devguide/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-industries.txt": {
+    "status": 200,
+    "chars": 604330,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/industries/advanced-orders-for-telesales/guide",
+      "/docs/industries/advanced-orders-for-telesales/references",
+      "/docs/industries/asl-dev-guide/guide",
+      "/docs/industries/cme-dev/guide",
+      "/docs/industries/cme/guide",
+      "/docs/industries/edu-cloud-dev-guide/guide",
+      "/docs/industries/esm-developer-guide/guide",
+      "/docs/industries/eu-developer-guide/guide",
+      "/docs/industries/grantmaking-dev/guide",
+      "/docs/industries/industries-common-dev/guide",
+      "/docs/industries/media-developer-guide/guide",
+      "/docs/industries/netzero-cloud-dev-guide/guide",
+      "/docs/industries/nonprofit-cloud/guide",
+      "/docs/industries/order-management/guide",
+      "/docs/industries/penny-perfect-pricing/guide",
+      "/docs/industries/penny-perfect-pricing/references",
+      "/docs/industries/public-sector-dev/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-lightning-base-components.txt": {
+    "status": 200,
+    "chars": 58178,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/lightning-component-reference/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-lightning-type-systems.txt": {
+    "status": 200,
+    "chars": 2764,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/lightning-types/guide",
+      "/docs/platform/lightning-types/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-lwc.txt": {
+    "status": 200,
+    "chars": 104654,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/lightning-components-security/guide",
+      "/docs/platform/lwc/guide",
+      "/docs/platform/slds-linter/guide",
+      "/docs/platform/slds-validator/guide",
+      "/docs/platform/utam/guide",
+      "/docs/platform/utam/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-lwr-node.txt": {
+    "status": 200,
+    "chars": 18435,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/exp-cloud-lwr/guide",
+      "/docs/platform/lwr/guide",
+      "/docs/platform/lwr/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-marketing-cloud-mobilepush.txt": {
+    "status": 200,
+    "chars": 100049,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/marketing/mobile-unified-sdk/guide",
+      "/docs/marketing/mobile-unified-sdk/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-marketing-cloud.txt": {
+    "status": 200,
+    "chars": 310228,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/marketing/engagement-mobile-sdk/guide",
+      "/docs/marketing/handlebars-for-marketing-cloud-next/guide",
+      "/docs/marketing/handlebars-for-marketing-cloud-next/references",
+      "/docs/marketing/loyalty-api/guide",
+      "/docs/marketing/marketing-cloud-ampscript/guide",
+      "/docs/marketing/marketing-cloud-ampscript/references",
+      "/docs/marketing/marketing-cloud-einstein/guide",
+      "/docs/marketing/marketing-cloud-growth/guide",
+      "/docs/marketing/marketing-cloud-growth/references",
+      "/docs/marketing/marketing-cloud/guide",
+      "/docs/marketing/marketing-cloud/references",
+      "/docs/marketing/mce-mcp/guide",
+      "/docs/marketing/mce-mcp/references",
+      "/docs/marketing/real-time-offer-management/guide",
+      "/docs/marketing/referral-marketing/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-metadata-coverage.txt": {
+    "status": 200,
+    "chars": 6640,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/success/metadata-coverage-report/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-mobile-sdk.txt": {
+    "status": 200,
+    "chars": 57228,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/mobile-sdk/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-multi-framework.txt": {
+    "status": 200,
+    "chars": 7161,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/microfrontend/guide",
+      "/docs/platform/microfrontend/references",
+      "/docs/platform/multiframework/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-my-trust-center.txt": {
+    "status": 200,
+    "chars": 719,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/mytrust-api"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-pardot.txt": {
+    "status": 200,
+    "chars": 12272,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/marketing/pardot/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-personalization.txt": {
+    "status": 200,
+    "chars": 86743,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/marketing/personalization/guide",
+      "/docs/marketing/personalization/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-platform-pkg-exchange.txt": {
+    "status": 200,
+    "chars": 113159,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/appexchange-install-guide/guide",
+      "/docs/platform/isvforce/guide",
+      "/docs/platform/pkg1-dev/guide",
+      "/docs/platform/pkg2-dev/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-revenue-cloud.txt": {
+    "status": 200,
+    "chars": 277074,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/revenue/billing-developer/guide",
+      "/docs/revenue/clm-developer/guide",
+      "/docs/revenue/cpq-developer-guide/guide",
+      "/docs/revenue/cpq-plugins/guide",
+      "/docs/revenue/placeorder-rest-api/guide",
+      "/docs/revenue/revenue-management/guide",
+      "/docs/revenue/subscription-management/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-sales-cloud.txt": {
+    "status": 200,
+    "chars": 19947,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/sales/channel-revenue-management/guide",
+      "/docs/sales/enablement/guide",
+      "/docs/sales/enablement/references",
+      "/docs/sales/maps-dev-guide/guide",
+      "/docs/sales/sales-engagement/guide",
+      "/docs/sales/spiff/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-salesforce-functions.txt": {
+    "status": 200,
+    "chars": 8555,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/functions/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-salesforce-slack-sdk.txt": {
+    "status": 200,
+    "chars": 12971,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/salesforce-slack-sdk/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-security.txt": {
+    "status": 200,
+    "chars": 27268,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/platform/draes/guide",
+      "/docs/platform/field-history-retention/guide",
+      "/docs/platform/headless-identity-impl-guide/guide",
+      "/docs/platform/named-credentials/guide",
+      "/docs/platform/named-credentials/references",
+      "/docs/platform/restriction-rules/guide",
+      "/docs/platform/salesforce-record-access-under-the-hood/guide",
+      "/docs/platform/scoping-rules-dev-guide/guide",
+      "/docs/platform/secure-coding/guide",
+      "/docs/platform/sf-connect-amazon-rds/guide",
+      "/docs/platform/sf-connect-amazon-rds/references"
+    ]
+  },
+  "https://developer.salesforce.com/docs/llms-service-cloud.txt": {
+    "status": 200,
+    "chars": 381412,
+    "kinds": "",
+    "saved": true,
+    "guides": [
+      "/docs/service/agentforce-it-service/guide",
+      "/docs/service/api-console/guide",
+      "/docs/service/api-cti/guide",
+      "/docs/service/chat-dev-guide/guide",
+      "/docs/service/chat-rest/guide",
+      "/docs/service/conversation-data-api/guide",
+      "/docs/service/embedded-services-web-dev-guide/guide",
+      "/docs/service/field-service-dev/guide",
+      "/docs/service/interaction-service-api/guide",
+      "/docs/service/interaction-service-api/references",
+      "/docs/service/messaging-api/guide",
+      "/docs/service/messaging-api/references",
+      "/docs/service/messaging-byob/guide",
+      "/docs/service/messaging-byob/references",
+      "/docs/service/messaging-byoc-ccaas/guide",
+      "/docs/service/messaging-byoc-ccaas/references",
+      "/docs/service/messaging-in-app/guide",
+      "/docs/service/messaging-in-app/references",
+      "/docs/service/messaging-object-model/guide",
+      "/docs/service/messaging-object-model/references",
+      "/docs/service/messaging-partner/guide",
+      "/docs/service/messaging-partner/references",
+      "/docs/service/messaging-web/guide",
+      "/docs/service/messaging-web/references",
+      "/docs/service/salesforce-feedback-management-dev-guide/guide",
+      "/docs/service/salesforce-guided-engagement/guide",
+      "/docs/service/salesforce-knowledge-dev-guide/guide",
+      "/docs/service/salesforce-scheduler-dev-guide/guide",
+      "/docs/service/service-connector-api/guide",
+      "/docs/service/service-connector-api/references",
+      "/docs/service/service-presence-developer-guide/guide",
+      "/docs/service/service-sdk-android/guide",
+      "/docs/service/service-sdk-ios/guide",
+      "/docs/service/voice-dev-guide/guide",
+      "/docs/service/voice-pt-dev-guide/guide",
+      "/docs/service/wem-cookbook-dev-guide/guide",
+      "/docs/service/workdotcom-dev/guide"
+    ]
+  },
+  "https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification": {
+    "status": 200,
+    "chars": 12984,
     "kinds": "",
     "saved": true
   }
