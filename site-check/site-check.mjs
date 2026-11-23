@@ -34,6 +34,8 @@ export const URLS = [
   'https://www.lightningdesignsystem.com/2e1ef8501/p/216f79-toast.md',
   'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket',
   'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets',
+  // An OpenAPI reference (no .md, one page per API, #tag/.../operation/... names a part): where atlas API references go.
+  'https://developer.salesforce.com/docs/platform/user-interface/references/user-interface',
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_string.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.life_sciences_dev_guide.meta/life_sciences_dev_guide/sforce_api_objects_mergerequest.htm',
