@@ -193,6 +193,9 @@ test('the guides a product index links to are pinned, its pages are not', () => 
   assert.equal(drifted(was, read(`- [A](${D}/platform/connect-rest-api/guide/c.md#x)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/d.htm)\n`)), false);
   const grown = read(`- [A](${D}/platform/connect-rest-api/guide/a.md)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/b.htm)\n- [U](${D}/platform/user-interface/guide/u.md)\n`);
   assert.deepEqual([drifted(was, grown), moved(was, grown)], [true, '+/docs/platform/user-interface/guide']);
+  // A product one folder under /docs (mytrust-api) is one guide, so its next page is not drift either.
+  const short = read(`- [O](${D}/mytrust-api/overview.md)\n`);
+  assert.deepEqual([short.guides, drifted(short, read(`- [O](${D}/mytrust-api/overview.md)\n- [N](${D}/mytrust-api/new.md)\n`))], [['/docs/mytrust-api'], false]);
   const none = read('# Index\n'); // a prose-only or emptied index is never a baseline
   assert.deepEqual([none.guides, unfit(none, u)], [[], true]);
   const gone = parse([u], '200 900 /docs/llms-x.txt -> developer.salesforce.com/docs/gone.txt', out)[u];
