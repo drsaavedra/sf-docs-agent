@@ -11,8 +11,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.json');
 // One URL per site and page type, the shells and redirects included: those must keep failing the same way. The
 // exceptions are the llms indexes and the Help child sitemap below.
-// On 2026-11-07 UI API was the only atlas guide found still rendering (div.body), and none read through doc-content.
-// When UI API moves to a twin its URL drifts: replace it with another rendered guide if one is left.
+// On 2026-11-24, after UI API moved, Connect REST API was the only live atlas guide of 15 tried still rendering (div.body).
+// When it moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 // Every llms index the prompt names (a test holds this) and one Help child sitemap: a 404 or an emptied file is drift,
 // which the llms.txt pin cannot see.
 export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
@@ -37,7 +37,7 @@ export const URLS = [
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_string.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.life_sciences_dev_guide.meta/life_sciences_dev_guide/sforce_api_objects_mergerequest.htm',
-  'https://developer.salesforce.com/docs/atlas.en-us.uiapi.meta/uiapi/ui_api_resources_record_get.htm',
+  'https://developer.salesforce.com/docs/atlas.en-us.chatterapi.meta/chatterapi/connect_resources_files_information.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.mobile_sdk.meta/mobile_sdk/android_unauthenticated_rest_requests.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm',
   'https://developer.salesforce.com/docs/apis',
