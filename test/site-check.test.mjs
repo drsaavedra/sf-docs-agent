@@ -51,16 +51,19 @@ test('a raw line is matched back to its URL, including the .md copy fetched in i
   const urls = ['https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai',
     'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket',
     'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets',
-    'https://v1.lightningdesignsystem.com/components/toast/'];
+    'https://v1.lightningdesignsystem.com/components/toast/',
+    'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification'];
   const got = parse(urls, [
     '200 3137 /apex/Help_SiteMapIndexExternal?producttype=ai -> help.salesforce.com/x.txt',
     '200 9000 /docs/commerce/commerce-api/references/shopper-baskets.md -> developer.salesforce.com/x.md',
     '200 14820 https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket [doc-amf-reference] -> developer.salesforce.com/y.txt',
     '200 5779 https://v1.lightningdesignsystem.com/components/toast/ [main] -> v1.lightningdesignsystem.com/x.txt',
+    '200 12984 /docs/platform/lightning-component-reference/guide/lightning-button.md -> developer.salesforce.com/z.md',
   ].join('\n'));
   assert.deepEqual(Object.keys(got).sort(), [...urls].sort());
   assert.equal(got[urls[2]].chars, 9000); // the bare page's .md copy, not its ?meta= sibling
   assert.equal(got[urls[3]].kinds, 'main');
+  assert.equal(got[urls[4]].chars, 12984); // a ?type= tab is read as its page's .md
 });
 
 test('a page still on the outage page after 1 minute is fetched again 3 minutes later', async () => {

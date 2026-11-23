@@ -36,6 +36,8 @@ export const URLS = [
   'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets',
   // An OpenAPI reference (no .md, one page per API, #tag/.../operation/... names a part): where atlas API references go.
   'https://developer.salesforce.com/docs/platform/user-interface/references/user-interface',
+  // A component reference tab reads the .md that holds every tab.
+  'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification',
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexref.meta/apexref/apex_methods_system_string.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.life_sciences_dev_guide.meta/life_sciences_dev_guide/sforce_api_objects_mergerequest.htm',
@@ -79,9 +81,11 @@ export const run = urls => {
     return parse(urls, r.stdout ?? '', out);
   } finally { rmSync(out, { recursive: true, force: true }); }
 };
-// A raw line names the path it fetched: the URL's own, or the .md copy fetched in its place (never for a ?query URL,
-// as in fetch-docs' twinOf).
-const rawOf = (u, p) => { const x = new URL(u); return p === x.pathname + x.search || (!x.search && p === `${x.pathname.replace(/\.html$|\/$/, '')}.md`); };
+// A raw line names the path it fetched: the URL's own, or the .md copy fetched in its place (never for a ?query URL
+// but a component reference's ?type= tab, as in fetch-docs' twinOf).
+const rawOf = (u, p) => { const x = new URL(u);
+  const tab = x.pathname.startsWith('/docs/platform/lightning-component-reference/') && [...x.searchParams.keys()].every(k => k === 'type');
+  return p === x.pathname + x.search || ((!x.search || tab) && p === `${x.pathname.replace(/\.html$|\/$/, '')}.md`); };
 // With the run's out dir, a saved Help article also counts the article links in its sidecar: 0 is how a broken link
 // filter showed before this check existed, when every Help sidecar held only nav links.
 const HELP_ARTICLE = /^https:\/\/help\.salesforce\.com\/s\/articleView\?/;
