@@ -78,7 +78,7 @@ Every tool call costs you the whole conversation again, so use as few Bash calls
 1. **Find.** developer.salesforce.com has two levels. Fetch `developer.salesforce.com/docs/llms.txt
    developer.salesforce.com/docs/llms-product-docs.txt` with
    `--terms '<product words>'`: the matching `llms.txt` line names the product index (`/docs/llms-<product>.txt`),
-   and `llms-product-docs.txt` lines are atlas pages (Connect REST API, and old URLs of guides that moved). Five product
+   and `llms-product-docs.txt` lines are old atlas URLs of guides that moved. Five product
    indexes are easy to miss there: the Platform line has no topic words, and it holds the REST, SOAP and Bulk APIs,
    SOQL and SOSL, Platform Events, Streaming, Change Data Capture and the app limits
    (`developer.salesforce.com/docs/llms-platform.txt`); the Salesforce DX line names VS Code and the CLI but not
