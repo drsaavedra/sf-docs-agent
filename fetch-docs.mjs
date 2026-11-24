@@ -417,13 +417,18 @@ function extract([sels, fallback]) {
     : deep(el).replace(/ +/g, ' ').replace(/ ?\t ?/g, '\t').replace(/^ | $|\t+$/gm, '').replace(/\n{2,}/g, '\n')
       .replace(/\u00a0/g, ' ').trim();
   for (const s of sels) for (const r of roots) {
-    // A listing (admin topic, tag and author pages) is visible article cards, none holding 60% of the text: read them all.
-    const cards = s !== 'article' ? [] : [...r.querySelectorAll(s)].filter(a => !a.parentElement?.closest('article') && a.checkVisibility())
-      .map(a => (a.innerText || '').trim()).filter(Boolean), all = cards.reduce((n, c) => n + c.length, 0);
-    if (cards.length > 1 && all > 200 && Math.max(...cards.map(c => c.length)) < all * 0.6) return { sel: s, text: page(cards.join('\n\n')), links: list, pending: 0, hold: false };
+    // Article cards (admin topic, tag and author pages) are all read, hidden ones never. One card over 2,000 chars with
+    // 60% of the text is a post beside related cards: that card alone.
+    if (s === 'article') {
+      const cards = [...r.querySelectorAll(s)].filter(a => !a.parentElement?.closest('article') && a.checkVisibility())
+        .map(a => (a.innerText || '').trim()).filter(Boolean), all = cards.reduce((n, c) => n + c.length, 0);
+      const big = cards.reduce((a, c) => c.length > a.length ? c : a, '');
+      if (all > 200) return { sel: s, text: page(big.length > 2000 && big.length >= all * 0.6 ? big : cards.join('\n\n')), links: list, pending: 0, hold: false };
+      continue;
+    }
     for (const el of r.querySelectorAll(s)) {
     // Landmarks hold the site's nav components too, so their shadow trees stay out.
-    const mark = s === 'main' || s === 'article';
+    const mark = s === 'main';
     const t = mark ? el.innerText || '' : text(el);
     // 200 chars skips footer cards that also match div.body; doc-content holds only the topic, and some are one line.
     // pending: components inside it (code samples) not rendered yet. An API reference keeps empty hosts for good, so
