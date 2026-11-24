@@ -781,6 +781,12 @@ test('an architect page outside /docs reads its .md, and the home page reads /in
   }
 });
 
+test('an architect file URL is fetched as itself, with no .md copy tried', () => {
+  const pdf = 'https://architect.salesforce.com/content/some-diagram.pdf';
+  const r = fetched({ pages: { [pdf]: { text: 'The diagram as text.' } } }, pdf);
+  assert.match(r.out, /some-diagram\.pdf \[div\.body\] -> /, r.out + r.err);
+});
+
 test('a page that redirects to its site home page is not saved under its own name', () => {
   // Old architect URLs (well-architected/trusted/secure) land on the home page with status 200.
   const u = 'https://architect.salesforce.com/well-architected/trusted/secure';

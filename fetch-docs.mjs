@@ -364,7 +364,7 @@ const twinOf = u => {
   const tab = p.startsWith('/docs/platform/lightning-component-reference/') && [...u.searchParams.keys()].every(k => k === 'type');
   const has = (!u.search || tab) && !/\.(md|txt|xml|htm)$/.test(p) && (
     u.host === 'developer.salesforce.com' ? /^\/docs\/(?!atlas\.|component-library\/)[^/]+\/[^/]+\/[^/]+\/./.test(p)
-      : u.host === 'architect.salesforce.com' ? true // section pages too (/diagrams.md), and the home page as /index.md
+      : u.host === 'architect.salesforce.com' ? !/\.[^/]+$/.test(p) // any page (home as /index.md), not a file
         : u.host === 'www.lightningdesignsystem.com' && /^\/\w+\/(v\/\d+\/)?p\/./.test(p));
   return has ? new URL(`${u.origin}${p || '/index'}.md`) : null;
 };
