@@ -417,7 +417,9 @@ function extract([sels, fallback]) {
   for (const s of sels) for (const r of roots) for (const el of r.querySelectorAll(s)) {
     // Landmarks hold the site's nav components too, so their shadow trees stay out.
     const mark = s === 'main' || s === 'article';
-    const t = mark ? el.innerText || '' : text(el);
+    // A listing (admin topic, tag and author pages) is a column of article cards: read every top-level one, once.
+    const t = s === 'article' ? [...r.querySelectorAll(s)].filter(a => !a.parentElement?.closest('article'))
+      .map(a => a.innerText || '').filter(x => x.trim()).join('\n\n') : mark ? el.innerText || '' : text(el);
     // 200 chars skips footer cards that also match div.body; doc-content holds only the topic, and some are one line.
     // pending: components inside it (code samples) not rendered yet. An API reference keeps empty hosts for good, so
     // it holds instead until an api-* documentation component exists.

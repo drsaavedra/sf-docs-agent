@@ -45,6 +45,16 @@ test('with no known container the fallback takes the block with the most text, o
   assert.equal(existsSync(`${r.file}.fallback`), true);
 });
 
+test('a listing of article cards is read whole, each card once, not as its first card', () => {
+  // Admin topic, tag and author pages: cards spread over several parents, no <main>, an article nested in one card.
+  const card = w => `<article><h2>${w} post</h2>${para(1, w)}</article>`;
+  const r = fetched('https://admin.salesforce.com/automation', `<title>Automation</title><div>${card('alpha')}${card('beta')}</div>
+    <div><article><h2>gamma post</h2>${para(1, 'gamma')}<article>${para(1, 'inner')}</article></article></div>`);
+  assert.match(r.out, /\[article\]/, r.out + r.err);
+  for (const w of ['alpha', 'beta', 'gamma']) assert.match(r.text, new RegExp(`${w} post`), r.text);
+  assert.equal(r.text.match(/inner/g).length, 20, r.text); // the nested article is read with its card, not again on its own
+});
+
 test('a block under the 1,500 character floor is a shell, not a page', () => {
   const r = fetched(BLOG, `<title>Post</title><div>${para(12, 'prose')}</div>`);
   assert.match(r.out, /not saved: shell, login or missing page/, r.out + r.err);
