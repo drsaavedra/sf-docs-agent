@@ -14,7 +14,7 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // On 2026-11-24, after UI API moved, Connect REST API was the only live atlas guide of 15 tried still rendering (div.body).
 // When it moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 // Every llms index the prompt names (a test holds this) and one Help child sitemap: a 404 or an emptied file is drift,
-// which the llms.txt pin cannot see. Every other index the baseline's llms.txt lists is fetched too (see products).
+// which the llms.txt pin cannot see.
 export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
 export const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const URLS = [
@@ -50,11 +50,19 @@ export const URLS = [
   'https://help.salesforce.com/s/articleView?id=sf.ev_relay_intro.htm&type=5',
   'https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5',
   'https://admin.salesforce.com/blog/2025/get-ready-for-changes-to-connected-app-usage-restrictions',
+  'https://admin.salesforce.com/automation', // a listing of article cards, read whole
+  'https://architect.salesforce.com/diagrams', // an architect section page, read as its .md
+  // Redirects that must keep being refused: an old architect URL lands on the home page, and every Integration
+  // Patterns topic lands on one architect page under another name.
+  'https://architect.salesforce.com/well-architected/trusted/secure',
+  'https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integ_pat_intro_overview.htm',
   'https://www.lightningdesignsystem.com/',
   'https://v1.lightningdesignsystem.com/components/toast/',
 ];
 // The pages that must keep being refused: any other unsaved result is an outage, not a reference.
 const SHELLS = new Set(['https://developer.salesforce.com/docs/apis',
+  'https://architect.salesforce.com/well-architected/trusted/secure',
+  'https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integ_pat_intro_overview.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm',
   'https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5']);
 // Interim band until two sweeps a day apart measure real wording churn: a lost article or a nav-only read moves chars
@@ -68,6 +76,7 @@ export const failure = () => broke;
 // Each run is judged on its own fetch, so a clean retry drops an earlier failure.
 export const run = urls => {
   broke = '';
+  if (!urls.length) return {}; // fetch-docs with no URL exits on its usage line
   const out = mkdtempSync(join(tmpdir(), 'sf-docs-site-check-'));
   try {
     // The budget only stops new pages starting: the kill ends a hung one (Playwright traps SIGTERM), and three runs plus
@@ -93,9 +102,10 @@ const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index 
 // The per-product indexes an llms.txt read lists, as URLs, less those URLS names: a guide moves without a sampled page.
 export const products = r => (r?.indexes ?? []).map(p => p.startsWith('/') ? `https://developer.salesforce.com${p}` : p)
   .filter(u => !URLS.includes(u));
-// The guides an index links to: /docs/atlas.<guide>.meta, else up to three folders under /docs (platform/lwc/guide;
-// mytrust-api has one). A guide moved in or out changes the set; an edited or added page does not.
-const guidesOf = text => [...new Set([...text.matchAll(/\]\(https?:\/\/developer\.salesforce\.com(\/docs\/[^\s)#?]+)/g)]
+export const targets = r => [...URLS, ...products(r)]; // what a check of that llms.txt read fetches
+// The guides an index links to: /docs/atlas.<guide>.meta, else up to three folders under /docs (platform/lwc/guide).
+// A guide moved in or out changes the set, and so does a page at a new depth; an edited page does not.
+const guidesOf = text => [...new Set([...text.matchAll(/\]\((?:https?:\/\/developer\.salesforce\.com)?(\/docs\/[^\s)#?]+)/g)]
   .map(([, p]) => { const s = p.split('/'); return s.slice(0, Math.min(p.startsWith('/docs/atlas.') ? 3 : 5, s.length - 1)).join('/'); }))].sort();
 const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
 const CHILD_NORM = norm(HELP_CHILD), isChild = s => URL.canParse(s) && norm(s) === CHILD_NORM;
@@ -154,7 +164,7 @@ export const drifted = (was, now) => !was || !now || now.status !== was.status |
   || now.lists !== was.lists || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
-export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
+export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.kinds.includes('nospec') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
   || r.guides === null || r.guides?.length === 0
   || r.lists === false || r.lists === 0 || r.lists === null || (!r.saved && !SHELLS.has(u));
 
@@ -175,7 +185,7 @@ export const retry = async (base, now, urls, refetch, sleep, waits = [60000, 180
 const entry = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return ''; } })(); // no file: imported
 if (import.meta.url === entry) {
 if (process.argv.includes('--update')) {
-  const got = run(URLS), all = [...URLS, ...products(got[LLMS])];
+  const got = run(URLS), all = targets(got[LLMS]);
   Object.assign(got, run(all.slice(URLS.length))); // the indexes today's llms.txt lists
   const missing = all.filter(u => !got[u]), bad = all.filter(u => got[u] && unfit(got[u], u));
   if (missing.length) { console.error(`no result for:\n${missing.join('\n')}`); process.exit(1); }
@@ -187,12 +197,12 @@ if (process.argv.includes('--update')) {
 
 const base = JSON.parse(readFileSync(BASE, 'utf8'));
 // The baseline's index list, not today's: an index added or dropped is already llms.txt's drift.
-const urls = [...URLS, ...products(base[LLMS])];
+const urls = targets(base[LLMS]);
 const first = run(urls);
 const { now, bad } = await retry(base, first, urls, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
   ? [`## ${bad.length} of ${urls.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => { const d = moved(base[u], now[u]);
-    return [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``, ...(d ? [`  - indexes: \`${d}\``] : [])]; })].join('\n')
+    return [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``, ...(d ? [`  - moved: \`${d}\``] : [])]; })].join('\n')
   : `All ${urls.length} doc pages read as in the baseline.`);
 process.exit(bad.length ? 1 : 0);
 }

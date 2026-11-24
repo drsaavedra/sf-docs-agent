@@ -58,6 +58,8 @@ that, the printed output is the limit, not time.
   sites` means the page redirected to another domain, and `refused <url>` means the URL is not on the sites above:
   neither is evidence. `[fallback]` means the page's layout was not recognised and the text is the largest block on
   it, which can be one section of the article: quote it, but name the page in Gaps if the answer is not there.
+  `[nospec: <why>]` means a component reference page's attribute table did not render, and a `::component-specification`
+  line stands where it belongs: the page does not show that the component has no attributes, so name them in Gaps.
 - `--terms 'a,b'` (comma-separated, any case) prints, after the per-URL lines, each saved page's lines that hold a
   term, numbered, under `== <file>`, then the matching lines of its `.links.txt`. Past 20 lines (10 for links), those with
   the rarest terms win: add a term to narrow. A page of up to 40 lines and 4,000 chars prints whole,

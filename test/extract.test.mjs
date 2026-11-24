@@ -45,6 +45,33 @@ test('with no known container the fallback takes the block with the most text, o
   assert.equal(existsSync(`${r.file}.fallback`), true);
 });
 
+test('a listing of article cards is read whole, each card once, not as its first card', () => {
+  // Admin topic, tag and author pages: cards spread over several parents, no <main>, an article nested in one card.
+  const card = w => `<article><h2>${w} post</h2>${para(1, w)}</article>`;
+  const r = fetched('https://admin.salesforce.com/automation', `<title>Automation</title><div>${card('alpha')}${card('beta')}</div>
+    <div><article><h2>gamma post</h2>${para(1, 'gamma')}<article>${para(1, 'inner')}</article></article></div>`);
+  assert.match(r.out, /\[article\]/, r.out + r.err);
+  for (const w of ['alpha', 'beta', 'gamma']) assert.match(r.text, new RegExp(`${w} post`), r.text);
+  assert.equal(r.text.match(/inner/g).length, 20, r.text); // the nested article is read with its card, not again on its own
+});
+
+test('a post with related-post article cards is read as the post, and a hidden card is never read', () => {
+  const r = fetched(BLOG, `<title>Post</title><article style="display:none">${para(3, 'hiddenpromo')}</article><article>${para(14, 'postword')}</article>
+    <aside><article>${para(1, 'relatedone')}</article><article>${para(1, 'relatedtwo')}</article></aside>`);
+  assert.match(r.text, /postword/, r.out + r.err);
+  assert.doesNotMatch(r.text, /related|hiddenpromo/, r.text); // one long article holds most of the text: a post, not a listing
+  const list = fetched('https://admin.salesforce.com/automation', `<title>A</title><article>${para(1, 'cardone')}</article>
+    <article>${para(1, 'cardtwo')}</article><article style="display:none">${para(1, 'hiddencard')}</article>`);
+  assert.match(list.text, /cardone[\s\S]*cardtwo/, list.out + list.err);
+  assert.doesNotMatch(list.text, /hiddencard/, list.text);
+  const hidden = fetched(BLOG, `<title>P</title><article style="display:none">${para(3, 'hiddenonly')}</article><article>Short.</article>`);
+  assert.doesNotMatch(hidden.text, /hiddenonly/, hidden.out); // the visible cards are too short: never the hidden one
+  // A listing with a featured card is still a listing: every card is read.
+  const featured = fetched('https://admin.salesforce.com/automation', `<title>A</title><article>${para(1, 'cardone')}</article>
+    <article>${para(8, 'bigcard')}</article><article>${para(1, 'cardthree')}</article>`);
+  assert.match(featured.text, /cardone[\s\S]*bigcard[\s\S]*cardthree/, featured.text);
+});
+
 test('a block under the 1,500 character floor is a shell, not a page', () => {
   const r = fetched(BLOG, `<title>Post</title><div>${para(12, 'prose')}</div>`);
   assert.match(r.out, /not saved: shell, login or missing page/, r.out + r.err);

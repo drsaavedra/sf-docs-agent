@@ -74,7 +74,7 @@ const markMissing = t => {
 };
 // The page a person would open: developer serves .md twins at .html, architect at the bare path.
 const official = u => !u.pathname.endsWith('.md') ? u.href
-  : u.href.replace(/\.md$/, u.host === 'developer.salesforce.com' ? '.html' : '');
+  : u.href.replace(/\.md$/, u.host === 'developer.salesforce.com' ? '.html' : '').replace(/^(https:\/\/architect\.salesforce\.com\/)index$/, '$1');
 const SOURCE = /^Source: [^\n]*\n/;
 // An HTML app shell where text was expected (a .md path with no twin answers 200 with one).
 const isShell = b => /^\s*<(!doctype|html)/i.test(b);
@@ -320,10 +320,11 @@ if (args[0] === '--search') {
   console.log([...top.map(m => `${m.name}:${show(m)}`), ...(rest ? [`(${rest} more lower-ranked lines: add a term or --site to narrow)`] : [])].join('\n') || `no match in ${site || 'the cache'}`);
   process.exit(0);
 }
-// A scheme-less host would resolve as a developer.salesforce.com path; sitemap <loc> lines write & as &#38; or &amp;.
+// A scheme-less host would resolve as a developer.salesforce.com path; sitemap <loc> lines write & as &#38; or &amp;,
+// and .md pages escape link punctuation (\& \_), which a URL never holds.
 // Anything that is not an http(s) URL (a stray flag, 'https://', ftp:) is refused rather than crashing the call.
 const parse = a => {
-  const s = a.replace(/&(#38|amp);/g, '&'), v = /^([\w-]+\.)*(salesforce|lightningdesignsystem)\.com([/?]|$)/i.test(s) ? `https://${s}` : s;
+  const s = a.replace(/&(#38|amp);/g, '&').replace(/\\([!-/:-@[-`{-~])/g, '$1'), v = /^([\w-]+\.)*(salesforce|lightningdesignsystem)\.com([/?]|$)/i.test(s) ? `https://${s}` : s;
   if (s.startsWith('-') || !URL.canParse(v, 'https://developer.salesforce.com')) return null;
   const u = new URL(v, 'https://developer.salesforce.com');
   // lightningdesignsystem.com serves the same site as www., which the twin route and the cache prune expect.
@@ -343,9 +344,12 @@ const guide = p => p.match(/^\/docs\/atlas\.[^/]+\/([^/]+)(?:\/|$)/)?.[1];
 // an index, never saved under its name. A Help article renames it in ?id=, so only an article is trusted there.
 const words = p => p.replace(/\/$/, '').split('/').pop().replace(/\.(html?|md)$/, '').toLowerCase().split(/[_.-]+/).filter(Boolean);
 const landsElsewhere = (u, to) => {
+  // On any site, a deeper page that lands on the home page has no successor (old architect URLs do this).
+  if (to.pathname.replace(/\/$/, '') === '' && u.pathname.replace(/\/(index(\.html?)?)?$/, '') !== '') return true;
   if (!/\.html?$/.test(u.pathname) || !guide(u.pathname)) return false;
   if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.get('id')) return false;
-  const w = words(u.pathname).at(-1), ws = words(to.pathname);
+  // A guide's top page ends _top (cli_reference_top -> cli_reference): its name is the word before.
+  const own = words(u.pathname), w = own.at(-1) === 'top' && own.length > 1 ? own.at(-2) : own.at(-1), ws = words(to.pathname);
   // Consecutive slug words joined can spell it (content-document), with or without an s (apis).
   for (let i = 0; i < ws.length; i++) {
     let s = '';
@@ -360,10 +364,11 @@ const twinOf = u => {
   const tab = p.startsWith('/docs/platform/lightning-component-reference/') && [...u.searchParams.keys()].every(k => k === 'type');
   const has = (!u.search || tab) && !/\.(md|txt|xml|htm)$/.test(p) && (
     u.host === 'developer.salesforce.com' ? /^\/docs\/(?!atlas\.|component-library\/)[^/]+\/[^/]+\/[^/]+\/./.test(p)
-      : u.host === 'architect.salesforce.com' ? /^\/docs\/architect\/./.test(p)
+      : u.host === 'architect.salesforce.com' ? !/\.[^/]+$/.test(p) // any page (home as /index.md), not a file
         : u.host === 'www.lightningdesignsystem.com' && /^\/\w+\/(v\/\d+\/)?p\/./.test(p));
-  return has ? new URL(`${u.origin}${p}.md`) : null;
+  return has ? new URL(`${u.origin}${p || '/index'}.md`) : null;
 };
+const SPEC = /^::component-specification\{[^}\n]*\}$/m;
 const asked = new Map(); // twin href -> URL as given, rendered instead when the twin is missing
 // foo.html and foo are one page (one twin): fetch it once, and print 'same <arg> as <first arg>' for the others.
 const urls = [], sameAs = [], first = new Map();
@@ -411,17 +416,28 @@ function extract([sels, fallback]) {
   const text = el => !hosts.some(h => el.contains(h)) ? el.innerText || ''
     : deep(el).replace(/ +/g, ' ').replace(/ ?\t ?/g, '\t').replace(/^ | $|\t+$/gm, '').replace(/\n{2,}/g, '\n')
       .replace(/\u00a0/g, ' ').trim();
-  for (const s of sels) for (const r of roots) for (const el of r.querySelectorAll(s)) {
+  for (const s of sels) for (const r of roots) {
+    // Article cards (admin topic, tag and author pages) are all read, hidden ones never. One card over 2,000 chars with
+    // 60% of the text is a post beside related cards: that card alone.
+    if (s === 'article') {
+      const cards = [...r.querySelectorAll(s)].filter(a => !a.parentElement?.closest('article') && a.checkVisibility())
+        .map(a => (a.innerText || '').trim()).filter(Boolean), all = cards.reduce((n, c) => n + c.length, 0);
+      const big = cards.reduce((a, c) => c.length > a.length ? c : a, '');
+      if (all > 200) return { sel: s, text: page(big.length > 2000 && big.length >= all * 0.6 ? big : cards.join('\n\n')), links: list, pending: 0, hold: false };
+      continue;
+    }
+    for (const el of r.querySelectorAll(s)) {
     // Landmarks hold the site's nav components too, so their shadow trees stay out.
-    const mark = s === 'main' || s === 'article';
+    const mark = s === 'main';
     const t = mark ? el.innerText || '' : text(el);
     // 200 chars skips footer cards that also match div.body; doc-content holds only the topic, and some are one line.
     // pending: components inside it (code samples) not rendered yet. An API reference keeps empty hosts for good, so
     // it holds instead until an api-* documentation component exists.
     const amf = s === 'doc-amf-reference';
-    if (t.length > (s === 'doc-content' ? 20 : 200)) return { sel: s, text: page(t), links: list,
+    if (t.length > (s === 'doc-content' || s === 'doc-specification-content' ? 20 : 200)) return { sel: s, text: page(t), links: list,
       pending: mark || amf ? 0 : hosts.filter(h => under(el, h) && !h.shadowRoot.childElementCount).length,
       hold: amf && !hosts.some(h => h.tagName.startsWith('API-') && under(el, h)) };
+    }
   }
   // No known container (a layout change): take the block whose paragraphs hold the most text, outside nav and footers.
   // ponytail: 1,500-char floor keeps shells out (missing pages, Help's outage page: 400 to 1,200); a shorter article still fails.
@@ -558,7 +574,18 @@ try {
   const raw = todo.filter(u => /\.(md|txt|xml)$/.test(u.pathname) || /^\/apex\/Help_\w*SiteMap/i.test(u.pathname));
   const rendered = todo.filter(u => !raw.includes(u));
   // A twin that failed (some API reference pages have none) falls back to the URL as given, rendered at the end.
+  // A component page's .md holds a ::component-specification placeholder where its attribute table is: the read waits
+  // for one render of the Specification tab, which fills it in.
+  const specs = new Map(); // Specification tab URL -> the .md reads waiting for its table (one per argument)
+  const deferSpec = (r, md) => {
+    if (r.status !== 200 || r.elsewhere || !md.startsWith('/docs/platform/lightning-component-reference/') || !SPEC.test(r.body)) return false;
+    const at = `https://developer.salesforce.com${md.replace(/\.md$/, '.html')}?type=Specification`;
+    if (!specs.has(at)) { specs.set(at, []); rendered.push(new URL(at)); } // a read after the render queues it again
+    specs.get(at).push(r);
+    return true;
+  };
   const settle = r => {
+    if (deferSpec(r, new URL(r.key).pathname)) return;
     if (!asked.has(r.key) || (r.status === 200 && !r.shell)) return emit(r);
     if (missingTwin(r.status, r.body)) markMissing(new URL(r.key));
     const u = asked.get(r.key);
@@ -601,10 +628,31 @@ try {
 
   // Rendered: load, give client-side content up to 20 s to appear, then take the first matching container.
   for (const u of rendered) {
-    if (Date.now() >= deadline) { skip(u.href); continue; }
+    const spec = specs.get(u.href);
+    specs.delete(u.href);
+    // Saved as read, with a fallback marker so the next call fetches it again rather than serving it from cache.
+    const unfilled = why => spec.forEach(r => emit({ ...r, fallback: true, note: `${r.note} [nospec: ${why}]` }));
+    if (Date.now() >= deadline) { if (spec) unfilled('time limit'); else skip(u.href); continue; }
     const page = await browser.newPage();
     let navErr = '';
     const nav = await page.goto(u.href, { waitUntil: 'load', timeout: 45000 }).catch(e => { navErr = e.message.split('\n')[0]; return null; });
+    // The table renders in a shadow root after load: up to 20 s, as for any page. A miss keeps the .md as read.
+    if (spec) {
+      // Rows can arrive over several frames: take the table once 1 s of polls read the same, as the main loop does, or
+      // the last read at the cap.
+      let table = '', last = '', same = 0;
+      for (const end = Date.now() + 20000; !navErr && same < 2 && Date.now() < end; await page.waitForTimeout(500)) {
+        const got = await page.evaluate(extract, [['doc-specification-content'], false]).catch(() => null);
+        const t = got?.sel === 'doc-specification-content' && !got.pending ? got.text : '';
+        same = t && t === last ? same + 1 : 0;
+        last = t;
+      }
+      if (last) table = last.replace(/^# .*\n\n/, '').trim();
+      if (table) spec.forEach(r => emit({ ...r, body: r.body.replace(SPEC, () => table), note: `${r.note} [specification]` }));
+      else unfilled(navErr || 'no table');
+      await page.close();
+      continue;
+    }
     if (navErr) { emit({ p: u.href, status: 0, body: `error: ${navErr}`, key: u.href, note: '' }); await page.close(); continue; }
     // Old atlas URLs (and the LDS home) redirect to pages that have a .md twin: true once it is emitted. Any failure
     // (late navigation, body error, 15 s hang) keeps the rendered text and sets the note that says why.
@@ -621,8 +669,9 @@ try {
       const gone = !tw.why && missingTwin(tw.status, tw.body);
       if (gone) markMissing(moved);
       if (!tw.why && !gone && tw.status === 200) {
-        emit({ p: u.href, status: 200, body: tw.body, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]`,
-          elsewhere: landsElsewhere(u, to) }); // only once read: a redirect at load can be a stop on the way
+        const r = { p: u.href, status: 200, body: tw.body, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]`,
+          elsewhere: landsElsewhere(u, to) }; // only once read: a redirect at load can be a stop on the way
+        if (!deferSpec(r, moved.pathname)) emit(r);
         return true;
       }
       failed = ` [twin failed: ${tw.why || (gone ? (tw.status === 404 ? 'status 404' : isShell(tw.body) ? 'shell' : 'empty') : `status ${tw.status}`)}]`;

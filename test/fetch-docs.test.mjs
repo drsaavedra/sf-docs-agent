@@ -20,18 +20,21 @@ const run = (out, ...args) => {
   const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
   return { code: r.status, out: r.stdout, err: r.stderr };
 };
-// A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL -> { text, links, status, sel, to, first } (first: URL
-// before the render); raw: path -> body or { status, body }; twin: path -> { status, body } or { reject }; seed: cache file -> age in minutes.
-const STUB = `const { pages = {}, raw = {}, twin = {} } = JSON.parse(process.env.STUB);
+// A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL -> { text, links, status, sel, to, first, navErr }
+// (first: URL before the render; text: a string, or one per poll, the last repeating); raw: path -> body or { status, body }; twin: path -> { status, body } or { reject }; seed: cache file -> age in minutes.
+const STUB = `const { pages = {}, raw = {}, twin = {} } = JSON.parse(process.env.STUB), now = Date.now;
+let skew = 0; // waits advance the clock, so a 20 s render cap costs nothing
+Date.now = () => now() + skew;
 export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = '', seen = false; return {
-  goto: async u => { at = u; return { status: () => pages[u]?.status ?? 200 }; },
+  goto: async u => { at = u; if (pages[u]?.navErr) throw new Error(pages[u].navErr); return { status: () => pages[u]?.status ?? 200 }; },
   url: () => (!seen && pages[at]?.first) || pages[at]?.to || at,
-  waitForTimeout: async () => {}, close: async () => {},
+  waitForTimeout: async ms => { skew += ms; }, close: async () => {},
   evaluate: async (f, a) => {
     if (typeof a === 'string') { console.error('twin read'); if (twin[a].reject) throw new Error(twin[a].reject); return twin[a]; }
     if (a.length === 3) return a[0].map(p => ({ p, ...(typeof raw[p] === 'object' ? raw[p] : { status: 200, body: raw[p] }) }));
     console.error('rendered'); seen = true;
-    return { sel: pages[at].sel ?? 'div.body', text: pages[at].text, links: pages[at].links ?? '', pending: 0 };
+    const t = pages[at].text, n = pages[at].n = (pages[at].n ?? -1) + 1;
+    return { sel: pages[at].sel ?? 'div.body', text: Array.isArray(t) ? t[Math.min(n, t.length - 1)] : t, links: pages[at].links ?? '', pending: 0 };
   } }; } }) };`;
 function fetched(stub, ...args) {
   return withStub(STUB, { ...stub.env, STUB: JSON.stringify(stub) }, out => {
@@ -308,6 +311,15 @@ test('a spent budget skips pages without starting the browser', () => {
     { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
   assert.doesNotMatch(r.stderr, /BLOCKED/);
   assert.match(r.stdout, /^not fetched \(time limit\) /m);
+});
+
+test('a link copied from a .md page with its markdown escapes is the page it names', () => {
+  // New docs .md pages write Help links as ...htm\&type=5 and atlas guides as pkg2\_dev; a backslash is never part of a URL.
+  const r = spawnSync(process.execPath, [SCRIPT, '--out', cache({}), '--budget', '0',
+    'https://help.salesforce.com/s/articleView?id=sf.remoteaccess.htm\\&type=5',
+    'https://developer.salesforce.com/docs/atlas.en-us.pkg2\\_dev.meta/pkg2\\_dev/sfdx_dev_dev2gp.htm'], { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
+  assert.match(r.stdout, /^not fetched \(time limit\) https:\/\/help\.salesforce\.com\/s\/articleView\?id=sf\.remoteaccess\.htm&type=5$/m, r.stdout);
+  assert.match(r.stdout, /^not fetched \(time limit\) https:\/\/developer\.salesforce\.com\/docs\/atlas\.en-us\.pkg2_dev\.meta\/pkg2_dev\/sfdx_dev_dev2gp\.htm$/m, r.stdout);
 });
 
 test('a call whose every URL is refused exits 1, so a chained command stops', () => {
@@ -761,8 +773,40 @@ test('an atlas topic that lands on a different page is not saved, and is not ren
   assert.doesNotMatch(r.err, /rendered/, r.err);
 });
 
+test('an architect page outside /docs reads its .md, and the home page reads /index.md', () => {
+  // Rendered, these section pages are columns of cards and the first card was read as the page.
+  for (const [u, md] of [['https://architect.salesforce.com/diagrams', '/diagrams.md'], ['https://architect.salesforce.com/', '/index.md']]) {
+    const r = fetched({ pages: { [u]: { sel: 'article', text: 'The first card.' } }, raw: { [md]: '# Diagrams\n\nEvery diagram, listed.' } }, u);
+    assert.match(r.out, new RegExp(`^200 \\d+ ${md.replace('.', '\\.')} -> architect\\.salesforce\\.com`, 'm'), r.out + r.err);
+    // The Source line names the page a person opens: the home page is /, not /index.
+    assert.equal(readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8').split('\n')[0], `Source: ${u}`);
+  }
+});
+
+test('an architect file URL is fetched as itself, with no .md copy tried', () => {
+  const pdf = 'https://architect.salesforce.com/content/some-diagram.pdf';
+  const r = fetched({ pages: { [pdf]: { text: 'The diagram as text.' } } }, pdf);
+  assert.match(r.out, /some-diagram\.pdf \[div\.body\] -> /, r.out + r.err);
+});
+
+test('an index.html that lands on its site home page is the same page, and is saved', () => {
+  const u = 'https://v1.lightningdesignsystem.com/index.html';
+  const r = fetched({ pages: { [u]: { text: 'The design system home.', to: 'https://v1.lightningdesignsystem.com/' } } }, u);
+  assert.doesNotMatch(r.out, /not saved/, r.out + r.err);
+});
+
+test('a page that redirects to its site home page is not saved under its own name', () => {
+  // Old architect URLs (well-architected/trusted/secure) land on the home page with status 200.
+  const u = 'https://architect.salesforce.com/well-architected/trusted/secure';
+  const r = fetched({ pages: { [u]: { text: 'Read the blog.', to: 'https://architect.salesforce.com/' } },
+    raw: { '/well-architected/trusted/secure.md': { status: 404, body: 'Not Found' } },
+    twin: { '/index.md': { status: 200, body: '# Home\n\nRead the blog.' } } }, u);
+  assert.match(r.out, /\[redirected https:\/\/architect\.salesforce\.com\/[^\]]*\] not saved: landed on another page/, r.out);
+  assert.equal(existsSync(join(r.cache, 'architect.salesforce.com/well-architected/trusted/secure.txt')), false, r.out);
+});
+
 test('an atlas topic renamed on the new docs is read as its twin', () => {
-  for (const [topic, to] of [['sforce_api_objects_account', 'object-account'], ['index-api', 'apis-overview'], ['sforce_api_objects_contentdocument', 'object-content-document'], ['sforce_api_objects_case', 'object-case/']]) {
+  for (const [topic, to] of [['sforce_api_objects_account', 'object-account'], ['index-api', 'apis-overview'], ['sforce_api_objects_contentdocument', 'object-content-document'], ['sforce_api_objects_case', 'object-case/'], ['cli_reference_top', 'cli_reference']]) {
     const page = `https://developer.salesforce.com/docs/platform/x/guide/${to}${to.endsWith('/') ? '' : '.html'}`;
     const r = fetched({ pages: { [`${ATLAS}/${topic}.htm`]: { text: 'Rendered.', to: page } }, twin: { [`/docs/platform/x/guide/${to.replace(/\/$/, '')}.md`]: { status: 200, body: '# Page\n\nThe twin text.' } } }, `${ATLAS}/${topic}.htm`);
     assert.match(readFileSync(atlasFile(r, topic), 'utf8'), /The twin text\./, r.out);
@@ -814,6 +858,74 @@ test('a live refusal removes a copy cached before the check', () => {
   assert.match(r.out, /not saved: landed on another page/, r.out);
   assert.doesNotMatch(r.out, /\(cached\)/, r.out);
   for (const x of [f, `${f}.links.txt`, `${f}.fallback`]) assert.equal(existsSync(join(r.cache, x)), false, `${x}\n${r.out}`);
+});
+
+test('a component page .md gets its attribute table from the rendered Specification tab', () => {
+  // The .md holds a ::component-specification placeholder where the Specification tab's table is.
+  const base = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button';
+  const spec = `${base}.html?type=Specification`, md = '/docs/platform/lightning-component-reference/guide/lightning-button.md';
+  const old = 'https://developer.salesforce.com/docs/component-library/bundle/lightning-button/documentation';
+  const body = '# Button\n\n:::tab\n::component-specification{component="button" model="lwc" namespace="lightning"}\n:::\n';
+  const pages = { [spec]: { sel: 'doc-specification-content', text: '# Button\n\nAttributes\nName\tDescription\nstretch\tTakes the full width.\n' } };
+  for (const r of [fetched({ pages, raw: { [md]: body } }, `${base}.html?type=Develop`), fetched({ pages, raw: { [md]: body } }, `https://developer.salesforce.com${md}`),
+    // Reached by a redirect from the old component-library URL too.
+    fetched({ pages: { ...pages, [old]: { text: 'Old.', to: `${base}.html?type=Example` } }, twin: { [md]: { status: 200, body } } }, old)]) {
+    assert.match(r.out, /\[specification\] -> /, r.out + r.err);
+    const saved = readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8');
+    assert.match(saved, /stretch\tTakes the full width\./, saved);
+    assert.doesNotMatch(saved, /::component-specification|# Button\n\nAttributes/, saved); // placeholder and the render's title line gone
+  }
+});
+
+test('a Specification tab that does not render keeps the .md, marked to be fetched again', () => {
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', body = '# Input\n\n::component-specification{component="input"}\n';
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { navErr: 'net::ERR_TIMED_OUT' } }, raw: { [md]: body } }, `https://developer.salesforce.com${md}`);
+  assert.match(r.out, /\[nospec: net::ERR_TIMED_OUT\] -> /, r.out + r.err);
+  const file = join(r.cache, r.out.match(/ -> (\S+)/)[1]);
+  assert.match(readFileSync(file, 'utf8'), /::component-specification/); // the page as read, placeholder and all
+  assert.equal(existsSync(`${file}.fallback`), true); // not served from cache as a full page
+});
+
+test('an attribute table is taken once it stops growing, not at its first rows', () => {
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', row = n => `attr${n}\tAn attribute that the tab renders.`;
+  const grow = [1, 2, 3].map(n => `# I\n\n${[1, 2, 3].slice(0, n).map(row).join('\n')}`);
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { sel: 'doc-specification-content', text: grow } }, raw: { [md]: '# Input\n\n::component-specification{component="input"}\n' } }, `https://developer.salesforce.com${md}`);
+  assert.match(readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8'), /attr3\t/, r.out);
+});
+
+test('an attribute table that pauses between rows, or never settles, is taken whole', () => {
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', row = n => `attr${n}\tAn attribute that the tab renders.`;
+  const table = n => `# I\n\n${Array.from({ length: n }, (_, i) => row(i + 1)).join('\n')}`;
+  const read = text => { const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { sel: 'doc-specification-content', text } }, raw: { [md]: '# Input\n\n::component-specification{component="input"}\n' } }, `https://developer.salesforce.com${md}`);
+    return [r.out, readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8')]; };
+  const [, paused] = read([table(1), table(1), table(3)]); // one repeat is a pause, not the end
+  assert.match(paused, /attr3\t/, paused);
+  const [out, growing] = read(Array.from({ length: 60 }, (_, i) => table(i + 1))); // still growing at the 20 s cap
+  assert.match(out, /\[specification\]/, out);
+  assert.match(growing, /attr40\t/, growing);
+});
+
+test('an attribute table with $ in it is saved as written', () => {
+  // replace() reads $& $' $` $$ in a replacement string as patterns.
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', table = "format\tShows '$' or $& as typed, and $$.";
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { sel: 'doc-specification-content', text: `# I\n\n${table}` } }, raw: { [md]: '# Input\n\n::component-specification{component="input"}\nAfter.\n' } }, `https://developer.salesforce.com${md}`);
+  const saved = readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8');
+  assert.ok(saved.includes(`${table}\nAfter.`), saved);
+});
+
+test('two reads waiting on one Specification tab both get its table', () => {
+  // The .md path and the old component-library URL are different arguments for the same page.
+  const base = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button';
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-button.md';
+  const old = 'https://developer.salesforce.com/docs/component-library/bundle/lightning-button/documentation';
+  const body = '# Button\n\n::component-specification{component="button" model="lwc" namespace="lightning"}\n';
+  const r = fetched({ pages: { [`${base}.html?type=Specification`]: { sel: 'doc-specification-content', text: '# B\n\nstretch\tFull width.' },
+    [old]: { text: 'Old.', to: `${base}.html?type=Example` } }, raw: { [md]: body }, twin: { [md]: { status: 200, body } } }, `https://developer.salesforce.com${md}`, old);
+  assert.equal((r.out.match(/^200 .*\[specification\]/gm) ?? []).length, 2, r.out + r.err); // the second as a duplicate-of the first
 });
 
 test('a component page that opens on a ?type= tab reads its .md, which holds every tab', () => {

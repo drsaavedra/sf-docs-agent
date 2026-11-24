@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { HELP_CHILD, HELP_INDEX, URLS, drifted, moved, parse, products, retry, unfit } from '../site-check/site-check.mjs';
+import { HELP_CHILD, HELP_INDEX, URLS, drifted, moved, parse, products, retry, targets, unfit } from '../site-check/site-check.mjs';
 import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -45,6 +45,14 @@ test('a fallback read, a failed fetch or an unsaved article is no baseline; a pa
   // a missing atlas topic now answers 404 and is not saved, which is the result it must keep giving
   const missing = { status: 404, chars: 38, kinds: 'body redirected twin failed:', saved: false };
   assert.equal(unfit(missing, 'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm'), false);
+});
+
+test('a component page whose Specification tab did not render is drift', () => {
+  const u = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification';
+  const at = note => parse([u], `200 14675 /docs/platform/lightning-component-reference/guide/lightning-button.md ${note} -> a.md`)[u];
+  assert.equal(drifted(at('[specification]'), at('[specification]')), false);
+  assert.equal(drifted(at('[specification]'), at('[nospec: no table]')), true);
+  assert.deepEqual([unfit(at('[nospec: no table]'), u), unfit(at('[specification]'), u)], [true, false]); // never a baseline
 });
 
 test('a raw line is matched back to its URL, including the .md copy fetched in its place', () => {
@@ -133,6 +141,14 @@ test('a run hands parse its out dir, so a Help page counts its article links', a
   assert.equal(run([HELP])[HELP].links, 1);
 });
 
+test('a run with no URLs starts no fetch, and the check fetches URLS plus the indexes llms.txt lists', async () => {
+  const { dir, run, failure } = await copy();
+  rmSync(join(dir, 'fetch-docs.mjs')); // a started fetch would fail on the missing script
+  assert.deepEqual([run([]), failure()], [{}, '']);
+  assert.deepEqual(targets({ indexes: ['/docs/llms-platform.txt', '/docs/llms-x.txt'] }), [...URLS, 'https://developer.salesforce.com/docs/llms-x.txt']);
+  assert.deepEqual(targets(undefined), URLS);
+});
+
 test('a later run that fetches cleanly drops the failure the first one recorded', async t => {
   const { dir, run, failure } = await copy();
   t.mock.method(console, 'error', () => {});
@@ -196,6 +212,8 @@ test('the guides a product index links to are pinned, its pages are not', () => 
   assert.equal(drifted(was, read(`- [A](${D}/platform/connect-rest-api/guide/c.md#x)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/d.htm)\n`)), false);
   const grown = read(`- [A](${D}/platform/connect-rest-api/guide/a.md)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/b.htm)\n- [U](${D}/platform/user-interface/guide/u.md)\n`);
   assert.deepEqual([drifted(was, grown), moved(was, grown)], [true, '+/docs/platform/user-interface/guide']);
+  // A relative link counts as its absolute form does, as llms.txt's own index links do.
+  assert.deepEqual(read(`- [R](/docs/platform/connect-rest-api/guide/r.md)\n- [B](${D}/atlas.en-us.apexcode.meta/apexcode/b.htm)\n`).guides, was.guides);
   // A product one folder under /docs (mytrust-api) is one guide, so its next page is not drift either.
   const short = read(`- [O](${D}/mytrust-api/overview.md)\n`);
   assert.deepEqual([short.guides, drifted(short, read(`- [O](${D}/mytrust-api/overview.md)\n- [N](${D}/mytrust-api/new.md)\n`))], [['/docs/mytrust-api'], false]);

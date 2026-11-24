@@ -936,8 +936,34 @@
   },
   "https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification": {
     "status": 200,
-    "chars": 12984,
+    "chars": 14675,
+    "kinds": "specification",
+    "saved": true
+  },
+  "https://admin.salesforce.com/automation": {
+    "status": 200,
+    "chars": 3143,
+    "kinds": "article",
+    "saved": true
+  },
+  "https://architect.salesforce.com/diagrams": {
+    "status": 200,
+    "chars": 9644,
     "kinds": "",
     "saved": true
+  },
+  "https://architect.salesforce.com/well-architected/trusted/secure": {
+    "status": 200,
+    "chars": 15493,
+    "kinds": "twin redirected redirected",
+    "saved": false,
+    "to": "https://architect.salesforce.com/"
+  },
+  "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integ_pat_intro_overview.htm": {
+    "status": 200,
+    "chars": 152098,
+    "kinds": "twin redirected redirected",
+    "saved": false,
+    "to": "https://architect.salesforce.com/docs/architect/fundamentals/guide/integration-patterns"
   }
 }
