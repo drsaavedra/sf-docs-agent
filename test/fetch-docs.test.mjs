@@ -20,18 +20,19 @@ const run = (out, ...args) => {
   const r = spawnSync(process.execPath, [SCRIPT, '--out', out, ...args], { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
   return { code: r.status, out: r.stdout, err: r.stderr };
 };
-// A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL -> { text, links, status, sel, to, first } (first: URL
-// before the render); raw: path -> body or { status, body }; twin: path -> { status, body } or { reject }; seed: cache file -> age in minutes.
+// A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL -> { text, links, status, sel, to, first, navErr }
+// (first: URL before the render; text: a string, or one per poll, the last repeating); raw: path -> body or { status, body }; twin: path -> { status, body } or { reject }; seed: cache file -> age in minutes.
 const STUB = `const { pages = {}, raw = {}, twin = {} } = JSON.parse(process.env.STUB);
 export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = '', seen = false; return {
-  goto: async u => { at = u; return { status: () => pages[u]?.status ?? 200 }; },
+  goto: async u => { at = u; if (pages[u]?.navErr) throw new Error(pages[u].navErr); return { status: () => pages[u]?.status ?? 200 }; },
   url: () => (!seen && pages[at]?.first) || pages[at]?.to || at,
   waitForTimeout: async () => {}, close: async () => {},
   evaluate: async (f, a) => {
     if (typeof a === 'string') { console.error('twin read'); if (twin[a].reject) throw new Error(twin[a].reject); return twin[a]; }
     if (a.length === 3) return a[0].map(p => ({ p, ...(typeof raw[p] === 'object' ? raw[p] : { status: 200, body: raw[p] }) }));
     console.error('rendered'); seen = true;
-    return { sel: pages[at].sel ?? 'div.body', text: pages[at].text, links: pages[at].links ?? '', pending: 0 };
+    const t = pages[at].text, n = pages[at].n = (pages[at].n ?? -1) + 1;
+    return { sel: pages[at].sel ?? 'div.body', text: Array.isArray(t) ? t[Math.min(n, t.length - 1)] : t, links: pages[at].links ?? '', pending: 0 };
   } }; } }) };`;
 function fetched(stub, ...args) {
   return withStub(STUB, { ...stub.env, STUB: JSON.stringify(stub) }, out => {
@@ -858,6 +859,17 @@ test('a component page .md gets its attribute table from the rendered Specificat
     assert.match(saved, /stretch\tTakes the full width\./, saved);
     assert.doesNotMatch(saved, /::component-specification|# Button\n\nAttributes/, saved); // placeholder and the render's title line gone
   }
+});
+
+test('two reads waiting on one Specification tab both get its table', () => {
+  // The .md path and the old component-library URL are different arguments for the same page.
+  const base = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button';
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-button.md';
+  const old = 'https://developer.salesforce.com/docs/component-library/bundle/lightning-button/documentation';
+  const body = '# Button\n\n::component-specification{component="button" model="lwc" namespace="lightning"}\n';
+  const r = fetched({ pages: { [`${base}.html?type=Specification`]: { sel: 'doc-specification-content', text: '# B\n\nstretch\tFull width.' },
+    [old]: { text: 'Old.', to: `${base}.html?type=Example` } }, raw: { [md]: body }, twin: { [md]: { status: 200, body } } }, `https://developer.salesforce.com${md}`, old);
+  assert.equal((r.out.match(/^200 .*\[specification\]/gm) ?? []).length, 2, r.out + r.err); // the second as a duplicate-of the first
 });
 
 test('a component page that opens on a ?type= tab reads its .md, which holds every tab', () => {

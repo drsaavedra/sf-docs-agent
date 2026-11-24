@@ -567,12 +567,12 @@ try {
   // A twin that failed (some API reference pages have none) falls back to the URL as given, rendered at the end.
   // A component page's .md holds a ::component-specification placeholder where its attribute table is: the read waits
   // for one render of the Specification tab, which fills it in.
-  const specs = new Map(); // Specification tab URL -> the .md read waiting for its table
+  const specs = new Map(); // Specification tab URL -> the .md reads waiting for its table (one per argument)
   const deferSpec = (r, md) => {
     if (r.status !== 200 || r.elsewhere || !md.startsWith('/docs/platform/lightning-component-reference/') || !SPEC.test(r.body)) return false;
     const at = `https://developer.salesforce.com${md.replace(/\.md$/, '.html')}?type=Specification`;
-    if (!specs.has(at)) rendered.push(new URL(at));
-    specs.set(at, r);
+    if (!specs.has(at)) { specs.set(at, []); rendered.push(new URL(at)); } // a read after the render queues it again
+    specs.get(at).push(r);
     return true;
   };
   const settle = r => {
@@ -619,7 +619,9 @@ try {
 
   // Rendered: load, give client-side content up to 20 s to appear, then take the first matching container.
   for (const u of rendered) {
-    const spec = specs.get(u.href), unfilled = why => emit({ ...spec, note: `${spec.note} [no specification: ${why}]` });
+    const spec = specs.get(u.href);
+    specs.delete(u.href);
+    const unfilled = why => spec.forEach(r => emit({ ...r, note: `${r.note} [no specification: ${why}]` }));
     if (Date.now() >= deadline) { if (spec) unfilled('time limit'); else skip(u.href); continue; }
     const page = await browser.newPage();
     let navErr = '';
@@ -631,7 +633,7 @@ try {
         const got = await page.evaluate(extract, [['doc-specification-content'], false]).catch(() => null);
         if (got?.sel === 'doc-specification-content' && !got.pending) table = got.text.replace(/^# .*\n\n/, '').trim();
       }
-      if (table) emit({ ...spec, body: spec.body.replace(SPEC, table), note: `${spec.note} [specification]` });
+      if (table) spec.forEach(r => emit({ ...r, body: r.body.replace(SPEC, table), note: `${r.note} [specification]` }));
       else unfilled(navErr || 'no table');
       await page.close();
       continue;
