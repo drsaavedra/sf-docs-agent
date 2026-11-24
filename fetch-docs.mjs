@@ -348,7 +348,8 @@ const landsElsewhere = (u, to) => {
   if (to.pathname.replace(/\/$/, '') === '' && u.pathname.replace(/\/$/, '') !== '') return true;
   if (!/\.html?$/.test(u.pathname) || !guide(u.pathname)) return false;
   if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.get('id')) return false;
-  const w = words(u.pathname).at(-1), ws = words(to.pathname);
+  // A guide's top page ends _top (cli_reference_top -> cli_reference): its name is the word before.
+  const own = words(u.pathname), w = own.at(-1) === 'top' && own.length > 1 ? own.at(-2) : own.at(-1), ws = words(to.pathname);
   // Consecutive slug words joined can spell it (content-document), with or without an s (apis).
   for (let i = 0; i < ws.length; i++) {
     let s = '';

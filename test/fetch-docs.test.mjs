@@ -789,7 +789,7 @@ test('a page that redirects to its site home page is not saved under its own nam
 });
 
 test('an atlas topic renamed on the new docs is read as its twin', () => {
-  for (const [topic, to] of [['sforce_api_objects_account', 'object-account'], ['index-api', 'apis-overview'], ['sforce_api_objects_contentdocument', 'object-content-document'], ['sforce_api_objects_case', 'object-case/']]) {
+  for (const [topic, to] of [['sforce_api_objects_account', 'object-account'], ['index-api', 'apis-overview'], ['sforce_api_objects_contentdocument', 'object-content-document'], ['sforce_api_objects_case', 'object-case/'], ['cli_reference_top', 'cli_reference']]) {
     const page = `https://developer.salesforce.com/docs/platform/x/guide/${to}${to.endsWith('/') ? '' : '.html'}`;
     const r = fetched({ pages: { [`${ATLAS}/${topic}.htm`]: { text: 'Rendered.', to: page } }, twin: { [`/docs/platform/x/guide/${to.replace(/\/$/, '')}.md`]: { status: 200, body: '# Page\n\nThe twin text.' } } }, `${ATLAS}/${topic}.htm`);
     assert.match(readFileSync(atlasFile(r, topic), 'utf8'), /The twin text\./, r.out);
