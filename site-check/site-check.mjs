@@ -50,11 +50,19 @@ export const URLS = [
   'https://help.salesforce.com/s/articleView?id=sf.ev_relay_intro.htm&type=5',
   'https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5',
   'https://admin.salesforce.com/blog/2025/get-ready-for-changes-to-connected-app-usage-restrictions',
+  'https://admin.salesforce.com/automation', // a listing of article cards, read whole
+  'https://architect.salesforce.com/diagrams', // an architect section page, read as its .md
+  // Redirects that must keep being refused: an old architect URL lands on the home page, and every Integration
+  // Patterns topic lands on one architect page under another name.
+  'https://architect.salesforce.com/well-architected/trusted/secure',
+  'https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integ_pat_intro_overview.htm',
   'https://www.lightningdesignsystem.com/',
   'https://v1.lightningdesignsystem.com/components/toast/',
 ];
 // The pages that must keep being refused: any other unsaved result is an outage, not a reference.
 const SHELLS = new Set(['https://developer.salesforce.com/docs/apis',
+  'https://architect.salesforce.com/well-architected/trusted/secure',
+  'https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integ_pat_intro_overview.htm',
   'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm',
   'https://help.salesforce.com/s/articleView?id=platform.no_such_article_xyz.htm&type=5']);
 // Interim band until two sweeps a day apart measure real wording churn: a lost article or a nav-only read moves chars
