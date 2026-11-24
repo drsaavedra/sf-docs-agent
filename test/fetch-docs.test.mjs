@@ -310,6 +310,15 @@ test('a spent budget skips pages without starting the browser', () => {
   assert.match(r.stdout, /^not fetched \(time limit\) /m);
 });
 
+test('a link copied from a .md page with its markdown escapes is the page it names', () => {
+  // New docs .md pages write Help links as ...htm\&type=5 and atlas guides as pkg2\_dev; a backslash is never part of a URL.
+  const r = spawnSync(process.execPath, [SCRIPT, '--out', cache({}), '--budget', '0',
+    'https://help.salesforce.com/s/articleView?id=sf.remoteaccess.htm\\&type=5',
+    'https://developer.salesforce.com/docs/atlas.en-us.pkg2\\_dev.meta/pkg2\\_dev/sfdx_dev_dev2gp.htm'], { encoding: 'utf8', env: { ...process.env, ...NO_BROWSER } });
+  assert.match(r.stdout, /^not fetched \(time limit\) https:\/\/help\.salesforce\.com\/s\/articleView\?id=sf\.remoteaccess\.htm&type=5$/m, r.stdout);
+  assert.match(r.stdout, /^not fetched \(time limit\) https:\/\/developer\.salesforce\.com\/docs\/atlas\.en-us\.pkg2_dev\.meta\/pkg2_dev\/sfdx_dev_dev2gp\.htm$/m, r.stdout);
+});
+
 test('a call whose every URL is refused exits 1, so a chained command stops', () => {
   assert.equal(run(cache({}), 'https://example.com/x', 'https://trailhead.salesforce.com/y').code, 1);
   assert.equal(run(cache({ 'developer.salesforce.com/docs/a/b/c/page.md': 'ok' }), 'https://example.com/x', '/docs/a/b/c/page.md').code, 0);

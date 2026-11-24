@@ -320,10 +320,11 @@ if (args[0] === '--search') {
   console.log([...top.map(m => `${m.name}:${show(m)}`), ...(rest ? [`(${rest} more lower-ranked lines: add a term or --site to narrow)`] : [])].join('\n') || `no match in ${site || 'the cache'}`);
   process.exit(0);
 }
-// A scheme-less host would resolve as a developer.salesforce.com path; sitemap <loc> lines write & as &#38; or &amp;.
+// A scheme-less host would resolve as a developer.salesforce.com path; sitemap <loc> lines write & as &#38; or &amp;,
+// and .md pages escape link punctuation (\& \_), which a URL never holds.
 // Anything that is not an http(s) URL (a stray flag, 'https://', ftp:) is refused rather than crashing the call.
 const parse = a => {
-  const s = a.replace(/&(#38|amp);/g, '&'), v = /^([\w-]+\.)*(salesforce|lightningdesignsystem)\.com([/?]|$)/i.test(s) ? `https://${s}` : s;
+  const s = a.replace(/&(#38|amp);/g, '&').replace(/\\([!-/:-@[-`{-~])/g, '$1'), v = /^([\w-]+\.)*(salesforce|lightningdesignsystem)\.com([/?]|$)/i.test(s) ? `https://${s}` : s;
   if (s.startsWith('-') || !URL.canParse(v, 'https://developer.salesforce.com')) return null;
   const u = new URL(v, 'https://developer.salesforce.com');
   // lightningdesignsystem.com serves the same site as www., which the twin route and the cache prune expect.
