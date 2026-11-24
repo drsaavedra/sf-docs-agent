@@ -776,6 +776,8 @@ test('an architect page outside /docs reads its .md, and the home page reads /in
   for (const [u, md] of [['https://architect.salesforce.com/diagrams', '/diagrams.md'], ['https://architect.salesforce.com/', '/index.md']]) {
     const r = fetched({ pages: { [u]: { sel: 'article', text: 'The first card.' } }, raw: { [md]: '# Diagrams\n\nEvery diagram, listed.' } }, u);
     assert.match(r.out, new RegExp(`^200 \\d+ ${md.replace('.', '\\.')} -> architect\\.salesforce\\.com`, 'm'), r.out + r.err);
+    // The Source line names the page a person opens: the home page is /, not /index.
+    assert.equal(readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8').split('\n')[0], `Source: ${u}`);
   }
 });
 

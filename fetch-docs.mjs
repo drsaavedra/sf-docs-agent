@@ -74,7 +74,7 @@ const markMissing = t => {
 };
 // The page a person would open: developer serves .md twins at .html, architect at the bare path.
 const official = u => !u.pathname.endsWith('.md') ? u.href
-  : u.href.replace(/\.md$/, u.host === 'developer.salesforce.com' ? '.html' : '');
+  : u.href.replace(/\.md$/, u.host === 'developer.salesforce.com' ? '.html' : '').replace(/^(https:\/\/architect\.salesforce\.com\/)index$/, '$1');
 const SOURCE = /^Source: [^\n]*\n/;
 // An HTML app shell where text was expected (a .md path with no twin answers 200 with one).
 const isShell = b => /^\s*<(!doctype|html)/i.test(b);
