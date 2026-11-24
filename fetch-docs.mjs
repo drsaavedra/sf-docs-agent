@@ -621,7 +621,8 @@ try {
   for (const u of rendered) {
     const spec = specs.get(u.href);
     specs.delete(u.href);
-    const unfilled = why => spec.forEach(r => emit({ ...r, note: `${r.note} [no specification: ${why}]` }));
+    // Saved as read, with a fallback marker so the next call fetches it again rather than serving it from cache.
+    const unfilled = why => spec.forEach(r => emit({ ...r, fallback: true, note: `${r.note} [nospec: ${why}]` }));
     if (Date.now() >= deadline) { if (spec) unfilled('time limit'); else skip(u.href); continue; }
     const page = await browser.newPage();
     let navErr = '';

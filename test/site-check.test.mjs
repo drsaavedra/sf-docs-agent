@@ -51,7 +51,8 @@ test('a component page whose Specification tab did not render is drift', () => {
   const u = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification';
   const at = note => parse([u], `200 14675 /docs/platform/lightning-component-reference/guide/lightning-button.md ${note} -> a.md`)[u];
   assert.equal(drifted(at('[specification]'), at('[specification]')), false);
-  assert.equal(drifted(at('[specification]'), at('[no specification: no table]')), true);
+  assert.equal(drifted(at('[specification]'), at('[nospec: no table]')), true);
+  assert.deepEqual([unfit(at('[nospec: no table]'), u), unfit(at('[specification]'), u)], [true, false]); // never a baseline
 });
 
 test('a raw line is matched back to its URL, including the .md copy fetched in its place', () => {

@@ -162,7 +162,7 @@ export const drifted = (was, now) => !was || !now || now.status !== was.status |
   || now.lists !== was.lists || (was.saved && was.chars > 0 && (now.chars < was.chars * BAND[0] || now.chars > was.chars * BAND[1]));
 
 // An outage page or a fallback read must never become the reference every later run is measured against.
-export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
+export const unfit = (r, u) => r.status === 0 || r.kinds.includes('fallback') || r.kinds.includes('nospec') || r.links === 0 || r.indexes === null || r.indexes?.length === 0
   || r.guides === null || r.guides?.length === 0
   || r.lists === false || r.lists === 0 || r.lists === null || (!r.saved && !SHELLS.has(u));
 

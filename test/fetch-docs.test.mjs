@@ -861,6 +861,16 @@ test('a component page .md gets its attribute table from the rendered Specificat
   }
 });
 
+test('a Specification tab that does not render keeps the .md, marked to be fetched again', () => {
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', body = '# Input\n\n::component-specification{component="input"}\n';
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { navErr: 'net::ERR_TIMED_OUT' } }, raw: { [md]: body } }, `https://developer.salesforce.com${md}`);
+  assert.match(r.out, /\[nospec: net::ERR_TIMED_OUT\] -> /, r.out + r.err);
+  const file = join(r.cache, r.out.match(/ -> (\S+)/)[1]);
+  assert.match(readFileSync(file, 'utf8'), /::component-specification/); // the page as read, placeholder and all
+  assert.equal(existsSync(`${file}.fallback`), true); // not served from cache as a full page
+});
+
 test('an attribute table with $ in it is saved as written', () => {
   // replace() reads $& $' $` $$ in a replacement string as patterns.
   const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', table = "format\tShows '$' or $& as typed, and $$.";
