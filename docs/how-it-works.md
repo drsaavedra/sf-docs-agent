@@ -47,9 +47,10 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 | developer.salesforce.com, atlas docs that still render (Connect REST API) | renders the page, code samples included | the product's index |
 | developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
 | developer.salesforce.com, OpenAPI reference pages (`/references/<api>`, where UI API's atlas reference redirects) | renders the whole API as one page and drops a `#tag/.../operation/...` fragment; the operation is found by searching the saved page | the product's index |
-| architect.salesforce.com | the `.md` copy | `/llms.txt` |
+| developer.salesforce.com, component reference pages | the `.md` copy, with the attribute table from the rendered Specification tab | the product's index |
+| architect.salesforce.com | the `.md` copy, also for section pages and the home page (`/index.md`) | `/llms.txt` |
 | help.salesforce.com, articles and knowledge articles | renders the page | links in other docs and articles, and Help's product sitemaps |
-| admin.salesforce.com | renders the page | `/sitemap_index.xml` and its post sitemaps |
+| admin.salesforce.com | renders the page; a topic, tag or author page gives all its post cards | `/sitemap_index.xml` and its post sitemaps |
 | lightningdesignsystem.com (SLDS 2) | the `.md` copy | the home page's link list |
 | v1.lightningdesignsystem.com (SLDS 1) | renders the page | the home page's link list |
 
@@ -59,6 +60,13 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   article text by where it sits on the page. If Salesforce changes a layout, it reads the largest block of text instead,
   which can be one section of the article, and an article under 1,500 characters can't be read. A daily check in this
   repo flags the change.
+- Some content is not text. The agent cannot read the live example on a component reference page. SLDS 2 keeps its
+  icon list and its component markup on separate herokuapp and Storybook sites, which the agent does not read. On a
+  page that is only a diagram image, such as a data model page, the agent reads only the alt text.
+- Some old links go to a page with a different name. All old Integration Patterns links go to one architect page, and
+  an old architect URL can go to the home page. The script does not save these pages under the old name. It names the
+  page where the link went, and the agent reads that page if it holds the answer. Help hub pages (`/s/products/...`)
+  hold only links, and the script refuses them.
 - A rendered page can take up to 80 seconds before the agent gives up on it (45 s to load, 20 s for content, 15 s for the
   `.md` copy of a page it redirected to).
 - No Help search. Help's `robots.txt` disallows it. Help's sitemaps list article ids but not titles.
