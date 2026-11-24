@@ -770,12 +770,21 @@ test('an atlas topic that lands on a different page is not saved, and is not ren
   assert.doesNotMatch(r.err, /rendered/, r.err);
 });
 
+test('an architect page outside /docs reads its .md, and the home page reads /index.md', () => {
+  // Rendered, these section pages are columns of cards and the first card was read as the page.
+  for (const [u, md] of [['https://architect.salesforce.com/diagrams', '/diagrams.md'], ['https://architect.salesforce.com/', '/index.md']]) {
+    const r = fetched({ pages: { [u]: { sel: 'article', text: 'The first card.' } }, raw: { [md]: '# Diagrams\n\nEvery diagram, listed.' } }, u);
+    assert.match(r.out, new RegExp(`^200 \\d+ ${md.replace('.', '\\.')} -> architect\\.salesforce\\.com`, 'm'), r.out + r.err);
+  }
+});
+
 test('a page that redirects to its site home page is not saved under its own name', () => {
   // Old architect URLs (well-architected/trusted/secure) land on the home page with status 200.
   const u = 'https://architect.salesforce.com/well-architected/trusted/secure';
   const r = fetched({ pages: { [u]: { text: 'Read the blog.', to: 'https://architect.salesforce.com/' } },
-    raw: { '/well-architected/trusted/secure.md': { status: 404, body: 'Not Found' } } }, u);
-  assert.match(r.out, /\[redirected https:\/\/architect\.salesforce\.com\/\] not saved: landed on another page/, r.out);
+    raw: { '/well-architected/trusted/secure.md': { status: 404, body: 'Not Found' } },
+    twin: { '/index.md': { status: 200, body: '# Home\n\nRead the blog.' } } }, u);
+  assert.match(r.out, /\[redirected https:\/\/architect\.salesforce\.com\/[^\]]*\] not saved: landed on another page/, r.out);
   assert.equal(existsSync(join(r.cache, 'architect.salesforce.com/well-architected/trusted/secure.txt')), false, r.out);
 });
 

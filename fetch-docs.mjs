@@ -363,9 +363,9 @@ const twinOf = u => {
   const tab = p.startsWith('/docs/platform/lightning-component-reference/') && [...u.searchParams.keys()].every(k => k === 'type');
   const has = (!u.search || tab) && !/\.(md|txt|xml|htm)$/.test(p) && (
     u.host === 'developer.salesforce.com' ? /^\/docs\/(?!atlas\.|component-library\/)[^/]+\/[^/]+\/[^/]+\/./.test(p)
-      : u.host === 'architect.salesforce.com' ? /^\/docs\/architect\/./.test(p)
+      : u.host === 'architect.salesforce.com' ? true // section pages too (/diagrams.md), and the home page as /index.md
         : u.host === 'www.lightningdesignsystem.com' && /^\/\w+\/(v\/\d+\/)?p\/./.test(p));
-  return has ? new URL(`${u.origin}${p}.md`) : null;
+  return has ? new URL(`${u.origin}${p || '/index'}.md`) : null;
 };
 const asked = new Map(); // twin href -> URL as given, rendered instead when the twin is missing
 // foo.html and foo are one page (one twin): fetch it once, and print 'same <arg> as <first arg>' for the others.
