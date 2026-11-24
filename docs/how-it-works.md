@@ -46,6 +46,7 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
 | developer.salesforce.com, atlas docs that moved (Apex, Object Reference, Metadata API, Tooling API and more) | the `.md` copy of the new page (the atlas URL redirects to it, by 7 November 2026) | the product's index, or `/docs/llms-product-docs.txt` |
 | developer.salesforce.com, atlas docs that still render (Connect REST API) | renders the page, code samples included | the product's index |
 | developer.salesforce.com, API reference pages (`?meta=<operation>`) | renders the page | the product's index |
+| developer.salesforce.com, OpenAPI reference pages (`/references/<api>`, where UI API's atlas reference redirects) | renders the whole API as one page and drops a `#tag/.../operation/...` fragment; the operation is found by searching the saved page | the product's index |
 | architect.salesforce.com | the `.md` copy | `/llms.txt` |
 | help.salesforce.com, articles and knowledge articles | renders the page | links in other docs and articles, and Help's product sitemaps |
 | admin.salesforce.com | renders the page | `/sitemap_index.xml` and its post sitemaps |
