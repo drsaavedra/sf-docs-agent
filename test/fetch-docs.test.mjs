@@ -770,6 +770,15 @@ test('an atlas topic that lands on a different page is not saved, and is not ren
   assert.doesNotMatch(r.err, /rendered/, r.err);
 });
 
+test('a page that redirects to its site home page is not saved under its own name', () => {
+  // Old architect URLs (well-architected/trusted/secure) land on the home page with status 200.
+  const u = 'https://architect.salesforce.com/well-architected/trusted/secure';
+  const r = fetched({ pages: { [u]: { text: 'Read the blog.', to: 'https://architect.salesforce.com/' } },
+    raw: { '/well-architected/trusted/secure.md': { status: 404, body: 'Not Found' } } }, u);
+  assert.match(r.out, /\[redirected https:\/\/architect\.salesforce\.com\/\] not saved: landed on another page/, r.out);
+  assert.equal(existsSync(join(r.cache, 'architect.salesforce.com/well-architected/trusted/secure.txt')), false, r.out);
+});
+
 test('an atlas topic renamed on the new docs is read as its twin', () => {
   for (const [topic, to] of [['sforce_api_objects_account', 'object-account'], ['index-api', 'apis-overview'], ['sforce_api_objects_contentdocument', 'object-content-document'], ['sforce_api_objects_case', 'object-case/']]) {
     const page = `https://developer.salesforce.com/docs/platform/x/guide/${to}${to.endsWith('/') ? '' : '.html'}`;
