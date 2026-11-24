@@ -68,7 +68,8 @@ The agent finds pages through the site's `llms.txt` index or its sitemaps.
   page where the link went, and the agent reads that page if it holds the answer. Help hub pages (`/s/products/...`)
   hold only links, and the script refuses them.
 - A rendered page can take up to 80 seconds before the agent gives up on it (45 s to load, 20 s for content, 15 s for the
-  `.md` copy of a page it redirected to).
+  `.md` copy of a page it redirected to). A component reference page can take up to 65 seconds more, to render its
+  Specification tab.
 - No Help search. Help's `robots.txt` disallows it. Help's sitemaps list article ids but not titles.
 - It reads the current docs, which don't always name their release.
 - From a page it found, it follows at most two more links in a row, and only toward a missing part of the answer. An
