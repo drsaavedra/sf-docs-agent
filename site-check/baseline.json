@@ -936,8 +936,8 @@
   },
   "https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification": {
     "status": 200,
-    "chars": 12984,
-    "kinds": "",
+    "chars": 14675,
+    "kinds": "specification",
     "saved": true
   }
 }
