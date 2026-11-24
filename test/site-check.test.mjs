@@ -47,6 +47,13 @@ test('a fallback read, a failed fetch or an unsaved article is no baseline; a pa
   assert.equal(unfit(missing, 'https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_no_such_topic_xyz.htm'), false);
 });
 
+test('a component page whose Specification tab did not render is drift', () => {
+  const u = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Specification';
+  const at = note => parse([u], `200 14675 /docs/platform/lightning-component-reference/guide/lightning-button.md ${note} -> a.md`)[u];
+  assert.equal(drifted(at('[specification]'), at('[specification]')), false);
+  assert.equal(drifted(at('[specification]'), at('[no specification: no table]')), true);
+});
+
 test('a raw line is matched back to its URL, including the .md copy fetched in its place', () => {
   const urls = ['https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai',
     'https://developer.salesforce.com/docs/commerce/commerce-api/references/shopper-baskets?meta=getBasket',

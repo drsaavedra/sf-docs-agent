@@ -367,6 +367,7 @@ const twinOf = u => {
         : u.host === 'www.lightningdesignsystem.com' && /^\/\w+\/(v\/\d+\/)?p\/./.test(p));
   return has ? new URL(`${u.origin}${p || '/index'}.md`) : null;
 };
+const SPEC = /^::component-specification\{[^}\n]*\}$/m;
 const asked = new Map(); // twin href -> URL as given, rendered instead when the twin is missing
 // foo.html and foo are one page (one twin): fetch it once, and print 'same <arg> as <first arg>' for the others.
 const urls = [], sameAs = [], first = new Map();
@@ -424,7 +425,7 @@ function extract([sels, fallback]) {
     // pending: components inside it (code samples) not rendered yet. An API reference keeps empty hosts for good, so
     // it holds instead until an api-* documentation component exists.
     const amf = s === 'doc-amf-reference';
-    if (t.length > (s === 'doc-content' ? 20 : 200)) return { sel: s, text: page(t), links: list,
+    if (t.length > (s === 'doc-content' || s === 'doc-specification-content' ? 20 : 200)) return { sel: s, text: page(t), links: list,
       pending: mark || amf ? 0 : hosts.filter(h => under(el, h) && !h.shadowRoot.childElementCount).length,
       hold: amf && !hosts.some(h => h.tagName.startsWith('API-') && under(el, h)) };
   }
@@ -563,7 +564,18 @@ try {
   const raw = todo.filter(u => /\.(md|txt|xml)$/.test(u.pathname) || /^\/apex\/Help_\w*SiteMap/i.test(u.pathname));
   const rendered = todo.filter(u => !raw.includes(u));
   // A twin that failed (some API reference pages have none) falls back to the URL as given, rendered at the end.
+  // A component page's .md holds a ::component-specification placeholder where its attribute table is: the read waits
+  // for one render of the Specification tab, which fills it in.
+  const specs = new Map(); // Specification tab URL -> the .md read waiting for its table
+  const deferSpec = (r, md) => {
+    if (r.status !== 200 || r.elsewhere || !md.startsWith('/docs/platform/lightning-component-reference/') || !SPEC.test(r.body)) return false;
+    const at = `https://developer.salesforce.com${md.replace(/\.md$/, '.html')}?type=Specification`;
+    if (!specs.has(at)) rendered.push(new URL(at));
+    specs.set(at, r);
+    return true;
+  };
   const settle = r => {
+    if (deferSpec(r, new URL(r.key).pathname)) return;
     if (!asked.has(r.key) || (r.status === 200 && !r.shell)) return emit(r);
     if (missingTwin(r.status, r.body)) markMissing(new URL(r.key));
     const u = asked.get(r.key);
@@ -606,10 +618,23 @@ try {
 
   // Rendered: load, give client-side content up to 20 s to appear, then take the first matching container.
   for (const u of rendered) {
-    if (Date.now() >= deadline) { skip(u.href); continue; }
+    const spec = specs.get(u.href), unfilled = why => emit({ ...spec, note: `${spec.note} [no specification: ${why}]` });
+    if (Date.now() >= deadline) { if (spec) unfilled('time limit'); else skip(u.href); continue; }
     const page = await browser.newPage();
     let navErr = '';
     const nav = await page.goto(u.href, { waitUntil: 'load', timeout: 45000 }).catch(e => { navErr = e.message.split('\n')[0]; return null; });
+    // The table renders in a shadow root after load: up to 20 s, as for any page. A miss keeps the .md as read.
+    if (spec) {
+      let table = '';
+      for (const end = Date.now() + 20000; !navErr && !table && Date.now() < end; await page.waitForTimeout(500)) {
+        const got = await page.evaluate(extract, [['doc-specification-content'], false]).catch(() => null);
+        if (got?.sel === 'doc-specification-content' && !got.pending) table = got.text.replace(/^# .*\n\n/, '').trim();
+      }
+      if (table) emit({ ...spec, body: spec.body.replace(SPEC, table), note: `${spec.note} [specification]` });
+      else unfilled(navErr || 'no table');
+      await page.close();
+      continue;
+    }
     if (navErr) { emit({ p: u.href, status: 0, body: `error: ${navErr}`, key: u.href, note: '' }); await page.close(); continue; }
     // Old atlas URLs (and the LDS home) redirect to pages that have a .md twin: true once it is emitted. Any failure
     // (late navigation, body error, 15 s hang) keeps the rendered text and sets the note that says why.
@@ -626,8 +651,9 @@ try {
       const gone = !tw.why && missingTwin(tw.status, tw.body);
       if (gone) markMissing(moved);
       if (!tw.why && !gone && tw.status === 200) {
-        emit({ p: u.href, status: 200, body: tw.body, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]`,
-          elsewhere: landsElsewhere(u, to) }); // only once read: a redirect at load can be a stop on the way
+        const r = { p: u.href, status: 200, body: tw.body, md: true, links, key: u.href, src: official(moved), note: ` [twin ${moved.pathname}] [redirected ${official(moved)}]`,
+          elsewhere: landsElsewhere(u, to) }; // only once read: a redirect at load can be a stop on the way
+        if (!deferSpec(r, moved.pathname)) emit(r);
         return true;
       }
       failed = ` [twin failed: ${tw.why || (gone ? (tw.status === 404 ? 'status 404' : isShell(tw.body) ? 'shell' : 'empty') : `status ${tw.status}`)}]`;

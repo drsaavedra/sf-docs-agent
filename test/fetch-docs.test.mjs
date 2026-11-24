@@ -843,6 +843,23 @@ test('a live refusal removes a copy cached before the check', () => {
   for (const x of [f, `${f}.links.txt`, `${f}.fallback`]) assert.equal(existsSync(join(r.cache, x)), false, `${x}\n${r.out}`);
 });
 
+test('a component page .md gets its attribute table from the rendered Specification tab', () => {
+  // The .md holds a ::component-specification placeholder where the Specification tab's table is.
+  const base = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button';
+  const spec = `${base}.html?type=Specification`, md = '/docs/platform/lightning-component-reference/guide/lightning-button.md';
+  const old = 'https://developer.salesforce.com/docs/component-library/bundle/lightning-button/documentation';
+  const body = '# Button\n\n:::tab\n::component-specification{component="button" model="lwc" namespace="lightning"}\n:::\n';
+  const pages = { [spec]: { sel: 'doc-specification-content', text: '# Button\n\nAttributes\nName\tDescription\nstretch\tTakes the full width.\n' } };
+  for (const r of [fetched({ pages, raw: { [md]: body } }, `${base}.html?type=Develop`), fetched({ pages, raw: { [md]: body } }, `https://developer.salesforce.com${md}`),
+    // Reached by a redirect from the old component-library URL too.
+    fetched({ pages: { ...pages, [old]: { text: 'Old.', to: `${base}.html?type=Example` } }, twin: { [md]: { status: 200, body } } }, old)]) {
+    assert.match(r.out, /\[specification\] -> /, r.out + r.err);
+    const saved = readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8');
+    assert.match(saved, /stretch\tTakes the full width\./, saved);
+    assert.doesNotMatch(saved, /::component-specification|# Button\n\nAttributes/, saved); // placeholder and the render's title line gone
+  }
+});
+
 test('a component page that opens on a ?type= tab reads its .md, which holds every tab', () => {
   const ref = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button.html?type=Develop';
   const old = 'https://developer.salesforce.com/docs/component-library/bundle/lightning-button/documentation';
