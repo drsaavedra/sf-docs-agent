@@ -22,11 +22,13 @@ const run = (out, ...args) => {
 };
 // A fresh fetch offline: the script's copy beside a stub playwright-core. pages: URL -> { text, links, status, sel, to, first, navErr }
 // (first: URL before the render; text: a string, or one per poll, the last repeating); raw: path -> body or { status, body }; twin: path -> { status, body } or { reject }; seed: cache file -> age in minutes.
-const STUB = `const { pages = {}, raw = {}, twin = {} } = JSON.parse(process.env.STUB);
+const STUB = `const { pages = {}, raw = {}, twin = {} } = JSON.parse(process.env.STUB), now = Date.now;
+let skew = 0; // waits advance the clock, so a 20 s render cap costs nothing
+Date.now = () => now() + skew;
 export const chromium = { launch: async () => ({ close: async () => {}, newPage: async () => { let at = '', seen = false; return {
   goto: async u => { at = u; if (pages[u]?.navErr) throw new Error(pages[u].navErr); return { status: () => pages[u]?.status ?? 200 }; },
   url: () => (!seen && pages[at]?.first) || pages[at]?.to || at,
-  waitForTimeout: async () => {}, close: async () => {},
+  waitForTimeout: async ms => { skew += ms; }, close: async () => {},
   evaluate: async (f, a) => {
     if (typeof a === 'string') { console.error('twin read'); if (twin[a].reject) throw new Error(twin[a].reject); return twin[a]; }
     if (a.length === 3) return a[0].map(p => ({ p, ...(typeof raw[p] === 'object' ? raw[p] : { status: 200, body: raw[p] }) }));
@@ -891,6 +893,19 @@ test('an attribute table is taken once it stops growing, not at its first rows',
   const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
     { sel: 'doc-specification-content', text: grow } }, raw: { [md]: '# Input\n\n::component-specification{component="input"}\n' } }, `https://developer.salesforce.com${md}`);
   assert.match(readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8'), /attr3\t/, r.out);
+});
+
+test('an attribute table that pauses between rows, or never settles, is taken whole', () => {
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', row = n => `attr${n}\tAn attribute that the tab renders.`;
+  const table = n => `# I\n\n${Array.from({ length: n }, (_, i) => row(i + 1)).join('\n')}`;
+  const read = text => { const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { sel: 'doc-specification-content', text } }, raw: { [md]: '# Input\n\n::component-specification{component="input"}\n' } }, `https://developer.salesforce.com${md}`);
+    return [r.out, readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8')]; };
+  const [, paused] = read([table(1), table(1), table(3)]); // one repeat is a pause, not the end
+  assert.match(paused, /attr3\t/, paused);
+  const [out, growing] = read(Array.from({ length: 60 }, (_, i) => table(i + 1))); // still growing at the 20 s cap
+  assert.match(out, /\[specification\]/, out);
+  assert.match(growing, /attr40\t/, growing);
 });
 
 test('an attribute table with $ in it is saved as written', () => {

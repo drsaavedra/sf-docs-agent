@@ -638,14 +638,16 @@ try {
     const nav = await page.goto(u.href, { waitUntil: 'load', timeout: 45000 }).catch(e => { navErr = e.message.split('\n')[0]; return null; });
     // The table renders in a shadow root after load: up to 20 s, as for any page. A miss keeps the .md as read.
     if (spec) {
-      // Rows can arrive over several frames: take the table once two polls in a row read the same.
-      let table = '', last = '';
-      for (const end = Date.now() + 20000; !navErr && !table && Date.now() < end; await page.waitForTimeout(500)) {
+      // Rows can arrive over several frames: take the table once 1 s of polls read the same, as the main loop does, or
+      // the last read at the cap.
+      let table = '', last = '', same = 0;
+      for (const end = Date.now() + 20000; !navErr && same < 2 && Date.now() < end; await page.waitForTimeout(500)) {
         const got = await page.evaluate(extract, [['doc-specification-content'], false]).catch(() => null);
         const t = got?.sel === 'doc-specification-content' && !got.pending ? got.text : '';
-        if (t && t === last) table = t.replace(/^# .*\n\n/, '').trim();
+        same = t && t === last ? same + 1 : 0;
         last = t;
       }
+      if (last) table = last.replace(/^# .*\n\n/, '').trim();
       if (table) spec.forEach(r => emit({ ...r, body: r.body.replace(SPEC, () => table), note: `${r.note} [specification]` }));
       else unfilled(navErr || 'no table');
       await page.close();
