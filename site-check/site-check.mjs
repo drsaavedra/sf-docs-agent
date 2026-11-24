@@ -103,7 +103,7 @@ export const products = r => (r?.indexes ?? []).map(p => p.startsWith('/') ? `ht
   .filter(u => !URLS.includes(u));
 // The guides an index links to: /docs/atlas.<guide>.meta, else up to three folders under /docs (platform/lwc/guide;
 // mytrust-api has one). A guide moved in or out changes the set; an edited or added page does not.
-const guidesOf = text => [...new Set([...text.matchAll(/\]\(https?:\/\/developer\.salesforce\.com(\/docs\/[^\s)#?]+)/g)]
+const guidesOf = text => [...new Set([...text.matchAll(/\]\((?:https?:\/\/developer\.salesforce\.com)?(\/docs\/[^\s)#?]+)/g)]
   .map(([, p]) => { const s = p.split('/'); return s.slice(0, Math.min(p.startsWith('/docs/atlas.') ? 3 : 5, s.length - 1)).join('/'); }))].sort();
 const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
 const CHILD_NORM = norm(HELP_CHILD), isChild = s => URL.canParse(s) && norm(s) === CHILD_NORM;
