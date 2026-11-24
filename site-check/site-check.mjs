@@ -14,7 +14,7 @@ const SCRIPT = join(here, '..', 'fetch-docs.mjs'), BASE = join(here, 'baseline.j
 // On 2026-11-24, after UI API moved, Connect REST API was the only live atlas guide of 15 tried still rendering (div.body).
 // When it moves to a twin its URL drifts: replace it with another rendered guide if one is left.
 // Every llms index the prompt names (a test holds this) and one Help child sitemap: a 404 or an emptied file is drift,
-// which the llms.txt pin cannot see. Every other index the baseline's llms.txt lists is fetched too (see products).
+// which the llms.txt pin cannot see.
 export const HELP_INDEX = 'https://help.salesforce.com/apex/Help_SiteMapIndexExternal?producttype=ai';
 export const HELP_CHILD = 'https://help.salesforce.com/apex/Help_SiteMapExternal?page=1&producttype=ai';
 export const URLS = [
@@ -103,8 +103,8 @@ const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index 
 export const products = r => (r?.indexes ?? []).map(p => p.startsWith('/') ? `https://developer.salesforce.com${p}` : p)
   .filter(u => !URLS.includes(u));
 export const targets = r => [...URLS, ...products(r)]; // what a check of that llms.txt read fetches
-// The guides an index links to: /docs/atlas.<guide>.meta, else up to three folders under /docs (platform/lwc/guide;
-// mytrust-api has one). A guide moved in or out changes the set; an edited or added page does not.
+// The guides an index links to: /docs/atlas.<guide>.meta, else up to three folders under /docs (platform/lwc/guide).
+// A guide moved in or out changes the set, and so does a page at a new depth; an edited page does not.
 const guidesOf = text => [...new Set([...text.matchAll(/\]\((?:https?:\/\/developer\.salesforce\.com)?(\/docs\/[^\s)#?]+)/g)]
   .map(([, p]) => { const s = p.split('/'); return s.slice(0, Math.min(p.startsWith('/docs/atlas.') ? 3 : 5, s.length - 1)).join('/'); }))].sort();
 const norm = s => { const x = new URL(s); x.protocol = 'https:'; x.searchParams.sort(); return x.href; };
@@ -202,7 +202,7 @@ const first = run(urls);
 const { now, bad } = await retry(base, first, urls, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
   ? [`## ${bad.length} of ${urls.length} doc pages changed`, '', ...(broke ? [`The fetch itself failed, so a site change is not certain: ${broke}`, ''] : []), ...bad.flatMap(u => { const d = moved(base[u], now[u]);
-    return [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``, ...(d ? [`  - indexes: \`${d}\``] : [])]; })].join('\n')
+    return [`- ${u}`, `  - was: \`${show(base[u], 'not in baseline.json: run --update')}\``, `  - now: \`${show(now[u], 'no result line')}\``, ...(d ? [`  - moved: \`${d}\``] : [])]; })].join('\n')
   : `All ${urls.length} doc pages read as in the baseline.`);
 process.exit(bad.length ? 1 : 0);
 }
