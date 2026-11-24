@@ -345,7 +345,7 @@ const guide = p => p.match(/^\/docs\/atlas\.[^/]+\/([^/]+)(?:\/|$)/)?.[1];
 const words = p => p.replace(/\/$/, '').split('/').pop().replace(/\.(html?|md)$/, '').toLowerCase().split(/[_.-]+/).filter(Boolean);
 const landsElsewhere = (u, to) => {
   // On any site, a deeper page that lands on the home page has no successor (old architect URLs do this).
-  if (to.pathname.replace(/\/$/, '') === '' && u.pathname.replace(/\/$/, '') !== '') return true;
+  if (to.pathname.replace(/\/$/, '') === '' && u.pathname.replace(/\/(index(\.html?)?)?$/, '') !== '') return true;
   if (!/\.html?$/.test(u.pathname) || !guide(u.pathname)) return false;
   if (to.host === 'help.salesforce.com' && to.pathname === '/s/articleView' && to.searchParams.get('id')) return false;
   // A guide's top page ends _top (cli_reference_top -> cli_reference): its name is the word before.

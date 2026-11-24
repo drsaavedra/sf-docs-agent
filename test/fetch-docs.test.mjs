@@ -787,6 +787,12 @@ test('an architect file URL is fetched as itself, with no .md copy tried', () =>
   assert.match(r.out, /some-diagram\.pdf \[div\.body\] -> /, r.out + r.err);
 });
 
+test('an index.html that lands on its site home page is the same page, and is saved', () => {
+  const u = 'https://v1.lightningdesignsystem.com/index.html';
+  const r = fetched({ pages: { [u]: { text: 'The design system home.', to: 'https://v1.lightningdesignsystem.com/' } } }, u);
+  assert.doesNotMatch(r.out, /not saved/, r.out + r.err);
+});
+
 test('a page that redirects to its site home page is not saved under its own name', () => {
   // Old architect URLs (well-architected/trusted/secure) land on the home page with status 200.
   const u = 'https://architect.salesforce.com/well-architected/trusted/secure';
