@@ -861,6 +861,15 @@ test('a component page .md gets its attribute table from the rendered Specificat
   }
 });
 
+test('an attribute table with $ in it is saved as written', () => {
+  // replace() reads $& $' $` $$ in a replacement string as patterns.
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', table = "format\tShows '$' or $& as typed, and $$.";
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { sel: 'doc-specification-content', text: `# I\n\n${table}` } }, raw: { [md]: '# Input\n\n::component-specification{component="input"}\nAfter.\n' } }, `https://developer.salesforce.com${md}`);
+  const saved = readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8');
+  assert.ok(saved.includes(`${table}\nAfter.`), saved);
+});
+
 test('two reads waiting on one Specification tab both get its table', () => {
   // The .md path and the old component-library URL are different arguments for the same page.
   const base = 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-button';

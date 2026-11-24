@@ -633,7 +633,7 @@ try {
         const got = await page.evaluate(extract, [['doc-specification-content'], false]).catch(() => null);
         if (got?.sel === 'doc-specification-content' && !got.pending) table = got.text.replace(/^# .*\n\n/, '').trim();
       }
-      if (table) spec.forEach(r => emit({ ...r, body: r.body.replace(SPEC, table), note: `${r.note} [specification]` }));
+      if (table) spec.forEach(r => emit({ ...r, body: r.body.replace(SPEC, () => table), note: `${r.note} [specification]` }));
       else unfilled(navErr || 'no table');
       await page.close();
       continue;
