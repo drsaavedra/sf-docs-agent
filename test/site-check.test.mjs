@@ -5,7 +5,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { HELP_CHILD, HELP_INDEX, URLS, drifted, moved, parse, products, retry, unfit } from '../site-check/site-check.mjs';
+import { HELP_CHILD, HELP_INDEX, URLS, drifted, moved, parse, products, retry, targets, unfit } from '../site-check/site-check.mjs';
 import { tempDir } from './harness.mjs';
 
 const page = { status: 200, chars: 5000, kinds: '.slds-text-longform', saved: true };
@@ -139,6 +139,14 @@ const HELP = 'https://help.salesforce.com/s/articleView?id=a.htm&type=5';
 test('a run hands parse its out dir, so a Help page counts its article links', async () => {
   const { run } = await copy();
   assert.equal(run([HELP])[HELP].links, 1);
+});
+
+test('a run with no URLs starts no fetch, and the check fetches URLS plus the indexes llms.txt lists', async () => {
+  const { dir, run, failure } = await copy();
+  rmSync(join(dir, 'fetch-docs.mjs')); // a started fetch would fail on the missing script
+  assert.deepEqual([run([]), failure()], [{}, '']);
+  assert.deepEqual(targets({ indexes: ['/docs/llms-platform.txt', '/docs/llms-x.txt'] }), [...URLS, 'https://developer.salesforce.com/docs/llms-x.txt']);
+  assert.deepEqual(targets(undefined), URLS);
 });
 
 test('a later run that fetches cleanly drops the failure the first one recorded', async t => {

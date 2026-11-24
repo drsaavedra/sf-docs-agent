@@ -76,6 +76,7 @@ export const failure = () => broke;
 // Each run is judged on its own fetch, so a clean retry drops an earlier failure.
 export const run = urls => {
   broke = '';
+  if (!urls.length) return {}; // fetch-docs with no URL exits on its usage line
   const out = mkdtempSync(join(tmpdir(), 'sf-docs-site-check-'));
   try {
     // The budget only stops new pages starting: the kill ends a hung one (Playwright traps SIGTERM), and three runs plus
@@ -101,6 +102,7 @@ const LLMS = 'https://developer.salesforce.com/docs/llms.txt'; // the one index 
 // The per-product indexes an llms.txt read lists, as URLs, less those URLS names: a guide moves without a sampled page.
 export const products = r => (r?.indexes ?? []).map(p => p.startsWith('/') ? `https://developer.salesforce.com${p}` : p)
   .filter(u => !URLS.includes(u));
+export const targets = r => [...URLS, ...products(r)]; // what a check of that llms.txt read fetches
 // The guides an index links to: /docs/atlas.<guide>.meta, else up to three folders under /docs (platform/lwc/guide;
 // mytrust-api has one). A guide moved in or out changes the set; an edited or added page does not.
 const guidesOf = text => [...new Set([...text.matchAll(/\]\((?:https?:\/\/developer\.salesforce\.com)?(\/docs\/[^\s)#?]+)/g)]
@@ -183,7 +185,7 @@ export const retry = async (base, now, urls, refetch, sleep, waits = [60000, 180
 const entry = (() => { try { return pathToFileURL(realpathSync(process.argv[1])).href; } catch { return ''; } })(); // no file: imported
 if (import.meta.url === entry) {
 if (process.argv.includes('--update')) {
-  const got = run(URLS), all = [...URLS, ...products(got[LLMS])];
+  const got = run(URLS), all = targets(got[LLMS]);
   Object.assign(got, run(all.slice(URLS.length))); // the indexes today's llms.txt lists
   const missing = all.filter(u => !got[u]), bad = all.filter(u => got[u] && unfit(got[u], u));
   if (missing.length) { console.error(`no result for:\n${missing.join('\n')}`); process.exit(1); }
@@ -195,7 +197,7 @@ if (process.argv.includes('--update')) {
 
 const base = JSON.parse(readFileSync(BASE, 'utf8'));
 // The baseline's index list, not today's: an index added or dropped is already llms.txt's drift.
-const urls = [...URLS, ...products(base[LLMS])];
+const urls = targets(base[LLMS]);
 const first = run(urls);
 const { now, bad } = await retry(base, first, urls, run, ms => new Promise(r => setTimeout(r, ms)));
 console.log(bad.length
