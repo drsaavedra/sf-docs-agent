@@ -957,7 +957,7 @@
     "chars": 15493,
     "kinds": "twin redirected redirected",
     "saved": false,
-    "to": "https://architect.salesforce.com/index"
+    "to": "https://architect.salesforce.com/"
   },
   "https://developer.salesforce.com/docs/atlas.en-us.integration_patterns_and_practices.meta/integration_patterns_and_practices/integ_pat_intro_overview.htm": {
     "status": 200,
