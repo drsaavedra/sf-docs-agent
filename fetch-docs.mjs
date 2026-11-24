@@ -416,12 +416,15 @@ function extract([sels, fallback]) {
   const text = el => !hosts.some(h => el.contains(h)) ? el.innerText || ''
     : deep(el).replace(/ +/g, ' ').replace(/ ?\t ?/g, '\t').replace(/^ | $|\t+$/gm, '').replace(/\n{2,}/g, '\n')
       .replace(/\u00a0/g, ' ').trim();
-  for (const s of sels) for (const r of roots) for (const el of r.querySelectorAll(s)) {
+  for (const s of sels) for (const r of roots) {
+    // A listing (admin topic, tag and author pages) is visible article cards, none holding 60% of the text: read them all.
+    const cards = s !== 'article' ? [] : [...r.querySelectorAll(s)].filter(a => !a.parentElement?.closest('article') && a.checkVisibility())
+      .map(a => (a.innerText || '').trim()).filter(Boolean), all = cards.reduce((n, c) => n + c.length, 0);
+    if (cards.length > 1 && all > 200 && Math.max(...cards.map(c => c.length)) < all * 0.6) return { sel: s, text: page(cards.join('\n\n')), links: list, pending: 0, hold: false };
+    for (const el of r.querySelectorAll(s)) {
     // Landmarks hold the site's nav components too, so their shadow trees stay out.
     const mark = s === 'main' || s === 'article';
-    // A listing (admin topic, tag and author pages) is a column of article cards: read every top-level one, once.
-    const t = s === 'article' ? [...r.querySelectorAll(s)].filter(a => !a.parentElement?.closest('article'))
-      .map(a => a.innerText || '').filter(x => x.trim()).join('\n\n') : mark ? el.innerText || '' : text(el);
+    const t = mark ? el.innerText || '' : text(el);
     // 200 chars skips footer cards that also match div.body; doc-content holds only the topic, and some are one line.
     // pending: components inside it (code samples) not rendered yet. An API reference keeps empty hosts for good, so
     // it holds instead until an api-* documentation component exists.
@@ -429,6 +432,7 @@ function extract([sels, fallback]) {
     if (t.length > (s === 'doc-content' || s === 'doc-specification-content' ? 20 : 200)) return { sel: s, text: page(t), links: list,
       pending: mark || amf ? 0 : hosts.filter(h => under(el, h) && !h.shadowRoot.childElementCount).length,
       hold: amf && !hosts.some(h => h.tagName.startsWith('API-') && under(el, h)) };
+    }
   }
   // No known container (a layout change): take the block whose paragraphs hold the most text, outside nav and footers.
   // ponytail: 1,500-char floor keeps shells out (missing pages, Help's outage page: 400 to 1,200); a shorter article still fails.

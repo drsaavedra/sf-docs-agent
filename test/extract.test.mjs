@@ -55,6 +55,17 @@ test('a listing of article cards is read whole, each card once, not as its first
   assert.equal(r.text.match(/inner/g).length, 20, r.text); // the nested article is read with its card, not again on its own
 });
 
+test('a post with related-post article cards is read as the post, and a hidden card is never read', () => {
+  const r = fetched(BLOG, `<title>Post</title><article>${para(10, 'postword')}</article>
+    <aside><article>${para(1, 'relatedone')}</article><article>${para(1, 'relatedtwo')}</article></aside>`);
+  assert.match(r.text, /postword/, r.out + r.err);
+  assert.doesNotMatch(r.text, /related/, r.text); // one article holds most of the text: a post, not a listing
+  const list = fetched('https://admin.salesforce.com/automation', `<title>A</title><article>${para(1, 'cardone')}</article>
+    <article>${para(1, 'cardtwo')}</article><article style="display:none">${para(1, 'hiddencard')}</article>`);
+  assert.match(list.text, /cardone[\s\S]*cardtwo/, list.out + list.err);
+  assert.doesNotMatch(list.text, /hiddencard/, list.text);
+});
+
 test('a block under the 1,500 character floor is a shell, not a page', () => {
   const r = fetched(BLOG, `<title>Post</title><div>${para(12, 'prose')}</div>`);
   assert.match(r.out, /not saved: shell, login or missing page/, r.out + r.err);
