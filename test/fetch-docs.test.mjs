@@ -871,6 +871,14 @@ test('a Specification tab that does not render keeps the .md, marked to be fetch
   assert.equal(existsSync(`${file}.fallback`), true); // not served from cache as a full page
 });
 
+test('an attribute table is taken once it stops growing, not at its first rows', () => {
+  const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', row = n => `attr${n}\tAn attribute that the tab renders.`;
+  const grow = [1, 2, 3].map(n => `# I\n\n${[1, 2, 3].slice(0, n).map(row).join('\n')}`);
+  const r = fetched({ pages: { 'https://developer.salesforce.com/docs/platform/lightning-component-reference/guide/lightning-input.html?type=Specification':
+    { sel: 'doc-specification-content', text: grow } }, raw: { [md]: '# Input\n\n::component-specification{component="input"}\n' } }, `https://developer.salesforce.com${md}`);
+  assert.match(readFileSync(join(r.cache, r.out.match(/ -> (\S+)/)[1]), 'utf8'), /attr3\t/, r.out);
+});
+
 test('an attribute table with $ in it is saved as written', () => {
   // replace() reads $& $' $` $$ in a replacement string as patterns.
   const md = '/docs/platform/lightning-component-reference/guide/lightning-input.md', table = "format\tShows '$' or $& as typed, and $$.";

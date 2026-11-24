@@ -629,10 +629,13 @@ try {
     const nav = await page.goto(u.href, { waitUntil: 'load', timeout: 45000 }).catch(e => { navErr = e.message.split('\n')[0]; return null; });
     // The table renders in a shadow root after load: up to 20 s, as for any page. A miss keeps the .md as read.
     if (spec) {
-      let table = '';
+      // Rows can arrive over several frames: take the table once two polls in a row read the same.
+      let table = '', last = '';
       for (const end = Date.now() + 20000; !navErr && !table && Date.now() < end; await page.waitForTimeout(500)) {
         const got = await page.evaluate(extract, [['doc-specification-content'], false]).catch(() => null);
-        if (got?.sel === 'doc-specification-content' && !got.pending) table = got.text.replace(/^# .*\n\n/, '').trim();
+        const t = got?.sel === 'doc-specification-content' && !got.pending ? got.text : '';
+        if (t && t === last) table = t.replace(/^# .*\n\n/, '').trim();
+        last = t;
       }
       if (table) spec.forEach(r => emit({ ...r, body: r.body.replace(SPEC, () => table), note: `${r.note} [specification]` }));
       else unfilled(navErr || 'no table');
